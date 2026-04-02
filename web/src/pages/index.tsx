@@ -21,10 +21,7 @@ export default function Home() {
   };
 
   return (
-    <Layout
-      customLeftPanel={<HomeLeftPanel />}
-      rigthPanelScrollable={false}
-    >
+    <Layout customLeftPanel={<HomeLeftPanel />} rigthPanelScrollable={false}>
       <VStack boxSize="full" gap="10px">
         <Card variant="pixelated">
           <HStack w="full" p={["10px", "20px"]} gap="10px" justify="center">

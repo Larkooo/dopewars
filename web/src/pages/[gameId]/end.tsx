@@ -18,10 +18,7 @@ import {
 } from "@chakra-ui/react";
 import { Button } from "@/components/common";
 import ShareButton from "@/components/pages/profile/ShareButton";
-import {
-  useGameStore,
-  useRouterContext,
-} from "@/dojo/hooks";
+import { useGameStore, useRouterContext } from "@/dojo/hooks";
 import { formatCash } from "@/utils/ui";
 import { observer } from "mobx-react-lite";
 import { ReactNode, useCallback, useEffect, useState } from "react";
@@ -53,9 +50,7 @@ const End = () => {
         prefixTitle: game?.player?.health === 0 ? "You died" : "You survived",
         imageSrc: "/images/sunset.png",
       }}
-      footer={
-        <Button onClick={() => router.push("/")}>Lobby</Button>
-      }
+      footer={<Button onClick={() => router.push("/")}>Lobby</Button>}
     >
       <VStack h="full" justifyContent="center" gap={6}>
         <HStack w="full">
@@ -63,10 +58,7 @@ const End = () => {
             <Image src="/images/sunset.png" alt="game over" />
           </VStack>
           <VStack flex="1">
-            <StatsItem
-              text={game?.gameInfos.player_name || "Player"}
-              icon={<PaperCashIcon />}
-            />
+            <StatsItem text={game?.gameInfos.player_name || "Player"} icon={<PaperCashIcon />} />
 
             <Divider borderColor="neon.600" />
             <StatsItem text={`${formatCash(game?.player?.cash || 0)}`} icon={<PaperCashIcon />} />

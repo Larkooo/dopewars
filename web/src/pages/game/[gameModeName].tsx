@@ -6,13 +6,7 @@ import { useRouterContext, useSystems } from "@/dojo/hooks";
 import { GameMode } from "@/dojo/types";
 import { play } from "@/hooks/media";
 import { Sounds, playSound } from "@/hooks/sound";
-import {
-  Card,
-  HStack,
-  Heading,
-  Text,
-  VStack,
-} from "@chakra-ui/react";
+import { Card, HStack, Heading, Text, VStack } from "@chakra-ui/react";
 import { useRef, useState } from "react";
 
 const gameModeLabel: Record<GameMode, string> = {
@@ -65,13 +59,7 @@ export default function New() {
             Back
           </Button>
 
-          <Button
-            variant="primary"
-            w={["full", "auto"]}
-            px={["auto", "20px"]}
-            isLoading={isPending}
-            onClick={create}
-          >
+          <Button variant="primary" w={["full", "auto"]} px={["auto", "20px"]} isLoading={isPending} onClick={create}>
             Play
           </Button>
         </Footer>

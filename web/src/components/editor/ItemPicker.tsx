@@ -50,17 +50,9 @@ export function ItemPicker({
     <>
       {variant === "Image" && (
         <Flex flexDirection="column" gap={1} alignItems="center" cursor="pointer" onClick={() => setOpen(true)}>
-          {selected && (
-            <Image w="120px" h="120px" src={selected.metadata?.image} />
-          )}
+          {selected && <Image w="120px" h="120px" src={selected.metadata?.image} />}
           {!selected && (
-            <Flex
-              alignItems="center"
-              justifyContent="center"
-              bg="#888"
-              w="120px"
-              h="120px"
-            >
+            <Flex alignItems="center" justifyContent="center" bg="#888" w="120px" h="120px">
               <PaperIcon width="40px" height="40px" />
             </Flex>
           )}

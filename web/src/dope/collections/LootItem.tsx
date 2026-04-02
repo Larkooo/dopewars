@@ -5,11 +5,7 @@ export default function LootItem({ token }: { token: any }) {
   return (
     // @ts-ignore
     <CardAnim>
-      <GridItem
-        className="cursor-pointer"
-        border="solid 1px"
-        borderColor="neon.700"
-      >
+      <GridItem className="cursor-pointer" border="solid 1px" borderColor="neon.700">
         <img
           className="aspect-square w-full pointer-events-none select-none"
           src={token.metadata?.image}

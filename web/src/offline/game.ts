@@ -4,7 +4,15 @@ import { Kevlar, Knife, Shoes } from "@/components/icons/items";
 import { drugIcons, drugIconsKeys, locationIcons, locationIconsKeys, dopeLootSlotIdToItemSlot } from "@/dojo/helpers";
 import { ItemSlot, PlayerStatus, TradeAction, TradeDirection } from "@/dojo/types";
 import { ItemInfos } from "@/dojo/class/Items";
-import { DrugMarket, MarketsByLocation, PendingCall, PendingCallWithCost, WantedByLocation, isShopAction, isTradeAction } from "@/dojo/class/Game";
+import {
+  DrugMarket,
+  MarketsByLocation,
+  PendingCall,
+  PendingCallWithCost,
+  WantedByLocation,
+  isShopAction,
+  isTradeAction,
+} from "@/dojo/class/Game";
 import { DrugConfigFull, GearItemFull, LocationConfigFull } from "@/dojo/stores/config";
 import { action, computed, makeObservable, observable } from "mobx";
 import { EngineState } from "./engine";
@@ -33,7 +41,17 @@ export class OfflineConfigStore {
 
   constructor() {
     this.config = {
-      ryo: { paper_fee: 0, season_version: 1, season_duration: 0, season_time_limit: 0, paper_reward_launderer: 0, treasury_fee_pct: 0, treasury_balance: 0, initialized: true, paused: false },
+      ryo: {
+        paper_fee: 0,
+        season_version: 1,
+        season_duration: 0,
+        season_time_limit: 0,
+        paper_reward_launderer: 0,
+        treasury_fee_pct: 0,
+        treasury_balance: 0,
+        initialized: true,
+        paused: false,
+      },
       ryoAddress: { paper: "0x0", laundromat: "0x0" },
       drug: this.buildDrugConfigs(),
       location: this.buildLocationConfigs(),
@@ -100,7 +118,9 @@ export class OfflineConfigStore {
   }
 
   getDrug(drugs_mode: string, drug: string): DrugConfigFull {
-    return this.config.drug.find((i: any) => i.drugs_mode === drugs_mode && i.drug.toLowerCase() === drug.toLowerCase())!;
+    return this.config.drug.find(
+      (i: any) => i.drugs_mode === drugs_mode && i.drug.toLowerCase() === drug.toLowerCase(),
+    )!;
   }
 
   getDrugById(drugs_mode: string, drug_id: number): DrugConfigFull {
@@ -379,9 +399,8 @@ export class OfflineDrugsClass {
   constructor(game: OfflineGameClass, state: EngineState) {
     this.game = game;
     this._quantity = state.drugQuantity;
-    this._drug = state.drugQuantity > 0
-      ? game.configStore.getDrugById(state.settings.drugsMode, state.drugId)
-      : undefined;
+    this._drug =
+      state.drugQuantity > 0 ? game.configStore.getDrugById(state.settings.drugsMode, state.drugId) : undefined;
   }
 
   get drug() {
@@ -475,10 +494,18 @@ export class OfflineItemsClass {
     return level;
   }
 
-  get attackLevel() { return this.getLevelWithPending(this.attackLevelInit, ItemSlot.Weapon); }
-  get defenseLevel() { return this.getLevelWithPending(this.defenseLevelInit, ItemSlot.Clothes); }
-  get speedLevel() { return this.getLevelWithPending(this.speedLevelInit, ItemSlot.Feet); }
-  get transportLevel() { return this.getLevelWithPending(this.transportLevelInit, ItemSlot.Transport); }
+  get attackLevel() {
+    return this.getLevelWithPending(this.attackLevelInit, ItemSlot.Weapon);
+  }
+  get defenseLevel() {
+    return this.getLevelWithPending(this.defenseLevelInit, ItemSlot.Clothes);
+  }
+  get speedLevel() {
+    return this.getLevelWithPending(this.speedLevelInit, ItemSlot.Feet);
+  }
+  get transportLevel() {
+    return this.getLevelWithPending(this.transportLevelInit, ItemSlot.Transport);
+  }
 
   private getItemInfos(level: number, slotIdx: number, icon: React.FC): ItemInfos {
     const gearItem = this.gearItems[slotIdx];
@@ -495,10 +522,18 @@ export class OfflineItemsClass {
     };
   }
 
-  get attack() { return this.getItemInfos(this.attackLevel, 0, Knife); }
-  get defense() { return this.getItemInfos(this.defenseLevel, 1, Kevlar); }
-  get speed() { return this.getItemInfos(this.speedLevel, 2, Shoes); }
-  get transport() { return this.getItemInfos(this.transportLevel, 3, Car); }
+  get attack() {
+    return this.getItemInfos(this.attackLevel, 0, Knife);
+  }
+  get defense() {
+    return this.getItemInfos(this.defenseLevel, 1, Kevlar);
+  }
+  get speed() {
+    return this.getItemInfos(this.speedLevel, 2, Shoes);
+  }
+  get transport() {
+    return this.getItemInfos(this.transportLevel, 3, Car);
+  }
 }
 
 // ========== OfflineWantedClass ==========

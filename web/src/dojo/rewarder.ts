@@ -39,12 +39,7 @@ export class Rewarder {
    * Calculate the burn multiplier (MULTIPLIER_PRECISION-based).
    * burn_multiplier = burn / base(avg_score) — normalizes reward to entry cost.
    */
-  static burnMultiplier(
-    burn: bigint,
-    scoreNum: bigint,
-    scoreDen: bigint,
-    maxScore: bigint,
-  ): bigint {
+  static burnMultiplier(burn: bigint, scoreNum: bigint, scoreDen: bigint, maxScore: bigint): bigint {
     const mint = Rewarder.base(scoreNum, scoreDen, maxScore);
     if (mint === 0n) return 0n;
     return (burn * MULTIPLIER_PRECISION) / mint;
@@ -70,12 +65,7 @@ export class Rewarder {
    * Calculate the final reward amount.
    * @returns Reward in whole Paper tokens (number)
    */
-  static amount(
-    scoreNum: bigint,
-    scoreDen: bigint,
-    maxScore: bigint,
-    multiplier: bigint,
-  ): number {
+  static amount(scoreNum: bigint, scoreDen: bigint, maxScore: bigint, multiplier: bigint): number {
     const base = Rewarder.base(scoreNum, scoreDen, maxScore);
     return Number((base * multiplier) / MULTIPLIER_PRECISION / TEN_POW_18);
   }
@@ -108,14 +98,7 @@ export class Rewarder {
     const burn = paperFee * gameMultiplier * TEN_POW_18;
 
     const avgDen = averageWeight * EMA_SCORE_PRECISION;
-    const multiplier = Rewarder.multiplier(
-      currentSupply,
-      targetSupply,
-      burn,
-      averageScore,
-      avgDen,
-      maxScore,
-    );
+    const multiplier = Rewarder.multiplier(currentSupply, targetSupply, burn, averageScore, avgDen, maxScore);
     return Number(multiplier) / Number(MULTIPLIER_PRECISION);
   }
 

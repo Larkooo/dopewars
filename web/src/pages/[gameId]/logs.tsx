@@ -215,11 +215,7 @@ const CustomLeftPanel = () => {
       gap={0}
       overflowX={"hidden"}
     >
-      <Heading
-        fontSize={["30px", "48px"]}
-        fontWeight="400"
-        mb={["0px", "20px"]}
-      >
+      <Heading fontSize={["30px", "48px"]} fontWeight="400" mb={["0px", "20px"]}>
         {gameInfos?.player_name || "Player"}
       </Heading>
 

@@ -68,12 +68,7 @@ const DrawerMenu = () => {
           </DrawerHeader>
           <Close position="absolute" right="16px" top="16px" cursor="pointer" onClick={onClose} />
           <DrawerBody px={3} py={0}>
-            <VStack
-              w="full"
-              h="full"
-              justifyContent="space-between"
-              gap={6}
-            >
+            <VStack w="full" h="full" justifyContent="space-between" gap={6}>
               <VStack w="full" alignItems="flex-start" gap={12}>
                 <UnorderedList w="full" listStyleType="none" marginInlineStart="0">
                   <DrawerListItem cursor="default">

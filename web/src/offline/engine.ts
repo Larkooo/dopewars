@@ -507,7 +507,7 @@ export class OfflineGameEngine {
 
     if (encounter.type === "Cops") {
       // Cops want drugs
-      const drugsLost = Math.ceil(this.state.drugQuantity * encounter.demandPct / 100);
+      const drugsLost = Math.ceil((this.state.drugQuantity * encounter.demandPct) / 100);
       result.drug_loss = [drugsLost];
       this.state.drugQuantity = Math.max(0, this.state.drugQuantity - drugsLost);
       if (this.state.drugQuantity === 0) {
@@ -515,7 +515,7 @@ export class OfflineGameEngine {
       }
     } else {
       // Gang wants cash
-      const cashLost = Math.ceil(this.state.cash * encounter.demandPct / 100);
+      const cashLost = Math.ceil((this.state.cash * encounter.demandPct) / 100);
       result.cash_loss = cashLost;
       this.state.cash = Math.max(0, this.state.cash - cashLost);
       // Gang also takes 1 HP (can't kill)
@@ -553,7 +553,7 @@ export class OfflineGameEngine {
       // Failed to escape - take damage and lose some drugs
       const rawDamage = Math.max(1, Math.floor(encounter.attack / 5));
       const defensePct = this.getPlayerDefense();
-      const blocked = Math.floor(rawDamage * defensePct / 100);
+      const blocked = Math.floor((rawDamage * defensePct) / 100);
       const netDamage = Math.max(1, rawDamage - blocked);
       this.state.health = Math.max(0, this.state.health - netDamage);
 
@@ -612,7 +612,7 @@ export class OfflineGameEngine {
         const baseAttack = this.getPlayerAttack();
         const attackVariance = Math.floor(baseAttack * 0.2);
         const rawPlayerDmg = this.rng.int(baseAttack - attackVariance, baseAttack + attackVariance);
-        const blocked = Math.floor(rawPlayerDmg * encounter.defense / 100);
+        const blocked = Math.floor((rawPlayerDmg * encounter.defense) / 100);
         const netDamage = Math.max(1, rawPlayerDmg - blocked);
         // Encounter takes reduced damage (1/3)
         const actualDmg = Math.max(1, Math.floor(netDamage / 3));
@@ -638,7 +638,7 @@ export class OfflineGameEngine {
         encounter.attack + encounterAttackVariance,
       );
       const playerDefensePct = this.getPlayerDefense();
-      const playerBlocked = Math.floor(rawEncounterDmg * playerDefensePct / 100);
+      const playerBlocked = Math.floor((rawEncounterDmg * playerDefensePct) / 100);
       const netEncounterDmg = Math.max(1, rawEncounterDmg - playerBlocked);
       this.state.health -= netEncounterDmg;
 

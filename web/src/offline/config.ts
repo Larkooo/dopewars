@@ -162,21 +162,129 @@ export interface ItemTierConfig {
 // Default gear tiers (4 levels per tier, 3 tiers per slot)
 export const DEFAULT_ITEM_TIERS: ItemTierConfig[] = [
   // Weapon (slot 0) - ATK
-  { slot: 0, tier: 1, levels: [{ cost: 0, stat: 5 }, { cost: 400, stat: 15 }, { cost: 1200, stat: 30 }, { cost: 3600, stat: 50 }] },
-  { slot: 0, tier: 2, levels: [{ cost: 0, stat: 8 }, { cost: 500, stat: 20 }, { cost: 1500, stat: 38 }, { cost: 4500, stat: 60 }] },
-  { slot: 0, tier: 3, levels: [{ cost: 0, stat: 12 }, { cost: 600, stat: 25 }, { cost: 1800, stat: 45 }, { cost: 5400, stat: 70 }] },
+  {
+    slot: 0,
+    tier: 1,
+    levels: [
+      { cost: 0, stat: 5 },
+      { cost: 400, stat: 15 },
+      { cost: 1200, stat: 30 },
+      { cost: 3600, stat: 50 },
+    ],
+  },
+  {
+    slot: 0,
+    tier: 2,
+    levels: [
+      { cost: 0, stat: 8 },
+      { cost: 500, stat: 20 },
+      { cost: 1500, stat: 38 },
+      { cost: 4500, stat: 60 },
+    ],
+  },
+  {
+    slot: 0,
+    tier: 3,
+    levels: [
+      { cost: 0, stat: 12 },
+      { cost: 600, stat: 25 },
+      { cost: 1800, stat: 45 },
+      { cost: 5400, stat: 70 },
+    ],
+  },
   // Clothes (slot 1) - DEF
-  { slot: 1, tier: 1, levels: [{ cost: 0, stat: 5 }, { cost: 400, stat: 15 }, { cost: 1200, stat: 30 }, { cost: 3600, stat: 50 }] },
-  { slot: 1, tier: 2, levels: [{ cost: 0, stat: 8 }, { cost: 500, stat: 20 }, { cost: 1500, stat: 38 }, { cost: 4500, stat: 60 }] },
-  { slot: 1, tier: 3, levels: [{ cost: 0, stat: 12 }, { cost: 600, stat: 25 }, { cost: 1800, stat: 45 }, { cost: 5400, stat: 70 }] },
+  {
+    slot: 1,
+    tier: 1,
+    levels: [
+      { cost: 0, stat: 5 },
+      { cost: 400, stat: 15 },
+      { cost: 1200, stat: 30 },
+      { cost: 3600, stat: 50 },
+    ],
+  },
+  {
+    slot: 1,
+    tier: 2,
+    levels: [
+      { cost: 0, stat: 8 },
+      { cost: 500, stat: 20 },
+      { cost: 1500, stat: 38 },
+      { cost: 4500, stat: 60 },
+    ],
+  },
+  {
+    slot: 1,
+    tier: 3,
+    levels: [
+      { cost: 0, stat: 12 },
+      { cost: 600, stat: 25 },
+      { cost: 1800, stat: 45 },
+      { cost: 5400, stat: 70 },
+    ],
+  },
   // Feet (slot 5) - SPD
-  { slot: 5, tier: 1, levels: [{ cost: 0, stat: 5 }, { cost: 400, stat: 15 }, { cost: 1200, stat: 30 }, { cost: 3600, stat: 50 }] },
-  { slot: 5, tier: 2, levels: [{ cost: 0, stat: 8 }, { cost: 500, stat: 20 }, { cost: 1500, stat: 38 }, { cost: 4500, stat: 60 }] },
-  { slot: 5, tier: 3, levels: [{ cost: 0, stat: 12 }, { cost: 600, stat: 25 }, { cost: 1800, stat: 45 }, { cost: 5400, stat: 70 }] },
+  {
+    slot: 5,
+    tier: 1,
+    levels: [
+      { cost: 0, stat: 5 },
+      { cost: 400, stat: 15 },
+      { cost: 1200, stat: 30 },
+      { cost: 3600, stat: 50 },
+    ],
+  },
+  {
+    slot: 5,
+    tier: 2,
+    levels: [
+      { cost: 0, stat: 8 },
+      { cost: 500, stat: 20 },
+      { cost: 1500, stat: 38 },
+      { cost: 4500, stat: 60 },
+    ],
+  },
+  {
+    slot: 5,
+    tier: 3,
+    levels: [
+      { cost: 0, stat: 12 },
+      { cost: 600, stat: 25 },
+      { cost: 1800, stat: 45 },
+      { cost: 5400, stat: 70 },
+    ],
+  },
   // Transport (slot 2) - INV
-  { slot: 2, tier: 1, levels: [{ cost: 0, stat: 100 }, { cost: 400, stat: 200 }, { cost: 1200, stat: 350 }, { cost: 3600, stat: 500 }] },
-  { slot: 2, tier: 2, levels: [{ cost: 0, stat: 120 }, { cost: 500, stat: 250 }, { cost: 1500, stat: 420 }, { cost: 4500, stat: 600 }] },
-  { slot: 2, tier: 3, levels: [{ cost: 0, stat: 150 }, { cost: 600, stat: 300 }, { cost: 1800, stat: 500 }, { cost: 5400, stat: 700 }] },
+  {
+    slot: 2,
+    tier: 1,
+    levels: [
+      { cost: 0, stat: 100 },
+      { cost: 400, stat: 200 },
+      { cost: 1200, stat: 350 },
+      { cost: 3600, stat: 500 },
+    ],
+  },
+  {
+    slot: 2,
+    tier: 2,
+    levels: [
+      { cost: 0, stat: 120 },
+      { cost: 500, stat: 250 },
+      { cost: 1500, stat: 420 },
+      { cost: 4500, stat: 600 },
+    ],
+  },
+  {
+    slot: 2,
+    tier: 3,
+    levels: [
+      { cost: 0, stat: 150 },
+      { cost: 600, stat: 300 },
+      { cost: 1800, stat: 500 },
+      { cost: 5400, stat: 700 },
+    ],
+  },
 ];
 
 // Default component values (gear item names)
@@ -233,7 +341,26 @@ export const DEFAULT_GEAR_NAMES: Record<number, Record<number, string>> = {
 
 // Default item tier assignments (item -> tier)
 export const DEFAULT_ITEM_TIER_MAP: Record<number, Record<number, number>> = {
-  0: { 0: 1, 1: 1, 2: 1, 3: 1, 4: 2, 5: 3, 6: 1, 7: 1, 8: 1, 9: 2, 10: 1, 11: 1, 12: 3, 13: 2, 14: 2, 15: 3, 16: 2, 17: 3 },
+  0: {
+    0: 1,
+    1: 1,
+    2: 1,
+    3: 1,
+    4: 2,
+    5: 3,
+    6: 1,
+    7: 1,
+    8: 1,
+    9: 2,
+    10: 1,
+    11: 1,
+    12: 3,
+    13: 2,
+    14: 2,
+    15: 3,
+    16: 2,
+    17: 3,
+  },
   1: { 0: 1, 1: 2, 2: 3, 3: 1, 4: 2, 5: 3 },
   2: { 0: 1, 1: 1, 2: 2, 3: 2, 4: 3, 5: 3 },
   5: { 0: 1, 1: 1, 2: 2, 3: 2, 4: 3, 5: 3 },

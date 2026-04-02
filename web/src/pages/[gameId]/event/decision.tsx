@@ -278,9 +278,7 @@ const Encounter = observer(
               <VStack w="full" gap={0}>
                 <HStack w="full" px="10px" py="6px" justifyContent="space-between">
                   <HStack w="full" justifyContent="center">
-                    <Text>
-                      {game.gameInfos.player_name || "Player"}
-                    </Text>
+                    <Text>{game.gameInfos.player_name || "Player"}</Text>
                   </HStack>
 
                   <Divider h="26px" orientation="vertical" borderWidth="1px" borderColor="neon.600" />

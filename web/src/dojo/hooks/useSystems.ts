@@ -4,10 +4,7 @@ import { EncountersAction, GameMode, Locations } from "../types";
 import { useDojoContext } from "./useDojoContext";
 
 export interface SystemsInterface {
-  createGame: (
-    gameMode: number,
-    playerName: string,
-  ) => Promise<{ gameId: string; isError?: boolean }>;
+  createGame: (gameMode: number, playerName: string) => Promise<{ gameId: string; isError?: boolean }>;
   endGame: (gameId: string, actions: Array<PendingCall>) => Promise<{ isError?: boolean }>;
   travel: (gameId: string, locationId: Locations, actions: Array<PendingCall>) => Promise<{ isError?: boolean }>;
   decide: (gameId: string, action: EncountersAction) => Promise<{ isError?: boolean }>;
