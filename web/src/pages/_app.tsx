@@ -1,4 +1,5 @@
 import { LoadingModal, MakeItRain, QuitGameModal, RefreshGameModal } from "@/components/layout";
+import { AccountDetailsModal, ConnectModal } from "@/components/wallet";
 import { DojoContextProvider } from "@/dojo/context/DojoContext";
 import useKonamiCode, { starkpimpSequence } from "@/hooks/useKonamiCode";
 import Fonts from "@/theme/fonts";
@@ -45,6 +46,8 @@ export default function App({ Component, pageProps }: AppProps) {
           <Psycadelic />
           <Component {...pageProps} />
 
+          <ConnectModal />
+          <AccountDetailsModal />
           <QuitGameModal />
           <RefreshGameModal />
 

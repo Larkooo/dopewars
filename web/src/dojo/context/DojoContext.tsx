@@ -1,4 +1,5 @@
 import { Loader } from "@/components/layout/Loader";
+import { StarknetProvider } from "@/components/wallet/StarknetProvider";
 import { OfflineConfigStore } from "@/offline/game";
 import { OfflineGameEngine } from "@/offline/engine";
 import { OfflineGameStoreClass } from "@/offline/store";
@@ -56,7 +57,7 @@ export const DojoContextProvider = observer(({ children }: { children: ReactNode
         engine,
       }}
     >
-      {children}
+      <StarknetProvider>{children}</StarknetProvider>
     </DojoContext.Provider>
   );
 });
