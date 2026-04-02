@@ -1,11 +1,6 @@
-import { useContext } from "react";
-import { DojoContext } from "../context/DojoContext";
-import { GameStoreClass } from "../stores/game";
+import { useDojoContext } from "./useDojoContext";
 
-export const useGameStore = (): GameStoreClass => {
-  const value = useContext(DojoContext);
-  if (!value) {
-    throw new Error("useGameStore must be used within a DojoProvider");
-  }
-  return value.gameStore;
+export const useGameStore = () => {
+  const { gameStore } = useDojoContext();
+  return gameStore;
 };

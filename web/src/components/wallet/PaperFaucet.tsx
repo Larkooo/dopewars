@@ -1,41 +1,19 @@
-import { DollarBag, PaperIcon } from "@/components/icons";
-import { useConfigStore } from "@/dojo/hooks";
-
-import { useFaucet } from "@/dojo/hooks/useFaucet";
+import { DollarBag } from "@/components/icons";
 import { Box, Button } from "@chakra-ui/react";
 
-const iconsBySymbol = {
-  fPAPER: PaperIcon,
-  PAPER: PaperIcon,
-};
-
 export const PaperFaucet = () => {
-  const { config } = useConfigStore();
-  const { isPending, faucet } = useFaucet(config?.ryoAddress.paper);
-
-  const onClick = () => {
-    if (isPending) return;
-    faucet();
-  };
-
+  // Offline mode - no faucet
   return (
-    <Box onClick={onClick} cursor="pointer">
+    <Box cursor="not-allowed" opacity={0.5}>
       <DollarBag />
     </Box>
   );
 };
 
 export const PaperFaucetButton = () => {
-  const { config } = useConfigStore();
-  const { isPending, faucet } = useFaucet(config?.ryoAddress.paper);
-
-  const onClick = () => {
-    if (isPending) return;
-    faucet();
-  };
-
+  // Offline mode - no faucet
   return (
-    <Button w={["full", "auto"]} px={["auto", "20px"]} onClick={onClick} isLoading={isPending}>
+    <Button w={["full", "auto"]} px={["auto", "20px"]} isDisabled>
       <DollarBag /> MINT PAPER
     </Button>
   );

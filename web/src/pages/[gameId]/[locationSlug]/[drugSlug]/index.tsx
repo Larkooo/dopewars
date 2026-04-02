@@ -2,8 +2,6 @@ import { AlertMessage } from "@/components/common";
 import { ArrowEnclosed } from "@/components/icons";
 import { WeightIcon } from "@/components/icons/Weigth";
 import { Footer, Layout } from "@/components/layout";
-import { ChildrenOrConnect } from "@/components/wallet";
-import { GameClass } from "@/dojo/class/Game";
 import { useGameStore, useRouterContext } from "@/dojo/hooks";
 import { DrugConfigFull } from "@/dojo/stores/config";
 import { DrugMarket, TradeDirection } from "@/dojo/types";
@@ -25,7 +23,6 @@ import {
   Tooltip,
   VStack,
 } from "@chakra-ui/react";
-import { useAccount } from "@starknet-react/core";
 import { observer } from "mobx-react-lite";
 import { useCallback, useEffect, useState } from "react";
 
@@ -38,7 +35,6 @@ const Market = observer(() => {
   const [currentInventory, setCurrentInventory] = useState(0);
   const [maxPossible, setMaxPossible] = useState(0);
 
-  const { account } = useAccount();
   const { game } = useGameStore();
 
   const { toast } = useToast();
@@ -128,70 +124,68 @@ const Market = observer(() => {
       }}
       footer={
         <Footer>
-          <ChildrenOrConnect>
-            <Button w={["full", "auto"]} px={["auto", "20px"]} onClick={() => router.back()}>
-              Back
-            </Button>
+          <Button w={["full", "auto"]} px={["auto", "20px"]} onClick={() => router.back()}>
+            Back
+          </Button>
 
-            {/* Show Buy Max when:
-                1. Slider is at max (and user can buy more), OR
-                2. Slider is at current inventory and user can buy more (scenario 3) */}
-            {((selectedQuantity === maxPossible && selectedQuantity > currentInventory) ||
-              (selectedQuantity === currentInventory && currentInventory > 0 && maxPossible > currentInventory)) && (
+          {/* Show Buy Max when:
+              1. Slider is at max (and user can buy more), OR
+              2. Slider is at current inventory and user can buy more (scenario 3) */}
+          {((selectedQuantity === maxPossible && selectedQuantity > currentInventory) ||
+            (selectedQuantity === currentInventory && currentInventory > 0 && maxPossible > currentInventory)) && (
+            <Button
+              w={["full", "auto"]}
+              px={["auto", "20px"]}
+              onClick={() => {
+                // Trigger the trade immediately
+                const buyQuantity = maxPossible - currentInventory;
+                const buyMaxAction = {
+                  direction: TradeDirection.Buy,
+                  drug: drug?.drug_id,
+                  quantity: buyQuantity,
+                  cost: buyQuantity * market!.price,
+                };
+                game?.pushCall(buyMaxAction);
+                router.push(`/${gameId}/${location!.location}`);
+              }}
+            >
+              Buy Max ({maxPossible - currentInventory})
+            </Button>
+          )}
+
+          {/* Show Buy/Sell button when quantity changed but not at max (and not selling all) */}
+          {selectedQuantity !== currentInventory && selectedQuantity !== maxPossible && selectedQuantity > 0 && (
+            <Button w={["full", "auto"]} px={["auto", "20px"]} onClick={onTrade}>
+              {selectedQuantity > currentInventory
+                ? `Buy (${selectedQuantity - currentInventory})`
+                : `Sell (${currentInventory - selectedQuantity})`}
+            </Button>
+          )}
+
+          {/* Show Sell All button when user owns the drug, but NOT when:
+              1. Partial Sell button is showing
+              2. Slider is at max and user can't buy more (max === currentInventory) */}
+          {currentInventory > 0 &&
+            !(selectedQuantity < currentInventory && selectedQuantity > 0 && selectedQuantity !== maxPossible) &&
+            !(selectedQuantity === maxPossible && maxPossible === currentInventory) && (
               <Button
                 w={["full", "auto"]}
                 px={["auto", "20px"]}
                 onClick={() => {
                   // Trigger the trade immediately
-                  const buyQuantity = maxPossible - currentInventory;
-                  const buyMaxAction = {
-                    direction: TradeDirection.Buy,
+                  const sellAllAction = {
+                    direction: TradeDirection.Sell,
                     drug: drug?.drug_id,
-                    quantity: buyQuantity,
-                    cost: buyQuantity * market!.price,
+                    quantity: currentInventory,
+                    cost: currentInventory * market!.price,
                   };
-                  game?.pushCall(buyMaxAction);
+                  game?.pushCall(sellAllAction);
                   router.push(`/${gameId}/${location!.location}`);
                 }}
               >
-                Buy Max ({maxPossible - currentInventory})
+                Sell All ({currentInventory})
               </Button>
             )}
-
-            {/* Show Buy/Sell button when quantity changed but not at max (and not selling all) */}
-            {selectedQuantity !== currentInventory && selectedQuantity !== maxPossible && selectedQuantity > 0 && (
-              <Button w={["full", "auto"]} px={["auto", "20px"]} onClick={onTrade}>
-                {selectedQuantity > currentInventory
-                  ? `Buy (${selectedQuantity - currentInventory})`
-                  : `Sell (${currentInventory - selectedQuantity})`}
-              </Button>
-            )}
-
-            {/* Show Sell All button when user owns the drug, but NOT when:
-                1. Partial Sell button is showing
-                2. Slider is at max and user can't buy more (max === currentInventory) */}
-            {currentInventory > 0 &&
-              !(selectedQuantity < currentInventory && selectedQuantity > 0 && selectedQuantity !== maxPossible) &&
-              !(selectedQuantity === maxPossible && maxPossible === currentInventory) && (
-                <Button
-                  w={["full", "auto"]}
-                  px={["auto", "20px"]}
-                  onClick={() => {
-                    // Trigger the trade immediately
-                    const sellAllAction = {
-                      direction: TradeDirection.Sell,
-                      drug: drug?.drug_id,
-                      quantity: currentInventory,
-                      cost: currentInventory * market!.price,
-                    };
-                    game?.pushCall(sellAllAction);
-                    router.push(`/${gameId}/${location!.location}`);
-                  }}
-                >
-                  Sell All ({currentInventory})
-                </Button>
-              )}
-          </ChildrenOrConnect>
         </Footer>
       }
     >
@@ -237,7 +231,7 @@ const QuantitySelector = observer(
     initialQuantity,
     onChange,
   }: {
-    game: GameClass;
+    game: any;
     drug: DrugConfigFull;
     market: DrugMarket;
     currentInventory: number;

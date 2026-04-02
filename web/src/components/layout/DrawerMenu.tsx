@@ -22,15 +22,14 @@ import { ReactNode, useRef } from "react";
 import { Cigarette, Clock, Close, Dots, GangIcon, Home, PaperIcon, Refresh } from "../icons";
 import { Calendar } from "../icons/archive";
 import { HeaderButton, MediaPlayer } from ".";
-import { ChainSelector, ConnectButton, TokenBalance } from "../wallet";
+import { ConnectButton } from "../wallet";
 
 import { ProfileLinkDrawer } from "../pages/profile/Profile";
-import { useAccount } from "@starknet-react/core";
 
 import colors from "@/theme/colors";
 import { HustlerIcon, Hustlers } from "../hustlers";
 
-const slideAnim = keyframes`  
+const slideAnim = keyframes`
   0% {transform: translateX(0); color: ${colors.neon["500"]};}
   65% {transform: translateX(-125%); color: ${colors.neon["500"]};}
   80% {transform: translateX(-97%); color: ${colors.yellow["500"]};}
@@ -46,7 +45,6 @@ const DrawerMenu = () => {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const btnRef = useRef<HTMLButtonElement | null>(null);
   const { config } = useConfigStore();
-  const { account } = useAccount();
   const { uiStore } = useDojoContext();
   return (
     <>
@@ -74,7 +72,6 @@ const DrawerMenu = () => {
               w="full"
               h="full"
               justifyContent="space-between"
-              // alignItems="flex-start"
               gap={6}
             >
               <VStack w="full" alignItems="flex-start" gap={12}>
@@ -90,22 +87,8 @@ const DrawerMenu = () => {
                   <DrawerListItem cursor="default">
                     <HStack w="full" justifyContent="space-between">
                       <ConnectButton />
-                      {process.env.NODE_ENV !== "production" && (
-                        <>
-                          <ChainSelector canChange={!gameId} />
-                        </>
-                      )}
                     </HStack>
                   </DrawerListItem>
-
-                  {account && config && (
-                    <DrawerListItem cursor="default">
-                      <HStack w="full">
-                        <TokenBalance address={account?.address} token={config?.ryoAddress.paper} icon={PaperIcon} />{" "}
-                        <Text>PAPER</Text>
-                      </HStack>
-                    </DrawerListItem>
-                  )}
 
                   {game && (
                     <>
@@ -142,15 +125,14 @@ const DrawerMenu = () => {
                     <Home mr={2} /> HOME
                   </DrawerListItem>
 
-                  {account && (
-                    <DrawerListItem
-                      onClick={() => {
-                        router.push(`/game/history/0x${BigInt(account.address || 0).toString(16)}`);
-                      }}
-                    >
-                      <Clock mr={2} /> HISTORY
-                    </DrawerListItem>
-                  )}
+                  <DrawerListItem
+                    onClick={() => {
+                      router.push("/game/history/offline");
+                    }}
+                  >
+                    <Clock mr={2} /> HISTORY
+                  </DrawerListItem>
+
                   <DrawerListItem
                     onClick={() => {
                       router.push("/season");

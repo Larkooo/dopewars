@@ -1,16 +1,12 @@
 import { Button } from "@/components/common";
 import { useGameStore, useRouterContext } from "@/dojo/hooks";
 import { headerButtonStyles } from "@/theme/styles";
-import { HStack, MenuItem, Text } from "@chakra-ui/react";
-import { useAccount } from "@starknet-react/core";
+import { HStack, Text } from "@chakra-ui/react";
 import { useState } from "react";
-import { num, shortString } from "starknet";
 import { HustlerAvatarIcon } from "./HustlerAvatarIcon";
 
 export const ProfileLink = () => {
   const { router, gameId } = useRouterContext();
-
-  const { account } = useAccount();
   const { gameInfos } = useGameStore();
 
   const [isOpen, setIsOpen] = useState(false);
@@ -23,7 +19,7 @@ export const ProfileLink = () => {
     }
   };
 
-  if (!account || !gameInfos) return null;
+  if (!gameInfos) return null;
 
   return (
     <>
@@ -41,8 +37,6 @@ export const ProfileLink = () => {
 
 export const ProfileLinkMobile = () => {
   const { router, gameId } = useRouterContext();
-
-  const { account } = useAccount();
   const { gameEvents, gameInfos } = useGameStore();
 
   const [isOpen, setIsOpen] = useState(false);
@@ -55,27 +49,25 @@ export const ProfileLinkMobile = () => {
     }
   };
 
-  if (!account || !gameInfos || !gameEvents) return null;
+  if (!gameInfos || !gameEvents) return null;
 
   return (
     <>
-      <MenuItem h="48px" borderRadius={0} onClick={onClick}>
+      <HStack h="48px" cursor="pointer" onClick={onClick}>
         <HustlerAvatarIcon
           gameId={gameInfos.game_id}
           // @ts-ignore
           tokenIdType={gameInfos?.token_id_type}
           tokenId={Number(gameInfos?.token_id)}
         />
-        <Text ml="10px">{shortString.decodeShortString(num.toHexString(BigInt(gameInfos.player_name?.value)))}</Text>
-      </MenuItem>
+        <Text ml="10px">{gameInfos.player_name?.value || "Player"}</Text>
+      </HStack>
     </>
   );
 };
 
 export const ProfileLinkDrawer = () => {
   const { router, gameId } = useRouterContext();
-
-  const { account } = useAccount();
   const { gameEvents, gameInfos } = useGameStore();
 
   const [isOpen, setIsOpen] = useState(false);
@@ -88,7 +80,7 @@ export const ProfileLinkDrawer = () => {
     }
   };
 
-  if (!account || !gameInfos) return null;
+  if (!gameInfos) return null;
   return (
     <HStack borderRadius={0} onClick={onClick}>
       <HustlerAvatarIcon
@@ -97,7 +89,7 @@ export const ProfileLinkDrawer = () => {
         tokenIdType={gameInfos?.token_id_type}
         tokenId={Number(gameInfos?.token_id)}
       />
-      <Text ml="4px">{shortString.decodeShortString(num.toHexString(BigInt(gameInfos.player_name?.value)))}</Text>
+      <Text ml="4px">{gameInfos.player_name?.value || "Player"}</Text>
     </HStack>
   );
 };

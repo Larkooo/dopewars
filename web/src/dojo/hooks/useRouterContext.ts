@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import { LocationConfigFull } from "../stores/config";
 import { TradeDirection } from "../types";
 import { useConfigStore } from "./useConfigStore";
-import { selector } from "starknet";
 
 type RouterContext = {
   router: NextRouter;
@@ -21,7 +20,6 @@ type RouterContext = {
   isLocalhost: boolean;
 };
 
-const password = BigInt("0x03fbe61f91d65aebd1b8e36ad746ea25f8a5e728ab30700acb0f940d05bfcf79");
 const restrictedPages = ["/admin", "/devtools"];
 
 export const useRouterContext = (): RouterContext => {
@@ -68,17 +66,7 @@ export const useRouterContext = (): RouterContext => {
     const isLocalhost = window.location.host.startsWith("localhost");
     const isRyoDotGame = window.location.host === "ryo.game";
 
-    const pass = router.query.admin
-      ? selector.starknetKeccak(router.query.admin as string)
-      : BigInt(localStorage.getItem("adminToken") || 0);
-
-    const isAdmin = password === pass;
-
-    if (isAdmin) {
-      localStorage.setItem("adminToken", pass.toString());
-    } else {
-      localStorage.removeItem("adminToken");
-    }
+    const isAdmin = false;
 
     if (restrictedPages.includes(router.pathname) && !isAdmin) {
       router.replace("/");

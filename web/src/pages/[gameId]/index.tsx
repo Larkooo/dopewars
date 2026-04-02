@@ -3,14 +3,11 @@ import { Loader, OGLoader } from "@/components/layout/Loader";
 import { useGameStore, useRouterContext } from "@/dojo/hooks";
 import { PlayerStatus } from "@/dojo/types";
 import { HStack } from "@chakra-ui/react";
-import { useAccount } from "@starknet-react/core";
 import { observer } from "mobx-react-lite";
 import { useEffect } from "react";
 
 const Redirector = observer(() => {
   const { router, gameId } = useRouterContext();
-
-  const { account } = useAccount();
 
   const { game } = useGameStore();
 

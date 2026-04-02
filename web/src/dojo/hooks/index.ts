@@ -1,7 +1,4 @@
 export * from "./useConfigStore";
-export * from "./useDojoChains";
-export * from "./useDojoContract";
-export * from "./useDojoClients";
 export * from "./useDojoContext";
 export * from "./useGameById";
 export * from "./useGameStore";

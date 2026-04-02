@@ -3,36 +3,21 @@ import { useDojoContext, useGameStore, useRouterContext } from "@/dojo/hooks";
 import { initSoundStore } from "@/hooks/sound";
 import { headerStyles } from "@/theme/styles";
 import { IsMobile, formatCashHeader } from "@/utils/ui";
-import { Box, Button, Divider, Flex, HStack } from "@chakra-ui/react";
-import { useAccount } from "@starknet-react/core";
+import { Box, Divider, Flex, HStack } from "@chakra-ui/react";
 import { observer } from "mobx-react-lite";
-import { useEffect, useMemo } from "react";
-import { ClaimReward } from "../pages/home";
+import { useEffect } from "react";
 import { ProfileLink } from "../pages/profile/Profile";
 import { CashIndicator, DayIndicator, HealthIndicator } from "../player";
 import { ConnectButton } from "../wallet/ConnectButton";
 
 import DrawerMenu from "./DrawerMenu";
-import { Cigarette, ExternalLink } from "../icons";
-import { ControllerConnector } from "@cartridge/connector";
 
 export const Header = observer(() => {
   const isMobile = IsMobile();
 
   const { router, gameId } = useRouterContext();
-  const { account, connector } = useAccount();
-  const {
-    uiStore,
-    chains: { selectedChain },
-  } = useDojoContext();
+  const { uiStore } = useDojoContext();
   const { game, gameConfig } = useGameStore();
-
-  const { isMainnet, isSepolia } = useMemo(() => {
-    return {
-      isMainnet: selectedChain.chainConfig.network === "mainnet",
-      isSepolia: selectedChain.chainConfig.network === "sepolia",
-    };
-  }, [selectedChain]);
 
   useEffect(() => {
     const init = async () => {
@@ -52,35 +37,7 @@ export const Header = observer(() => {
       fontSize={["14px", "16px"]}
     >
       <HStack gap={3} flex="1">
-        {!gameId && <ClaimReward />}
-        {!gameId && router.route === "/" && account && (
-          <HeaderButton
-            variant="pixelated"
-            h={["40px", "48px"]}
-            fontSize="14px"
-            onClick={() => {
-              if (isMainnet || isSepolia) {
-                const controllerConnector = connector as unknown as ControllerConnector;
-                if (isSepolia) {
-                  controllerConnector.controller.openStarterPack("dopewars-claim-sepolia");
-                }
-                if (isMainnet) {
-                  controllerConnector.controller.openStarterPack("dopewars-claim-mainnet");
-                }
-              } else {
-                router.push("/claim");
-              }
-            }}
-            mr={6}
-            display="flex"
-            flexDirection={"row"}
-            alignItems="center"
-            justifyContent="center"
-            py={2}
-          >
-            <Cigarette mr="2" /> MIGRATION
-          </HeaderButton>
-        )}
+        {/* Offline mode - no claim or migration buttons */}
       </HStack>
 
       {game /*|| router.asPath.includes("logs")*/ && (
@@ -116,7 +73,7 @@ export const Header = observer(() => {
 
       <HStack flex="1" justify="right">
         {!isMobile && <ConnectButton />}
-        {!isMobile && account && game && <ProfileLink />}
+        {!isMobile && game && <ProfileLink />}
 
         {/* trick to allow autoplay.. */}
         <Box display="none">

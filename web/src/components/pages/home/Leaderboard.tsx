@@ -1,106 +1,18 @@
-import { Loader } from "@/components/layout/Loader";
-import {
-  useActiveGamesBySeason,
-  useConfigStore,
-  useDojoContext,
-  useRegisteredGamesBySeason,
-  useRouterContext,
-  useSeasonByVersion,
-} from "@/dojo/hooks";
-import colors from "@/theme/colors";
+import { useConfigStore, useDojoContext, useRouterContext } from "@/dojo/hooks";
 import { formatCash } from "@/utils/ui";
 import { Box, HStack, Text, UnorderedList, VStack } from "@chakra-ui/react";
-import { useAccount } from "@starknet-react/core";
 import { observer } from "mobx-react-lite";
-import { useEffect, useMemo, useState } from "react";
-import Countdown from "react-countdown";
+import { useMemo, useState } from "react";
 import { Arrow, InfosIcon, PaperIcon, Trophy } from "../../icons";
 import { Config } from "@/dojo/stores/config";
-import { ComponentValueEvent, useDopeStore } from "@/dope/store";
-import { hash, shortString, uint256 } from "starknet";
-import { Layer } from "@/dope/components";
-import { Tooltip } from "@/components/common";
 import { useSwipeable } from "react-swipeable";
-import { DW_NS } from "@/dojo/constants";
-import { mergeLeaderboardEntries } from "@/utils/leaderboard";
-import { LeaderboardItem } from "./LeaderboardItem";
-import { usePaperPrice } from "@/hooks/PaperPriceContext";
-
-const renderer = ({
-  days,
-  hours,
-  minutes,
-  seconds,
-  completed,
-}: {
-  days: number;
-  hours: number;
-  minutes: number;
-  seconds: number;
-  completed: boolean;
-}) => {
-  if (completed) {
-    return <Text>RESETS NEXT GAME</Text>;
-  } else {
-    if (Number.isNaN(days)) {
-      days = 4;
-      hours = 20;
-      minutes = 4;
-      seconds = 20;
-    }
-    return (
-      <HStack textStyle="subheading" fontSize="12px">
-        <Text color="neon.500">ENDS:</Text>
-        <Text>
-          {days > 0 ? `${days}D` : ""} {hours.toString().padStart(2, "0")}H {minutes.toString().padStart(2, "0")}m{" "}
-          {seconds.toString().padStart(2, "0")}s
-        </Text>
-      </HStack>
-    );
-  }
-};
 
 export const Leaderboard = observer(({ config }: { config?: Config }) => {
-  const { router, gameId } = useRouterContext();
-
+  const { router } = useRouterContext();
   const { uiStore } = useDojoContext();
-  const { account } = useAccount();
-  const { usdPerPaper } = usePaperPrice();
 
-  const [currentVersion, setCurrentVersion] = useState(config?.ryo.season_version || 0);
-  const [selectedVersion, setSelectedVersion] = useState(config?.ryo.season_version || 0);
-
-  const { season } = useSeasonByVersion(selectedVersion);
-
-  const {
-    registeredGames,
-    isFetching: isFetchingRegisteredGames,
-    refetch: refetchRegisteredGames,
-  } = useRegisteredGamesBySeason(selectedVersion);
-
-  const {
-    activeGames,
-    isFetching: isFetchingActiveGames,
-    refetch: refetchActiveGames,
-  } = useActiveGamesBySeason(selectedVersion);
-
-  const mergedEntries = useMemo(() => {
-    return mergeLeaderboardEntries(registeredGames, activeGames, account?.address || "");
-  }, [registeredGames, activeGames, account?.address]);
-
-  useEffect(() => {
-    if (!config) return;
-
-    setCurrentVersion(config?.ryo.season_version || 0);
-    refetchRegisteredGames();
-    refetchActiveGames();
-  }, [config]);
-
-  // Calculate USD value from cached PAPER price
-  const usdValue = useMemo(() => {
-    if (!season?.paper_balance || !usdPerPaper) return null;
-    return (season.paper_balance || 0) * usdPerPaper;
-  }, [season?.paper_balance, usdPerPaper]);
+  const [currentVersion] = useState(config?.ryo.season_version || 1);
+  const [selectedVersion, setSelectedVersion] = useState(config?.ryo.season_version || 1);
 
   const onPrev = async () => {
     if (selectedVersion > 1) {
@@ -120,7 +32,7 @@ export const Leaderboard = observer(({ config }: { config?: Config }) => {
 
   const { ref: swipeableRef } = useSwipeable({ delta: 50, onSwipedLeft: onNext, onSwipedRight: onPrev });
 
-  if (!config || !registeredGames || !season) {
+  if (!config) {
     return <></>;
   }
 
@@ -146,20 +58,8 @@ export const Leaderboard = observer(({ config }: { config?: Config }) => {
               )}
             </HStack>
             <HStack gap={1} alignItems="center" textStyle="subheading" fontSize="12px">
-              <Text color="neon.500">REWARDS:</Text>
-              <Text color="yellow.400">
-                <PaperIcon color="yellow.400" mr={1} />
-                {formatCash(season.paper_balance || 0).replace("$", "")}
-              </Text>
-              {usdValue !== null && (
-                <Text color="neon.500" fontSize="10px">
-                  (${Math.abs(usdValue).toFixed(2)})
-                </Text>
-              )}
+              <Text color="neon.500">OFFLINE MODE</Text>
             </HStack>
-            {selectedVersion === currentVersion && (
-              <Countdown date={new Date(season.next_version_timestamp * 1_000)} renderer={renderer}></Countdown>
-            )}
           </VStack>
           <Arrow
             direction="right"
@@ -180,31 +80,9 @@ export const Leaderboard = observer(({ config }: { config?: Config }) => {
           "scrollbar-width": "none",
         }}
       >
-        {(isFetchingRegisteredGames || isFetchingActiveGames) && <Loader />}
-        {!isFetchingRegisteredGames && !isFetchingActiveGames && (
-          <UnorderedList boxSize="full" variant="dotted" h="auto">
-            {mergedEntries && mergedEntries.length > 0 ? (
-              mergedEntries.map((entry, index) => {
-                const isOwn = BigInt(entry.player_id) === BigInt(account?.address || 0);
-
-                return (
-                  <LeaderboardItem
-                    key={`${entry.type}-${entry.game_id}`}
-                    entry={entry}
-                    index={index}
-                    isOwn={isOwn}
-                    config={config}
-                    registeredGamesCount={registeredGames.length}
-                  />
-                );
-              })
-            ) : (
-              <Text textAlign="center" color="neon.500">
-                No scores submitted yet
-              </Text>
-            )}
-          </UnorderedList>
-        )}
+        <Text textAlign="center" color="neon.500">
+          Leaderboard not available in offline mode
+        </Text>
       </VStack>
     </VStack>
   );
@@ -212,150 +90,14 @@ export const Leaderboard = observer(({ config }: { config?: Config }) => {
 
 export const RewardDetails = observer(
   ({ seasonVersion, position, claimable }: { seasonVersion: number; position: number; claimable?: number }) => {
-    const getComponentValuesBySlug = useDopeStore((state) => state.getComponentValuesBySlug);
-    const configStore = useConfigStore();
-    const { usdPerPaper } = usePaperPrice();
-
-    const suffixes = getComponentValuesBySlug("DopeGear", "Suffixes");
-    const bodies = getComponentValuesBySlug("DopeHustlers", "Body");
-
-    const seed = uint256.bnToUint256(
-      hash.computePoseidonHashOnElements([shortString.encodeShortString(DW_NS), seasonVersion, position]),
-    );
-
-    // Calculate USD value from cached PAPER price
-    const usdValue = useMemo(() => {
-      if (!claimable || !usdPerPaper) return null;
-      return claimable * usdPerPaper;
-    }, [claimable, usdPerPaper]);
-
-    const rewards = useMemo(() => {
-      const items: ComponentValueEvent[] = [];
-
-      if (position == 1) {
-        // MUST match component list order
-        const slots = ["Clothe", "Vehicle", "Drug", "Waist", "Foot", "Weapon", "Hand", "Neck", "Ring", "Accessory"];
-        let suffix = undefined;
-
-        for (let slot of slots) {
-          const componentValues = getComponentValuesBySlug("DopeGear", slot);
-          const slot_slug = shortString.encodeShortString(slot);
-          const random = BigInt(hash.computePoseidonHashOnElements([slot_slug, seed.low, seed.high]));
-          let itemId = random % BigInt(componentValues.length);
-          if (slot === "Accessory") {
-            itemId = 0n; // crown
-          }
-          const item = Object.assign({}, componentValues.find((i) => BigInt(i.id) === itemId)!);
-
-          if (!suffix) {
-            const suffixId = (random % BigInt(suffixes.length - 1)) + 1n;
-            suffix = suffixes.find((i) => BigInt(i.id) === suffixId);
-          }
-          item.value = item.value + " " + suffix!.value + " +1";
-
-          items.push(item);
-        }
-      } else if (position == 2) {
-        const slots = ["Weapon", "Clothe", "Vehicle", "Foot", "Accessory"];
-        let suffix = undefined;
-
-        for (let slot of slots) {
-          const componentValues = getComponentValuesBySlug("DopeGear", slot);
-          const slot_slug = shortString.encodeShortString(slot);
-          const random = BigInt(hash.computePoseidonHashOnElements([slot_slug, seed.low, seed.high]));
-          let itemId = random % BigInt(componentValues.length);
-          if (slot === "Accessory" && itemId < 3) {
-            itemId = 27n; // paper id
-          }
-          const item = Object.assign({}, componentValues.find((i) => BigInt(i.id) === itemId)!);
-
-          if (!suffix) {
-            const suffixId = (random % BigInt(suffixes.length - 1)) + 1n;
-            suffix = suffixes.find((i) => BigInt(i.id) === suffixId);
-          }
-          item.value = item.value + " " + suffix!.value;
-          items.push(item);
-        }
-      } else if (position == 3) {
-        const slots = ["Weapon", "Clothe", "Vehicle", "Foot", "Accessory"];
-        for (let slot of slots) {
-          const componentValues = getComponentValuesBySlug("DopeGear", slot);
-          const slot_slug = shortString.encodeShortString(slot);
-          const random = BigInt(hash.computePoseidonHashOnElements([slot_slug, seed.low, seed.high]));
-          let itemId = random % BigInt(componentValues.length);
-          if (slot === "Accessory" && itemId < 3) {
-            itemId = 27n; // paper id
-          }
-          const item = Object.assign({}, componentValues.find((i) => BigInt(i.id) === itemId)!);
-          const dopeness = random % 21n;
-          if (dopeness > 14) {
-            const suffixId = (random % BigInt(suffixes.length - 1)) + 1n;
-            const suffix = suffixes.find((i) => BigInt(i.id) === suffixId);
-            item.value = item.value + " " + suffix!.value;
-          }
-
-          items.push(item);
-        }
-      } else {
-        const accessories = getComponentValuesBySlug("DopeGear", "Accessory");
-        const slot_slug = shortString.encodeShortString("Accessory");
-        const random = BigInt(hash.computePoseidonHashOnElements([slot_slug, seed.low, seed.high]));
-        let accessoryId = random % BigInt(accessories.length);
-        if (accessoryId < 3) {
-          accessoryId = 27n; // paper id
-        }
-        const accessory = accessories.find((i) => BigInt(i.id) === accessoryId)!;
-        items.push(accessory);
-      }
-
-      return items;
-    }, [position, seasonVersion]);
-
     return (
       <VStack alignItems="flex-start" p={1} gap={1}>
         <Text textStyle="subheading" fontSize="12px" w="full" textAlign="center" my={2}>
           RANK {position} REWARDS
         </Text>
-        <HStack w="full" borderBottom="solid 1px" borderColor="neon.700" justifyContent="space-between">
-          <HStack>
-            <PaperIcon width="24px" height="24px" />
-            <Text letterSpacing={0} ml={2} fontSize="xs">
-              {claimable ? formatCash(claimable).replace("$", "") : "???"} Paper
-            </Text>
-          </HStack>
-          {usdValue !== null && (
-            <Text letterSpacing={0} fontSize="10px" color="neon.500">
-              (${Math.abs(usdValue).toFixed(2)})
-            </Text>
-          )}
-        </HStack>
-        {position <= 3 && (
-          <HStack w="full" borderBottom="solid 1px" borderColor="neon.700">
-            <Layer rects={bodies[1].resources[0]} width="24px" height="24px" crop={true} />
-            <Text letterSpacing={0} ml={2} fontSize="xs">
-              Naked Hustler
-            </Text>
-          </HStack>
-        )}
-
-        {rewards.map((item) => {
-          return (
-            <HStack w="full" key={`${item.id}-${item.component_id}`} borderBottom="solid 1px" borderColor="neon.700">
-              <Layer rects={item.resources[0]} width="24px" height="24px" crop={true} />
-              <Text
-                letterSpacing={0}
-                ml={2}
-                fontSize="xs"
-                textOverflow="clip"
-                whiteSpace="nowrap"
-                overflow="hidden"
-                w="100%"
-              >
-                {item.value}
-              </Text>
-            </HStack>
-          );
-        })}
+        <Text textAlign="center" color="neon.500" w="full">
+          Not available in offline mode
+        </Text>
       </VStack>
     );
   },

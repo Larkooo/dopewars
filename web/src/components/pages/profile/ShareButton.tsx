@@ -1,10 +1,7 @@
 import { Button } from "@/components/common";
-import { GameClass } from "@/dojo/class/Game";
 import { useGameStore } from "@/dojo/hooks";
-import { Dopewars_V0_Game as Game } from "@/generated/graphql";
 import { formatCash } from "@/utils/ui";
 import { Link as ChakraLink, StyleProps } from "@chakra-ui/react";
-import { num, shortString } from "starknet";
 import { Twitter } from "../../icons";
 
 const ShareButton = ({ ...props }: { variant?: string } & StyleProps) => {
@@ -27,8 +24,8 @@ const ShareButton = ({ ...props }: { variant?: string } & StyleProps) => {
   );
 };
 
-const getShareText = (game: GameClass, gameInfos: Game): string => {
-  const playerName = shortString.decodeShortString(num.toHexString(BigInt(gameInfos.player_name?.value)));
+const getShareText = (game: any, gameInfos: any): string => {
+  const playerName = gameInfos?.player_name?.value || gameInfos?.player_name || "Player";
   if (game.player.health > 0) {
     return encodeURIComponent(
       `I reached Day ${game.player.turn} with ${formatCash(

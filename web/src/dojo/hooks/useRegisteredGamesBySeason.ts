@@ -1,7 +1,7 @@
 // Stub for offline mode
-export const useActiveGamesBySeason = (_version?: number) => {
+export const useRegisteredGamesBySeason = (_version?: number) => {
   return {
-    activeGames: [],
+    registeredGames: [],
     isFetched: true,
     isFetching: false,
     refetch: async () => {},

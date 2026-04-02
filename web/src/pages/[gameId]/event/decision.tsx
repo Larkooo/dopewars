@@ -3,23 +3,16 @@ import { CopsIcon, GangIcon } from "@/components/icons";
 import { Kevlar, Knife, Shoes } from "@/components/icons/items";
 import { Footer, Layout } from "@/components/layout";
 import { TravelEncounter } from "@/components/layout/GlobalEvents";
-import { EncounterPreview } from "@/components/pages/encounter/EncounterPreview";
-import { HustlerPreviewFromGame } from "@/components/pages/profile/HustlerPreviewFromGame";
 import { HustlerStats } from "@/components/pages/profile/HustlerStats";
 import { CashIndicator, HealthIndicator } from "@/components/player";
-import { ChildrenOrConnect } from "@/components/wallet";
-import { GameClass } from "@/dojo/class/Game";
 import { copsRanks, copsRanksKeys, gangRanks, gangRanksKeys, weaponIdToSound } from "@/dojo/helpers";
 import { useGameStore, useRouterContext, useSystems } from "@/dojo/hooks";
 import { Encounters, EncountersAction, PlayerStatus } from "@/dojo/types";
 import { Sounds, playSound } from "@/hooks/sound";
 import { formatCash, formatCashHeader } from "@/utils/ui";
-import { Box, Card, Divider, Flex, HStack, Heading, Image, StyleProps, Text, VStack } from "@chakra-ui/react";
-import { HustlerPreviewFromLoot } from "@/dope/components";
+import { Box, Card, Divider, HStack, Heading, Image, StyleProps, Text, VStack } from "@chakra-ui/react";
 import { observer } from "mobx-react-lite";
 import React, { useEffect, useState } from "react";
-import { num, shortString } from "starknet";
-import { HustlerAvatarIcon } from "@/components/pages/profile/HustlerAvatarIcon";
 
 const Decision = observer(() => {
   const { router, gameId } = useRouterContext();
@@ -105,7 +98,7 @@ const Decision = observer(() => {
         break;
     }
 
-    const { hash } = await decide(gameId!, action);
+    await decide(gameId!, action);
   };
 
   if (!game || !router.isReady || isRedirecting || !encounterEvent) {
@@ -117,46 +110,44 @@ const Decision = observer(() => {
       isSinglePanel
       footer={
         <Footer w={["100%", "50%"]}>
-          <ChildrenOrConnect>
-            <Button
-              w="full"
-              px={["auto", "20px"]}
-              isDisabled={isRunning || isPaying}
-              isLoading={isFigthing}
-              onClick={() => {
-                setIsFigthing(true);
-                onDecision(EncountersAction.Fight);
-              }}
-            >
-              Fight
-            </Button>
+          <Button
+            w="full"
+            px={["auto", "20px"]}
+            isDisabled={isRunning || isPaying}
+            isLoading={isFigthing}
+            onClick={() => {
+              setIsFigthing(true);
+              onDecision(EncountersAction.Fight);
+            }}
+          >
+            Fight
+          </Button>
 
-            <Button
-              w="full"
-              px={["auto", "20px"]}
-              isDisabled={isPaying || isFigthing}
-              isLoading={isRunning}
-              onClick={() => {
-                setIsRunning(true);
-                onDecision(EncountersAction.Run);
-              }}
-            >
-              Run
-            </Button>
+          <Button
+            w="full"
+            px={["auto", "20px"]}
+            isDisabled={isPaying || isFigthing}
+            isLoading={isRunning}
+            onClick={() => {
+              setIsRunning(true);
+              onDecision(EncountersAction.Run);
+            }}
+          >
+            Run
+          </Button>
 
-            <Button
-              w="full"
-              px={["auto", "20px"]}
-              isDisabled={isRunning || isFigthing || !canPay}
-              isLoading={isPaying}
-              onClick={() => {
-                setIsPaying(true);
-                onDecision(EncountersAction.Pay);
-              }}
-            >
-              PAY
-            </Button>
-          </ChildrenOrConnect>
+          <Button
+            w="full"
+            px={["auto", "20px"]}
+            isDisabled={isRunning || isFigthing || !canPay}
+            isLoading={isPaying}
+            onClick={() => {
+              setIsPaying(true);
+              onDecision(EncountersAction.Pay);
+            }}
+          >
+            PAY
+          </Button>
         </Footer>
       }
     >
@@ -198,7 +189,7 @@ const Encounter = observer(
     prefixTitle?: string;
     title?: string;
     demand?: string;
-    game: GameClass;
+    game: any;
     encounterEvent: TravelEncounter;
   } & StyleProps) => {
     const { gameInfos } = useGameStore();
@@ -287,15 +278,8 @@ const Encounter = observer(
               <VStack w="full" gap={0}>
                 <HStack w="full" px="10px" py="6px" justifyContent="space-between">
                   <HStack w="full" justifyContent="center">
-                    <HustlerAvatarIcon
-                      gameId={gameInfos?.game_id}
-                      // @ts-ignore
-                      tokenId={gameInfos?.token_id}
-                      // @ts-ignore
-                      tokenIdType={gameInfos.token_id_type}
-                    />
                     <Text>
-                      {shortString.decodeShortString(num.toHexString(BigInt(game.gameInfos.player_name?.value)))}
+                      {game.gameInfos.player_name || "Player"}
                     </Text>
                   </HStack>
 

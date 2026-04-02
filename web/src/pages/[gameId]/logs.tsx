@@ -11,9 +11,8 @@ import {
 } from "@/components/layout/GlobalEvents";
 import { HustlerProfile } from "@/components/pages/profile/HustlerProfile";
 import { Loadout } from "@/components/pages/profile/Loadout";
-import { Inventory, PowerMeter } from "@/components/player";
+import { Inventory } from "@/components/player";
 import { DojoEvent } from "@/dojo/class/Events";
-import { GameClass } from "@/dojo/class/Game";
 import { useConfigStore, useGameStore, useRouterContext } from "@/dojo/hooks";
 import { EncounterOutcomes, EncountersAction, ItemSlot } from "@/dojo/types";
 import { formatCash } from "@/utils/ui";
@@ -35,10 +34,8 @@ import {
   VStack,
 } from "@chakra-ui/react";
 import { getGearItem } from "@/dope/helpers";
-import { useAccount } from "@starknet-react/core";
 import { observer } from "mobx-react-lite";
 import { useEffect, useRef, useState } from "react";
-import { num, shortString } from "starknet";
 
 type IndexedDojoEvent = {
   index: number;
@@ -48,7 +45,6 @@ type IndexedDojoEvent = {
 const Logs = () => {
   const { router } = useRouterContext();
 
-  const { account } = useAccount();
   const configStore = useConfigStore();
   const { game, gameInfos, gameEvents } = useGameStore();
 
@@ -223,12 +219,8 @@ const CustomLeftPanel = () => {
         fontSize={["30px", "48px"]}
         fontWeight="400"
         mb={["0px", "20px"]}
-        cursor="pointer"
-        onClick={() => {
-          router.push(`/game/history/0x${BigInt(game?.gameInfos.player_id || 0).toString(16)}`);
-        }}
       >
-        {shortString.decodeShortString(num.toHexString(BigInt(gameInfos?.player_name?.value)) || "")}
+        {gameInfos?.player_name || "Player"}
       </Heading>
 
       <Box maxW="350px" w="100%">
@@ -236,16 +228,11 @@ const CustomLeftPanel = () => {
       </Box>
 
       <HustlerProfile />
-
-      <HStack justifyContent={"space-between"} mt={6}>
-        <Text color="yellow.400">STAKE x{game?.gameInfos.multiplier}</Text>
-        <PowerMeter basePower={0} maxPower={10} power={game?.gameInfos.multiplier} />
-      </HStack>
     </VStack>
   );
 };
 
-function renderEvent(game: GameClass, indexedEvent: IndexedDojoEvent, relatedEvent?: IndexedDojoEvent) {
+function renderEvent(game: any, indexedEvent: IndexedDojoEvent, relatedEvent?: IndexedDojoEvent) {
   switch (indexedEvent.dojoEvent.eventName) {
     case "Traveled":
       return renderTraveled(game, indexedEvent.dojoEvent.event as Traveled, `tr-${indexedEvent.index}`);
@@ -272,7 +259,7 @@ function renderEvent(game: GameClass, indexedEvent: IndexedDojoEvent, relatedEve
   }
 }
 
-function renderTraveled(game: GameClass, log: Traveled, key: string) {
+function renderTraveled(game: any, log: Traveled, key: string) {
   const location = game.configStore.getLocationById(log.to_location_id);
   if (!location) return null;
   return (
@@ -285,7 +272,7 @@ function renderTraveled(game: GameClass, log: Traveled, key: string) {
   );
 }
 
-function renderTradeDrug(game: GameClass, log: TradeDrug, key: string) {
+function renderTradeDrug(game: any, log: TradeDrug, key: string) {
   const drug = game.configStore.getDrugById(game.seasonSettings.drugs_mode, Number(log.drug_id))!;
   const action = log.is_buy ? "Bought" : "Sold";
   const sign = log.is_buy ? "-" : "+";
@@ -301,7 +288,7 @@ function renderTradeDrug(game: GameClass, log: TradeDrug, key: string) {
   );
 }
 
-function renderUpgradeItem(game: GameClass, log: UpgradeItem, key: string) {
+function renderUpgradeItem(game: any, log: UpgradeItem, key: string) {
   let gear_item = game.configStore.getGearItemFull(
     getGearItem(BigInt(game.gameInfos.equipment_by_slot ? game.gameInfos.equipment_by_slot[log.item_slot] : 0)),
   );
@@ -319,7 +306,7 @@ function renderUpgradeItem(game: GameClass, log: UpgradeItem, key: string) {
 }
 
 function renderTravelEncounter(
-  game: GameClass,
+  game: any,
   log: TravelEncounter,
   key: string,
   lastEncounterResult?: TravelEncounterResult,

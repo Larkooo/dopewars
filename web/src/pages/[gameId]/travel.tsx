@@ -3,8 +3,6 @@ import { Arrow, BorderImage } from "@/components/icons";
 import { Footer, Layout } from "@/components/layout";
 import { Map as MapSvg } from "@/components/map";
 import { Inventory, WantedIndicator } from "@/components/player";
-import { ChildrenOrConnect } from "@/components/wallet";
-import { GameClass } from "@/dojo/class/Game";
 import { useConfigStore, useRouterContext, useSystems } from "@/dojo/hooks";
 import { useGameStore } from "@/dojo/hooks/useGameStore";
 import colors from "@/theme/colors";
@@ -52,7 +50,7 @@ const Travel = observer(() => {
           let maxPrice = 0;
           const currentDrug = game.drugs.drug.drug;
 
-          config.location.forEach((loc) => {
+          config.location.forEach((loc: any) => {
             // Skip current location
             if (loc.location === game.player.location.location) return;
 
@@ -121,7 +119,7 @@ const Travel = observer(() => {
   const onNext = useCallback(() => {
     if (!config) return;
 
-    const idx = config.location.findIndex((location) => location.location === targetLocation)!;
+    const idx = config.location.findIndex((location: any) => location.location === targetLocation)!;
     if (idx < config.location!.length - 1) {
       setTargetLocation(config.location[idx + 1].location);
     } else {
@@ -132,7 +130,7 @@ const Travel = observer(() => {
   const onBack = useCallback(() => {
     if (!config) return;
 
-    const idx = config.location.findIndex((location) => location.location === targetLocation)!;
+    const idx = config.location.findIndex((location: any) => location.location === targetLocation)!;
     if (idx > 0) {
       setTargetLocation(config.location[idx - 1].location);
     } else {
@@ -144,7 +142,7 @@ const Travel = observer(() => {
     if (targetLocation && game) {
       try {
         const locationId = configStore.getLocation(targetLocation).location_id;
-        const { hash } = await travel(gameId!, locationId, game.getPendingCalls());
+        await travel(gameId!, locationId, game.getPendingCalls());
       } catch (e) {
         game.clearPendingCalls();
         console.log(e);
@@ -173,22 +171,20 @@ const Travel = observer(() => {
       }}
       footer={
         <Footer>
-          <ChildrenOrConnect>
-            {game.player.turn > 0 && (
-              <Button isDisabled={isPending} w={["full", "auto"]} px={["auto", "20px"]} onClick={() => router.back()}>
-                Back
-              </Button>
-            )}
-            <Button
-              w={["full", "auto"]}
-              px={["auto", "20px"]}
-              isDisabled={!targetLocation || targetLocation === currentLocation}
-              isLoading={isPending}
-              onClick={onContinue}
-            >
-              Travel
+          {game.player.turn > 0 && (
+            <Button isDisabled={isPending} w={["full", "auto"]} px={["auto", "20px"]} onClick={() => router.back()}>
+              Back
             </Button>
-          </ChildrenOrConnect>
+          )}
+          <Button
+            w={["full", "auto"]}
+            px={["auto", "20px"]}
+            isDisabled={!targetLocation || targetLocation === currentLocation}
+            isLoading={isPending}
+            onClick={onContinue}
+          >
+            Travel
+          </Button>
         </Footer>
       }
     >
@@ -256,7 +252,7 @@ const LocationPrices = ({
   prices,
   isCurrentLocation,
 }: {
-  game: GameClass;
+  game: any;
   prices: MarketPriceInfo[];
   isCurrentLocation?: boolean;
 }) => {

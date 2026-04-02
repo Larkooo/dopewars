@@ -1,8 +1,6 @@
-import { PaperCashIcon, Roll, Trophy, Warning } from "@/components/icons";
+import { PaperCashIcon, Roll } from "@/components/icons";
 import { Layout } from "@/components/layout";
 import {
-  Box,
-  Card,
   Divider,
   HStack,
   Image,
@@ -21,50 +19,18 @@ import {
 import { Button } from "@/components/common";
 import ShareButton from "@/components/pages/profile/ShareButton";
 import {
-  useDojoContext,
   useGameStore,
-  useRegisteredGamesBySeason,
   useRouterContext,
-  useSeasonByVersion,
-  useSystems,
 } from "@/dojo/hooks";
 import { formatCash } from "@/utils/ui";
 import { observer } from "mobx-react-lite";
 import { ReactNode, useCallback, useEffect, useState } from "react";
-import { num, shortString } from "starknet";
-import { Dopewars_V0_Game as Game } from "@/generated/graphql";
-import { useToast } from "@/hooks/toast";
-import { ChildrenOrConnect } from "@/components/wallet";
-import { HustlerAvatarIcon } from "@/components/pages/profile/HustlerAvatarIcon";
-import { useAccount } from "@starknet-react/core";
 
 const End = () => {
-  const gameStore = useGameStore();
-  const { game, gameInfos } = gameStore;
+  const { game, gameInfos } = useGameStore();
   const { router, gameId } = useRouterContext();
-  const {
-    clients: { rpcProvider },
-  } = useDojoContext();
 
   const [isCreditOpen, setIsCreditOpen] = useState<boolean>(false);
-  const [position, setPosition] = useState(0);
-  const [prev, setPrev] = useState<Game | undefined>(undefined);
-
-  const { toast } = useToast();
-  const { isPending, registerScore } = useSystems();
-
-  const {
-    registeredGames,
-    isFetched,
-    refetch: refetchRegisteredGame,
-  } = useRegisteredGamesBySeason(game?.gameInfos.season_version);
-
-  const { season, sortedList, refetch: refetchSeason } = useSeasonByVersion(game?.gameInfos.season_version);
-
-  // useEffect(() => {
-  //   refetchSeason();
-  //   refetchRegisteredGame();
-  // }, [refetchSeason, refetchRegisteredGame]);
 
   useEffect(() => {
     if (game) {
@@ -78,48 +44,6 @@ const End = () => {
     setIsCreditOpen(false);
   }, [setIsCreditOpen]);
 
-  useEffect(() => {
-    if (!game) return;
-    const filtered = registeredGames.filter((i) => i.final_score >= game?.player.cash);
-    const sorted = filtered.sort((a, b) => b.final_score - a.final_score);
-
-    const prev = sorted.length > 0 ? sorted[sorted.length - 1] : undefined;
-
-    setPrev(prev);
-
-    if (gameInfos?.registered) {
-      setPosition(sorted.length);
-    } else {
-      setPosition(sorted.length + 1);
-    }
-  }, [registeredGames, game]);
-
-  const onRegister = async () => {
-    try {
-      const prevGameId = prev ? prev.game_id : 0;
-      const prevPlayerId = prev ? prev.player_id : 0;
-
-      const { hash, isError } = await registerScore(gameInfos?.game_id!, prevGameId, prevPlayerId);
-
-      if (!isError) {
-        toast({
-          message: `Registered!`,
-          duration: 5_000,
-          isError: false,
-        });
-
-        setTimeout(async () => {
-          await gameStore.init(gameInfos?.game_id!);
-          setTimeout(() => {
-            refetchRegisteredGame();
-          }, 1_000);
-        }, 1_500);
-      }
-    } catch (e: any) {
-      console.log(e);
-    }
-  };
-
   if (!game || !gameInfos) return null;
 
   return (
@@ -130,65 +54,22 @@ const End = () => {
         imageSrc: "/images/sunset.png",
       }}
       footer={
-        <>
-          {gameInfos?.game_mode == "Ranked" && !gameInfos?.registered ? (
-            <VStack w="full" gap={3}>
-              <Card p={3}>
-                <HStack color="yellow.400">
-                  <Warning mr={2} color="yellow.400" />
-                  <Text maxW="340px">You must register your score in order to be eligible for season rewards</Text>
-                </HStack>
-              </Card>
-
-              <ChildrenOrConnect>
-                <Button isLoading={isPending} onClick={() => onRegister()}>
-                  Register you score
-                </Button>
-              </ChildrenOrConnect>
-            </VStack>
-          ) : (
-            <Button onClick={() => router.push("/")}>Lobby</Button>
-          )}
-        </>
+        <Button onClick={() => router.push("/")}>Lobby</Button>
       }
     >
       <VStack h="full" justifyContent="center" gap={6}>
         <HStack w="full">
           <VStack flex="1">
-            {position === 1 && <Image src="/images/trophy1.gif" alt="trophy1" />}
-            {position > 1 && position <= sortedList?.size / 10 && <Image src="/images/suitcase.gif" alt="suitcase" />}
-            {position > 1 && position > sortedList?.size / 10 && <Image src="/images/trashcan.gif" alt="trashcan" />}
+            <Image src="/images/sunset.png" alt="game over" />
           </VStack>
           <VStack flex="1">
             <StatsItem
-              text={shortString.decodeShortString(num.toHexString(BigInt(game?.gameInfos.player_name?.value)))}
-              icon={
-                <HustlerAvatarIcon
-                  gameId={gameInfos.game_id}
-                  // @ts-ignore
-                  tokenIdType={gameInfos?.token_id_type}
-                  tokenId={Number(gameInfos?.token_id)}
-                />
-              }
+              text={game?.gameInfos.player_name || "Player"}
+              icon={<PaperCashIcon />}
             />
 
-            {game?.gameInfos.game_mode == "Ranked" && (
-              <>
-                <Divider borderColor="neon.600" />
-                <StatsItem text={`Rank ${position}`} icon={<Trophy />} />
-              </>
-            )}
-
             <Divider borderColor="neon.600" />
-            {/* <StatsItem text={`Day ${game.player.turn}`} icon={<Calendar />} /> */}
             <StatsItem text={`${formatCash(game?.player?.cash || 0)}`} icon={<PaperCashIcon />} />
-            {/* <Divider borderColor="neon.600" /> */}
-            {/* <ReputationIndicator reputation={game.player.reputation} /> */}
-
-            {/* <Divider borderColor="neon.600" />
-              <StatsItem text="X Muggings" icon={<Pistol />} />
-              <Divider borderColor="neon.600" />
-              <StatsItem text="X Arrest" icon={<Arrest />} /> */}
           </VStack>
         </HStack>
 

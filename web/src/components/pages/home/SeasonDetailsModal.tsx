@@ -1,6 +1,5 @@
-import { Clock, DollarBag, PaperIcon, Pistol, Trophy } from "@/components/icons";
+import { Clock, DollarBag, Pistol, Trophy } from "@/components/icons";
 import { useDojoContext, useGameStore, useSeasonByVersion } from "@/dojo/hooks";
-import { SeasonSettingsTable } from "@/pages/season/[seasonId]";
 import {
   Button,
   HStack,
@@ -62,45 +61,26 @@ export const SeasonDetailsModal = observer(() => {
 
               <TabPanels mt={0} maxH={"80vh"} overflowY="scroll">
                 <TabPanel p={0}>
-                  <SeasonSettingsTable settings={seasonSettings} />
+                  <Text color="neon.500">Season settings are randomized each game in offline mode.</Text>
                 </TabPanel>
                 <TabPanel p={0}>
                   <VStack w="full" gap={6} color="neon.500">
                     <VStack w="full" gap={2}>
                       <HStack w="full" alignItems="flex-start">
                         <Clock />
-                        <Text>When the countdown reaches zero the season ends</Text>
+                        <Text>Game runs in offline mode - no blockchain connection needed</Text>
                       </HStack>
                       <HStack w="full" alignItems="flex-start">
                         <Pistol />
-                        <Text>When a player sets a new high score, the season countdown timer resets</Text>
+                        <Text>All game logic runs locally</Text>
                       </HStack>
                       <HStack w="full" alignItems="flex-start">
                         <DollarBag />
-                        <Text>
-                          When the timer expires rewards are calculated and distributed to the top 10% of players
-                        </Text>
+                        <Text>Scores are tracked locally during your session</Text>
                       </HStack>
                       <HStack w="full" alignItems="flex-start">
                         <Trophy />
-                        <Text>The player with the highest score is added to the Hall of Fame</Text>
-                      </HStack>
-                    </VStack>
-
-                    <VStack w="full" gap={2} color="neon.500">
-                      <HStack w="full" alignItems="flex-start">
-                        <Text w="150px">Base Entry fee:</Text>
-                        <Text color="neon.400">
-                          {season.paper_fee} <PaperIcon />
-                        </Text>
-                      </HStack>
-                      <HStack w="full" alignItems="flex-start">
-                        <Text w="150px">Player cut:</Text>
-                        <Text color="neon.400">{100 - season.treasury_fee_pct}%</Text>
-                      </HStack>
-                      <HStack w="full" alignItems="flex-start">
-                        <Text w="150px">DAO cut:</Text>
-                        <Text color="neon.400">{season.treasury_fee_pct}%</Text>
+                        <Text>Play as many games as you want</Text>
                       </HStack>
                     </VStack>
                   </VStack>

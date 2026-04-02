@@ -5,18 +5,16 @@ import { observer } from "mobx-react-lite";
 import { Alert, PawnshopIcon } from "../icons";
 import colors from "@/theme/colors";
 import { Sounds, playSound } from "@/hooks/sound";
-import { useAccount } from "@starknet-react/core";
 import { WeightIcon } from "../icons/Weigth";
 import { ReputationIndicator } from "./ReputationIndicator";
 
-const blinkAnim = keyframes`  
-  0% {background-color: ${colors.neon[900]} ;}   
-  50% {background-color: ${colors.neon[700]};}   
+const blinkAnim = keyframes`
+  0% {background-color: ${colors.neon[900]} ;}
+  50% {background-color: ${colors.neon[700]};}
 `;
 
 export const Inventory = observer(({ hidePawnshop = false, ...props }: StyleProps & { hidePawnshop?: boolean }) => {
   const { gameId, router } = useRouterContext();
-  const { account } = useAccount();
 
   const { game, gameInfos } = useGameStore();
   const configStore = useConfigStore();

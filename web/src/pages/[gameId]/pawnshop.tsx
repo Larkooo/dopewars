@@ -25,7 +25,7 @@ const PawnShop = observer(() => {
   const [selectedShopItemsSlot, setSelectedShopItemSlot] = useState<ItemSlot | undefined>(undefined);
 
   const gearItems = useMemo(() => {
-    return (gameInfos?.equipment_by_slot || []).map((i) => {
+    return (gameInfos?.equipment_by_slot || []).map((i: any) => {
       return configStore.getGearItemFull(getGearItem(BigInt(i)));
     });
   }, [gameInfos, configStore]);

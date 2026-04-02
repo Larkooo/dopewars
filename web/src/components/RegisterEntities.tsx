@@ -1,32 +1,22 @@
 import { useGameStore, useRouterContext } from "@/dojo/hooks";
 import { observer } from "mobx-react-lite";
-import { useEffect, useRef, useState } from "react";
+import { useEffect } from "react";
 
 const RegisterEntities = observer(() => {
   const { gameId } = useRouterContext();
   const gameStore = useGameStore();
 
-  const [retry, setRetry] = useState(200);
-
   useEffect(() => {
-    const init = async () => {
-      try {
-        if (gameStore && gameId) {
-          await gameStore.init(gameId);
-        } else {
-          gameStore.reset();
-        }
-        setRetry(200);
-      } catch (e) {
-        console.log(e);
-        setTimeout(() => {
-          setRetry(retry * 2);
-        }, retry);
+    if (gameStore && gameId) {
+      // In offline mode, the game state is already loaded from the engine
+      // Just ensure the store is initialized
+      if (!gameStore.isInitialized) {
+        gameStore.initFromEngine();
       }
-    };
-
-    init();
-  }, [gameId, gameStore, retry]);
+    } else {
+      gameStore.reset();
+    }
+  }, [gameId, gameStore]);
 
   return null;
 });

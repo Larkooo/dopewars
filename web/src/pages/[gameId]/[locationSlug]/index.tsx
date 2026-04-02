@@ -3,7 +3,6 @@ import { Cigarette } from "@/components/icons";
 import { WeightIcon } from "@/components/icons/Weigth";
 import { Footer, Layout } from "@/components/layout";
 import { Inventory } from "@/components/player";
-import { ChildrenOrConnect } from "@/components/wallet";
 import { getRandomGreeting } from "@/dojo/helpers";
 import { useConfigStore, useGameStore, useRouterContext, useSystems } from "@/dojo/hooks";
 import { DrugMarket } from "@/dojo/types";
@@ -21,13 +20,11 @@ import {
   Tooltip,
   VStack,
 } from "@chakra-ui/react";
-import { useAccount } from "@starknet-react/core";
 import { observer } from "mobx-react-lite";
 import { useEffect, useState } from "react";
 
 const Location = observer(() => {
   const { router, gameId, location } = useRouterContext();
-  const { account } = useAccount();
   const { toast } = useToast();
 
   const configStore = useConfigStore();
@@ -75,35 +72,33 @@ const Location = observer(() => {
       }}
       footer={
         <Footer>
-          <ChildrenOrConnect>
-            <Button
-              w={["full", "auto"]}
-              px={["auto", "20px"]}
-              isLoading={isPending}
-              onClick={async () => {
-                if (game.drugs.quantity > 0 && isLastDay) {
-                  toast({
-                    message: "better sell this drugs before...",
-                    icon: Cigarette,
-                  });
+          <Button
+            w={["full", "auto"]}
+            px={["auto", "20px"]}
+            isLoading={isPending}
+            onClick={async () => {
+              if (game.drugs.quantity > 0 && isLastDay) {
+                toast({
+                  message: "better sell this drugs before...",
+                  icon: Cigarette,
+                });
 
-                  return;
+                return;
+              }
+              if (isLastDay) {
+                try {
+                  await endGame(gameId, game.getPendingCalls());
+                  router.push(`/${gameId}/end`);
+                } catch (e: any) {
+                  game.clearPendingCalls();
                 }
-                if (isLastDay) {
-                  try {
-                    await endGame(gameId, game.getPendingCalls());
-                    router.push(`/${gameId}/end`);
-                  } catch (e: any) {
-                    game.clearPendingCalls();
-                  }
-                } else {
-                  router.push(`/${gameId}/travel`);
-                }
-              }}
-            >
-              {isLastDay ? "End Game" : "Continue"}
-            </Button>
-          </ChildrenOrConnect>
+              } else {
+                router.push(`/${gameId}/travel`);
+              }
+            }}
+          >
+            {isLastDay ? "End Game" : "Continue"}
+          </Button>
         </Footer>
       }
     >
