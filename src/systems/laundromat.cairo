@@ -20,8 +20,10 @@ mod laundromat {
     use dope_types::dope_hustlers::{IDopeHustlersABIDispatcher, IDopeHustlersABIDispatcherTrait};
     use dope_types::helpers::is_og;
     use rollyourown::achievements::achievements_v1::Tasks;
+    use rollyourown::config::ryo::RyoConfigTrait;
     use rollyourown::constants::{ETHER, MAX_MULTIPLIER, ns};
     use rollyourown::events::{Claimed, NewSeason};
+    use rollyourown::helpers::rewarder::{Rewarder, RewarderTrait};
     use rollyourown::helpers::season_manager::{SeasonManagerImpl, SeasonManagerTrait};
     use rollyourown::interfaces::paper::{IPaperDispatcher, IPaperDispatcherTrait};
     use rollyourown::libraries::dopewars_items::{
@@ -32,7 +34,6 @@ mod laundromat {
     use rollyourown::packing::game_store::GameStoreImpl;
     use rollyourown::store::{StoreImpl, StoreTrait};
     use rollyourown::utils::payout_items::add_items_payout;
-    use rollyourown::utils::payout_structure::get_payed_count;
     use rollyourown::utils::random::RandomImpl;
     use rollyourown::utils::sorted_list::{SortedListImpl, SortedListTrait};
     use starknet::{ContractAddress, get_caller_address, get_contract_address};
@@ -63,21 +64,61 @@ mod laundromat {
             // check if season is still opened
             assert(season.is_open(), 'season has closed');
 
-            // register final_score
+            // register final_score (cash earned)
             let mut game_store = GameStoreImpl::load(ref store, game_id, player_id);
             game.final_score = game_store.player.cash;
             game.registered = true;
+
+            // --- Per-game reward calculation using nums-style curve ---
+            let mut ryo_config = store.ryo_config();
+
+            // Get laundromat Paper balance as "supply"
+            let ryo_addresses = store.ryo_addresses();
+            let laundromat_address = world.dns_address(@"laundromat").unwrap();
+            let supply: u256 = IPaperDispatcher { contract_address: ryo_addresses.paper }
+                .balance_of(laundromat_address);
+
+            // burn = entry fee paid by player (in wei)
+            let paper_fee: u32 = season.paper_fee.into() * game.multiplier.into();
+            let burn: u256 = paper_fee.into() * ETHER;
+
+            // Get average score from EMA
+            let (avg_score_num, avg_score_den) = ryo_config.get_average_score();
+
+            // Calculate multiplier using rewarder curve
+            let reward_multiplier = Rewarder::multiplier(
+                supply,
+                ryo_config.target_supply.into() * ETHER,
+                burn,
+                avg_score_num.into(),
+                avg_score_den.into(),
+                ryo_config.max_score.into(),
+            );
+
+            // Calculate reward amount for this game's actual score
+            let reward_wei = Rewarder::amount(
+                game.final_score.into(),
+                1, // score_den = 1 (cash is a whole number)
+                ryo_config.max_score.into(),
+                reward_multiplier,
+            );
+
+            // Store claimable in whole Paper tokens
+            game.claimable = (reward_wei / ETHER).try_into().unwrap();
+
+            // Update EMA with this game's score
+            ryo_config.push_score(game.final_score);
+            store.save_ryo_config(@ryo_config);
+
             store.set_game(@game);
 
             // handle new highscore & season version
             let mut season_manager = SeasonManagerTrait::new(store);
             season_manager.on_register_score(ref game_store);
 
-            // retrieve Season SortedList
+            // Still add to sorted list for leaderboard display
             let list_id = game.season_version.into();
             let mut sorted_list = SortedListImpl::get(@store, list_id);
-
-            // add Game to sorted_list
             sorted_list.add(ref store, game, (prev_game_id, prev_player_id));
 
             // quests
@@ -162,10 +203,6 @@ mod laundromat {
             let random = IVrfProviderDispatcher { contract_address: ryo_addresses.vrf }
                 .consume_random(Source::Nonce(player_id));
 
-            // around 276k steps / 10
-            // almost free now, compute all in one
-            let process_batch_size = 100;
-
             let season = store.season(season_version);
 
             let mut ryo_config = store.ryo_config();
@@ -175,52 +212,42 @@ mod laundromat {
             // check if close
             assert(!season.is_open(), 'season is still opened');
 
-            // retrieve Season SortedList
+            // retrieve Season SortedList (still used for season transition tracking)
             let list_id = season_version.into();
             let mut sorted_list = SortedListImpl::get(@store, list_id);
 
-            // set process_max_size & total_stake_mul then lock list
+            // Mark list as locked and processed (rewards already calculated per-game)
             if !sorted_list.locked {
-                let process_max_size = get_payed_count(sorted_list.size);
-                let stake_adj_paper_balance = sorted_list
-                    .calc_stake_adj_paper_balance::<Game>(ref store, process_max_size);
-                sorted_list.lock(ref store, process_max_size, stake_adj_paper_balance);
+                sorted_list.lock(ref store, 0, 0);
             }
-
-            // if not process, process batch_size items
             if !sorted_list.processed {
-                sorted_list.process::<Game>(ref store, process_batch_size);
+                sorted_list.processed = true;
+                sorted_list.set(ref store);
             }
 
-            // if process, create new season
-            if sorted_list.processed {
-                // retrieve next season
-                let next_season = store.season(season_version + 1);
+            // create new season
+            let next_season = store.season(season_version + 1);
+            if !next_season.exists() {
+                // update current version
+                ryo_config.season_version += 1;
+                store.save_ryo_config(@ryo_config);
 
-                // check if not already created
-                if !next_season.exists() {
-                    // update current version
-                    ryo_config.season_version += 1;
+                // create new season
+                let mut randomizer = RandomImpl::new(random);
+                let mut season_manager = SeasonManagerTrait::new(store);
+                season_manager.new_season(ref randomizer, ryo_config.season_version);
 
-                    store.save_ryo_config(@ryo_config);
-
-                    // create new season
-                    let mut randomizer = RandomImpl::new(random);
-                    let mut season_manager = SeasonManagerTrait::new(store);
-                    season_manager.new_season(ref randomizer, ryo_config.season_version);
-
-                    // emit NewSeason
-                    store
-                        .world
-                        .emit_event(
-                            @NewSeason {
-                                key: ryo_config.season_version,
-                                season_version: ryo_config.season_version,
-                            },
-                        );
-                } else {
-                    assert(false, 'launder already ended');
-                }
+                // emit NewSeason
+                store
+                    .world
+                    .emit_event(
+                        @NewSeason {
+                            key: ryo_config.season_version,
+                            season_version: ryo_config.season_version,
+                        },
+                    );
+            } else {
+                assert(false, 'launder already ended');
             }
 
             // retrieve paper address
@@ -240,9 +267,6 @@ mod laundromat {
 
             let mut game_ids = game_ids;
 
-            // // check max batch size
-            // assert(game_ids.len() <= 10, 'too much game_ids');
-
             let mut gear_ids: Array<u256> = array![];
             let mut gear_ids_values: Array<u256> = array![];
             let mut hustler_count = 0;
@@ -260,18 +284,10 @@ mod laundromat {
             while let Option::Some(game_id) = game_ids.pop_front() {
                 let mut game = store.game(*game_id, player_id);
 
-                // retrieve Season SortedList
-                let list_id = game.season_version.into();
-                let mut sorted_list = SortedListImpl::get(@store, list_id);
-
-                // check season status
-                assert(sorted_list.locked, 'season has not ended');
-                assert(sorted_list.processed, 'need more launder');
-
-                // any other check missing ?
+                // Per-game reward: just check game is registered and has a reward
                 assert(game.registered, 'unregistered game');
-                assert(game.position > 0, 'invalid position');
                 assert(!game.claimed, 'already claimed');
+                assert(game.claimable > 0, 'nothing to claim');
 
                 total_claimable = total_claimable + game.claimable;
 
@@ -279,15 +295,17 @@ mod laundromat {
                 game.claimed = true;
                 store.set_game(@game);
 
-                // add items rewards ids
-                add_items_payout(
-                    ref dope_world,
-                    ref gear_ids,
-                    ref gear_ids_values,
-                    ref hustler_count,
-                    game.season_version,
-                    game.position,
-                );
+                // add items rewards (top positions still get NFT rewards based on leaderboard)
+                if game.position > 0 {
+                    add_items_payout(
+                        ref dope_world,
+                        ref gear_ids,
+                        ref gear_ids_values,
+                        ref hustler_count,
+                        game.season_version,
+                        game.position,
+                    );
+                }
 
                 // emit Claimed event
                 store
@@ -366,7 +384,7 @@ mod laundromat {
             // check if still open
             assert(season.is_open(), 'season has ended');
 
-            // update season paper_balance & save
+            // update season paper_balance for display & save
             season.paper_balance += amount_eth;
             store.save_season(@season);
 
@@ -374,8 +392,7 @@ mod laundromat {
             let ryo_addresses = store.ryo_addresses();
             let amount = amount_eth.into() * ETHER;
 
-            // transfer paper_fee_ether from donnator to laundromat ( donnator approved laundromat
-            // contract to spend paper before)
+            // transfer paper from donnator to laundromat (adds to reward balance)
             IPaperDispatcher { contract_address: ryo_addresses.paper }
                 .transfer_from(get_caller_address(), get_contract_address(), amount);
         }

@@ -153,6 +153,9 @@ mod ryo {
             new_ryo_config.paper_fee = ryo_config.paper_fee;
             new_ryo_config.paper_reward_launderer = ryo_config.paper_reward_launderer;
             new_ryo_config.treasury_fee_pct = ryo_config.treasury_fee_pct;
+            // Reward curve parameters
+            new_ryo_config.target_supply = ryo_config.target_supply;
+            new_ryo_config.max_score = ryo_config.max_score;
 
             store.save_ryo_config(@new_ryo_config);
         }

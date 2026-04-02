@@ -27,6 +27,7 @@ pub mod config {
 }
 
 pub mod helpers {
+    pub mod rewarder;
     pub mod season_manager;
 }
 

@@ -68,9 +68,9 @@ pub impl SeasonManagerImpl of SeasonManagerTrait {
 
         // calc treasury share
         let treasury_share = paper_fee.pct(season.treasury_fee_pct.into());
-        let jackpot_share = paper_fee - treasury_share;
 
-        // add jackpot_share to current_season & save
+        // track paper_balance on season for display purposes
+        let jackpot_share = paper_fee - treasury_share;
         season.paper_balance += jackpot_share;
         store.save_season(@season);
 
@@ -82,8 +82,7 @@ pub impl SeasonManagerImpl of SeasonManagerTrait {
         let ryo_addresses = store.ryo_addresses();
         let laundromat_address = store.world.dns_address(@"laundromat").unwrap();
 
-        // transfer paper_fee_ether from user to laundromat ( user approved game contract to spend
-        // paper before)
+        // transfer paper_fee from user to laundromat (stays in balance for per-game rewards)
         IPaperDispatcher { contract_address: ryo_addresses.paper }
             .transfer_from(get_caller_address(), laundromat_address, paper_fee_eth);
     }
