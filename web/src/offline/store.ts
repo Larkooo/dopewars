@@ -75,14 +75,12 @@ export class OfflineGameStoreClass {
     }
 
     if (state.status === PlayerStatus.Normal) {
-      if (state.location === 0) {
-        // At home - go to first location or travel
-        this.router.push(`/${gameId}/travel`);
+      const location = this.configStore.getLocationById(state.location);
+      if (location && location.location_id > 0) {
+        this.router.push(`/${gameId}/${location.location.toLowerCase()}`);
       } else {
-        const location = this.configStore.getLocationById(state.location);
-        if (location) {
-          this.router.push(`/${gameId}/${location.location.toLowerCase()}`);
-        }
+        // Fallback - shouldn't happen since we start at a real location
+        this.router.push(`/${gameId}/queens`);
       }
     } else {
       // In encounter

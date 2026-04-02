@@ -144,6 +144,9 @@ export class OfflineGameEngine {
       marketTicks.push(drugs);
     }
 
+    // Start at a random location (not Home)
+    const startLocation = this.rng.int(1, 6);
+
     this.state = {
       gameId,
       playerId: `offline_${gameId}`,
@@ -155,9 +158,9 @@ export class OfflineGameEngine {
       maxTurns,
       reputation: 0,
       drugLevel: 0,
-      location: 0, // Home
+      location: startLocation,
       prevLocation: 0,
-      nextLocation: 0,
+      nextLocation: startLocation,
       status: PlayerStatus.Normal,
       drugId: 0,
       drugQuantity: 0,
