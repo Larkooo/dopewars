@@ -84,9 +84,9 @@ export const HomeLeftPanel = () => {
         my="auto"
         flex={["auto", "1"]}
         position="relative"
-        maxH={["120px", "800px"]}
-        overflow="hidden"
-        overflowY="auto"
+        maxH={["none", "800px"]}
+        overflow={["visible", "hidden"]}
+        overflowY={["visible", "auto"]}
         sx={{
           "::-webkit-scrollbar": {
             display: "none",
