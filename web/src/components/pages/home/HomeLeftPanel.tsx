@@ -95,17 +95,25 @@ export const HomeLeftPanel = () => {
         }}
       >
         <VStack zIndex="2" position="relative">
-          <Box w="full" position={"fixed"} top="-40px">
+          <Box w="full" position={"fixed"} top="0" display={["block", "none"]}>
             <Image
               position="absolute"
               src={"/images/landing/main.png"}
               opacity={0.25}
               width="100%"
-              height="174px"
+              height="280px"
               objectFit={"cover"}
               objectPosition={"top"}
-              display={["block", "none"]}
               alt="context"
+            />
+            <Box
+              position="absolute"
+              top="0"
+              left="0"
+              right="0"
+              height="280px"
+              background="linear-gradient(to bottom, transparent 50%, #172217 100%)"
+              pointerEvents="none"
             />
           </Box>
 
