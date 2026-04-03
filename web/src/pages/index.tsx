@@ -95,7 +95,7 @@ export default function Home() {
         boxSize="full"
         gap={["16px", "10px"]}
         justifyContent={["flex-start", "center"]}
-        pt={["80px", "0"]}
+        pt={["90px", "0"]}
         px={["16px", "0"]}
         overflowY="auto"
         pb={["80px", "0"]}
@@ -156,6 +156,9 @@ export default function Home() {
                 How to play
               </Text>
               <VStack gap={2} textAlign="center" w="full">
+                <Text fontSize="10px" letterSpacing="0.2em" color="neon.500" textTransform="uppercase">
+                  Step {currentStep + 1} of {tutorialSteps.length}
+                </Text>
                 <Text fontSize="14px" fontWeight="bold" color="neon.200">
                   {step.title}
                 </Text>

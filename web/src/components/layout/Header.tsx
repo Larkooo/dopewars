@@ -33,9 +33,11 @@ export const Header = observer(() => {
       spacing="10px"
       zIndex="overlay"
       align="flex-start"
-      pt={["env(safe-area-inset-top, 12px)", "16px"]}
-      pb={["6px", "16px"]}
+      pt={["24px", "16px"]}
+      pb={["16px", "16px"]}
+      minH={["70px", "auto"]}
       fontSize={["14px", "16px"]}
+      background={["linear-gradient(to bottom, #172217 0%, #172217 60%, transparent 100%)", "none"]}
     >
       <HStack gap={3} flex="1">
         {/* Offline mode - no claim or migration buttons */}
