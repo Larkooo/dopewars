@@ -2,25 +2,20 @@ import { Button, Input } from "@/components/common";
 import { Layout } from "@/components/layout";
 import { HomeLeftPanel } from "@/components/pages/home";
 import { useControllerUsername, useDojoContext, useSystems } from "@/dojo/hooks";
-import { Box, Card, HStack, Heading, Image, Text, VStack } from "@chakra-ui/react";
+import { Box, Card, Divider, HStack, Heading, Image, Text, VStack } from "@chakra-ui/react";
 import { useEffect, useState } from "react";
 import { GameMode } from "@/dojo/types";
-import Dot from "@/components/icons/Dot";
 import { Glock } from "@/components/icons/items";
 import { SavedGameSummary } from "@/offline/store";
 import { formatCash } from "@/utils/ui";
 import { Heart } from "@/components/icons";
 import { useAccount, useConnect } from "@starknet-react/core";
 
-const tutorialSteps = [
-  { title: "GAME STATE", desc: "Displays important details about the game", img: "/images/tutorial/tuto1.png" },
-  { title: "BUYING PRODUCT", desc: "Buy the ones you can flip for profit", img: "/images/tutorial/tuto2.png" },
-  {
-    title: "KEEP IT MOVING",
-    desc: "Different locations will offer different prices",
-    img: "/images/tutorial/tuto3.png",
-  },
-  { title: "A WORD OF ADVICE", desc: "The streets can be mean, Watch your back.", img: "/images/tutorial/tuto4.png" },
+const steps = [
+  { step: 1, title: "Buy Low" },
+  { step: 2, title: "Sell High" },
+  { step: 3, title: "???" },
+  { step: 4, title: "Profit" },
 ];
 
 const LOCATION_NAMES: Record<number, string> = {
@@ -39,7 +34,6 @@ export default function Home() {
   const { connect, connectors } = useConnect();
   const { username } = useControllerUsername(address as string);
 
-  const [currentStep, setCurrentStep] = useState(0);
   const [showNameInput, setShowNameInput] = useState(false);
   const [name, setName] = useState("");
   const [error, setError] = useState("");
@@ -86,7 +80,6 @@ export default function Home() {
     }
   };
 
-  const step = tutorialSteps[currentStep];
   const showGame = account && showNameInput;
 
   return (
@@ -151,27 +144,23 @@ export default function Home() {
               </VStack>
             )}
 
-            <VStack w="full" gap={3} pt={[0, 2]}>
-              <Text textStyle="subheading" fontSize="11px" letterSpacing="0.25em" color="neon.500">
+            <VStack w="full" gap={0} pt={[2, 4]}>
+              <Text textStyle="subheading" fontSize="11px" letterSpacing="0.25em" color="neon.500" pb={3}>
                 How to play
               </Text>
-              <VStack gap={2} textAlign="center" w="full">
-                <Text fontSize="10px" letterSpacing="0.2em" color="neon.500" textTransform="uppercase">
-                  Step {currentStep + 1} of {tutorialSteps.length}
-                </Text>
-                <Text fontSize="14px" fontWeight="bold" color="neon.200">
-                  {step.title}
-                </Text>
-                <Text fontSize="12px" color="neon.500">
-                  {step.desc}
-                </Text>
-                <Image src={step.img} alt={step.title} w="full" borderRadius="4px" />
-              </VStack>
-              <HStack gap="10px">
-                {tutorialSteps.map((_, i) => (
-                  <Dot key={i} active={i === currentStep} onClick={() => setCurrentStep(i)} />
-                ))}
-              </HStack>
+              {steps.map((s) => (
+                <HStack key={s.step} w="full" gap={3} py={2}>
+                  <Image src={`/images/landing/step${s.step}-icon.png`} alt={s.title} w="48px" h="48px" />
+                  <VStack align="flex-start" gap={0}>
+                    <Text fontSize="10px" fontFamily="broken-console" color="neon.500">
+                      Step {s.step}
+                    </Text>
+                    <Text fontSize="18px" fontFamily="ppneuebit" lineHeight="1">
+                      {s.title}
+                    </Text>
+                  </VStack>
+                </HStack>
+              ))}
             </VStack>
           </VStack>
         ) : (
