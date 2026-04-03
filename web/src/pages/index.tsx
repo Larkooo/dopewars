@@ -251,26 +251,20 @@ export default function Home() {
 
   // screen === "new"
   return (
-    <Layout customLeftPanel={<HomeLeftPanel />} rigthPanelScrollable>
-      <VStack
-        w="full"
-        px={["16px", "0"]}
-        pt={["80px", "16px"]}
-        pb={["200px", "0"]}
-        justifyContent={["flex-start", "center"]}
-        minH={["auto", "full"]}
-      >
-        <VStack w="full" maxW="300px" mx="auto" gap={6}>
+    <Layout customLeftPanel={<HomeLeftPanel />} rigthPanelScrollable={false}>
+      <Flex direction="column" boxSize="full" px={["16px", "0"]}>
+        <VStack w="full" maxW="400px" mx="auto" pt={["80px", "16px"]} gap={6} flexShrink={0}>
           <Heading fontSize={["28px", "40px"]} fontWeight="400" textAlign="center" w="full">
             Name your hustler
           </Heading>
 
-          <VStack w="full" gap={3}>
+          <VStack w="full" maxW="300px" mx="auto" gap={3}>
             <Box w="full">
               <Input
                 w="full"
                 maxLength={16}
                 placeholder="Enter name"
+                autoFocus
                 value={name}
                 onChange={(e) => {
                   setError("");
@@ -301,7 +295,41 @@ export default function Home() {
             </Text>
           </VStack>
         </VStack>
-      </VStack>
+
+        {/* Mobile: landing steps */}
+        <VStack
+          w="full"
+          maxW="400px"
+          mx="auto"
+          flex={1}
+          minH={0}
+          overflowY="auto"
+          gap={0}
+          pt={4}
+          pb="80px"
+          display={["flex", "none"]}
+          __css={{ "scrollbar-width": "none", "&::-webkit-scrollbar": { display: "none" } }}
+        >
+          {steps.map((s) => (
+            <HStack key={s.step} w="full" flexDirection={s.step % 2 === 1 ? "row" : "row-reverse"} gap={3} py={4}>
+              <Image src={`/images/landing/step${s.step}.png`} alt={s.title} w="42%" objectFit="contain" />
+              <VStack w="58%" align="flex-start" gap={1}>
+                <HStack gap={2}>
+                  <Image src={`/images/landing/step${s.step}-icon.png`} alt={s.title} w="48px" h="48px" />
+                  <VStack align="flex-start" gap={0}>
+                    <Text fontSize="11px" fontFamily="broken-console" backgroundColor="#174127" px={2} py={1}>
+                      Step {s.step}
+                    </Text>
+                    <Heading fontFamily="ppneuebit" fontSize="32px" lineHeight="1">
+                      {s.title}
+                    </Heading>
+                  </VStack>
+                </HStack>
+              </VStack>
+            </HStack>
+          ))}
+        </VStack>
+      </Flex>
     </Layout>
   );
 }
