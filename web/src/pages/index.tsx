@@ -136,7 +136,7 @@ export default function Home() {
   if (screen === "games") {
     return (
       <Layout customLeftPanel={<HomeLeftPanel />} rigthPanelScrollable={false}>
-        <VStack boxSize="full" px={["16px", "0"]} justifyContent="center">
+        <VStack boxSize="full" px={["16px", "0"]} pt={["80px", "16px"]} justifyContent={["flex-start", "center"]}>
           <VStack w="full" maxW="400px" mx="auto" gap={4}>
             <Heading fontSize={["24px", "36px"]} fontWeight="400" textAlign="center" w="full">
               Your Games
