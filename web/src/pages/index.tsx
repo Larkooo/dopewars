@@ -107,6 +107,7 @@ export default function Home() {
             gap={0}
             pt={4}
             pb="80px"
+            display={["flex", "none"]}
             __css={{ "scrollbar-width": "none", "&::-webkit-scrollbar": { display: "none" } }}
           >
             {steps.map((s) => (
