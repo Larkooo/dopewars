@@ -3,7 +3,7 @@ import { Layout } from "@/components/layout";
 import { HomeLeftPanel } from "@/components/pages/home";
 import { useControllerUsername, useDojoContext, useSystems } from "@/dojo/hooks";
 import { Box, Card, HStack, Heading, Image, Text, VStack } from "@chakra-ui/react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { GameMode } from "@/dojo/types";
 import { Glock } from "@/components/icons/items";
 import { SavedGameSummary } from "@/offline/store";
@@ -39,7 +39,6 @@ export default function Home() {
   const [name, setName] = useState("");
   const [error, setError] = useState("");
   const [savedGames, setSavedGames] = useState<SavedGameSummary[]>([]);
-  const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const games = gameStore
@@ -86,81 +85,69 @@ export default function Home() {
 
   return (
     <Layout customLeftPanel={<HomeLeftPanel />} rigthPanelScrollable={false}>
-      <VStack boxSize="full" pt={["100px", "0"]} px={["16px", "0"]}>
-        {!showGame ? (
-          <VStack w="full" maxW="400px" mx="auto" h="full">
-            {/* Fixed top section - never shrinks */}
-            <VStack w="full" gap={[3, 6]} pb={2} flexShrink={0}>
-              <Card variant="pixelated" w="full">
-                <HStack w="full" p={["10px", "20px"]} gap="10px" justify="center">
-                  <Button flex="1" isLoading={isPending} onClick={onPlayNow}>
-                    <Glock /> Play Now
-                  </Button>
-                </HStack>
-              </Card>
+      {!showGame ? (
+        <VStack
+          boxSize="full"
+          px={["16px", "0"]}
+          pt={["100px", "16px"]}
+          overflowY="auto"
+          __css={{ "scrollbar-width": "none", "&::-webkit-scrollbar": { display: "none" } }}
+        >
+          <VStack w="full" maxW="400px" mx="auto" gap={[3, 6]}>
+            <Card variant="pixelated" w="full">
+              <HStack w="full" p={["10px", "20px"]} gap="10px" justify="center">
+                <Button flex="1" isLoading={isPending} onClick={onPlayNow}>
+                  <Glock /> Play Now
+                </Button>
+              </HStack>
+            </Card>
 
-              {savedGames.length > 0 && (
-                <VStack w="full" gap={2}>
-                  <Text textStyle="subheading" fontSize="11px" letterSpacing="0.25em" color="neon.500">
-                    Continue
-                  </Text>
-                  {savedGames.map((g) => (
-                    <HStack
-                      key={g.gameId}
-                      w="full"
-                      p={3}
-                      bg="neon.900"
-                      borderRadius="2px"
-                      cursor="pointer"
-                      _hover={{ bg: "neon.800" }}
-                      onClick={() => onContinue(g.gameId)}
-                      justify="space-between"
-                    >
-                      <VStack align="flex-start" gap={0}>
-                        <Text fontSize="14px" color="neon.200">
-                          {g.playerName}
+            {savedGames.length > 0 && (
+              <VStack w="full" gap={2}>
+                <Text textStyle="subheading" fontSize="11px" letterSpacing="0.25em" color="neon.500">
+                  Continue
+                </Text>
+                {savedGames.map((g) => (
+                  <HStack
+                    key={g.gameId}
+                    w="full"
+                    p={3}
+                    bg="neon.900"
+                    borderRadius="2px"
+                    cursor="pointer"
+                    _hover={{ bg: "neon.800" }}
+                    onClick={() => onContinue(g.gameId)}
+                    justify="space-between"
+                  >
+                    <VStack align="flex-start" gap={0}>
+                      <Text fontSize="14px" color="neon.200">
+                        {g.playerName}
+                      </Text>
+                      <Text fontSize="10px" color="neon.500">
+                        Day {g.turn}/{g.maxTurns} - {LOCATION_NAMES[g.location] || "Unknown"}
+                      </Text>
+                    </VStack>
+                    <VStack align="flex-end" gap={0}>
+                      <Text fontSize="12px" color="yellow.400">
+                        {formatCash(g.cash)}
+                      </Text>
+                      <HStack gap={1}>
+                        <Heart width="10px" height="10px" />
+                        <Text fontSize="10px" color="red">
+                          {g.health}
                         </Text>
-                        <Text fontSize="10px" color="neon.500">
-                          Day {g.turn}/{g.maxTurns} - {LOCATION_NAMES[g.location] || "Unknown"}
-                        </Text>
-                      </VStack>
-                      <VStack align="flex-end" gap={0}>
-                        <Text fontSize="12px" color="yellow.400">
-                          {formatCash(g.cash)}
-                        </Text>
-                        <HStack gap={1}>
-                          <Heart width="10px" height="10px" />
-                          <Text fontSize="10px" color="red">
-                            {g.health}
-                          </Text>
-                        </HStack>
-                      </VStack>
-                    </HStack>
-                  ))}
-                </VStack>
-              )}
+                      </HStack>
+                    </VStack>
+                  </HStack>
+                ))}
+              </VStack>
+            )}
 
-              <Box
-                cursor="pointer"
-                onClick={() => scrollRef.current?.scrollTo({ top: 0, behavior: "smooth" })}
-                pt={1}
-                mx="auto"
-              >
-                <ScrollDown width="32px" height="32px" />
-              </Box>
-            </VStack>
+            <Box pt={4} mx="auto">
+              <ScrollDown width="32px" height="32px" />
+            </Box>
 
-            {/* Scrollable steps section */}
-            <VStack
-              ref={scrollRef}
-              w="full"
-              flex="1"
-              minH={0}
-              overflowY="auto"
-              pb="80px"
-              gap={0}
-              __css={{ "scrollbar-width": "none", "&::-webkit-scrollbar": { display: "none" } }}
-            >
+            <VStack w="full" gap={0} pb="100px">
               {steps.map((s) => (
                 <HStack key={s.step} w="full" flexDirection={s.step % 2 === 1 ? "row" : "row-reverse"} gap={3} py={4}>
                   <Image src={`/images/landing/step${s.step}.png`} alt={s.title} w="42%" objectFit="contain" />
@@ -181,16 +168,10 @@ export default function Home() {
               ))}
             </VStack>
           </VStack>
-        ) : (
-          <VStack
-            w="full"
-            maxW="300px"
-            mx="auto"
-            gap={6}
-            pt={["20px", "0"]}
-            justifyContent={["flex-start", "center"]}
-            h="full"
-          >
+        </VStack>
+      ) : (
+        <VStack boxSize="full" px={["16px", "0"]} pt={["100px", "0"]} justifyContent={["flex-start", "center"]}>
+          <VStack w="full" maxW="300px" mx="auto" gap={6}>
             <Heading fontSize={["28px", "40px"]} fontWeight="400" textAlign="center" w="full">
               Name your hustler
             </Heading>
@@ -232,8 +213,8 @@ export default function Home() {
               </Text>
             </VStack>
           </VStack>
-        )}
-      </VStack>
+        </VStack>
+      )}
     </Layout>
   );
 }
