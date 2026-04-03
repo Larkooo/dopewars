@@ -1,9 +1,10 @@
 import { Button, Input } from "@/components/common";
+import { Arrow } from "@/components/icons";
 import { Layout } from "@/components/layout";
 import { HomeLeftPanel } from "@/components/pages/home";
 import { useControllerUsername, useDojoContext, useSystems } from "@/dojo/hooks";
-import { Box, Card, Divider, HStack, Heading, Image, Text, VStack } from "@chakra-ui/react";
-import { useEffect, useState } from "react";
+import { Box, Card, HStack, Heading, Image, Text, VStack } from "@chakra-ui/react";
+import { useCallback, useEffect, useState } from "react";
 import { GameMode } from "@/dojo/types";
 import { Glock } from "@/components/icons/items";
 import { SavedGameSummary } from "@/offline/store";
@@ -34,6 +35,7 @@ export default function Home() {
   const { connect, connectors } = useConnect();
   const { username } = useControllerUsername(address as string);
 
+  const [currentStep, setCurrentStep] = useState(0);
   const [showNameInput, setShowNameInput] = useState(false);
   const [name, setName] = useState("");
   const [error, setError] = useState("");
@@ -80,6 +82,15 @@ export default function Home() {
     }
   };
 
+  const onNextStep = useCallback(() => {
+    setCurrentStep((s) => (s + 1) % steps.length);
+  }, []);
+
+  const onPrevStep = useCallback(() => {
+    setCurrentStep((s) => (s - 1 + steps.length) % steps.length);
+  }, []);
+
+  const step = steps[currentStep];
   const showGame = account && showNameInput;
 
   return (
@@ -144,23 +155,51 @@ export default function Home() {
               </VStack>
             )}
 
-            <VStack w="full" gap={0} pt={[2, 4]}>
-              <Text textStyle="subheading" fontSize="11px" letterSpacing="0.25em" color="neon.500" pb={3}>
+            <VStack w="full" gap={3} pt={[2, 4]}>
+              <Text textStyle="subheading" fontSize="11px" letterSpacing="0.25em" color="neon.500">
                 How to play
               </Text>
-              {steps.map((s) => (
-                <HStack key={s.step} w="full" gap={3} py={2}>
-                  <Image src={`/images/landing/step${s.step}-icon.png`} alt={s.title} w="48px" h="48px" />
-                  <VStack align="flex-start" gap={0}>
-                    <Text fontSize="10px" fontFamily="broken-console" color="neon.500">
-                      Step {s.step}
-                    </Text>
-                    <Text fontSize="18px" fontFamily="ppneuebit" lineHeight="1">
-                      {s.title}
-                    </Text>
-                  </VStack>
-                </HStack>
-              ))}
+
+              <HStack w="full" align="center" gap={2}>
+                <Arrow
+                  style="outline"
+                  direction="left"
+                  boxSize="36px"
+                  cursor="pointer"
+                  onClick={onPrevStep}
+                  flexShrink={0}
+                />
+
+                <VStack flex="1" gap={3} align="center">
+                  <Image
+                    src={`/images/landing/step${step.step}.png`}
+                    alt={step.title}
+                    w="full"
+                    maxH="180px"
+                    objectFit="contain"
+                  />
+                  <HStack gap={3}>
+                    <Image src={`/images/landing/step${step.step}-icon.png`} alt={step.title} w="48px" h="48px" />
+                    <VStack align="flex-start" gap={0}>
+                      <Text fontSize="11px" fontFamily="broken-console" backgroundColor="#174127" px={2} py={1}>
+                        Step {step.step}
+                      </Text>
+                      <Heading fontFamily="ppneuebit" fontSize="32px" lineHeight="1">
+                        {step.title}
+                      </Heading>
+                    </VStack>
+                  </HStack>
+                </VStack>
+
+                <Arrow
+                  style="outline"
+                  direction="right"
+                  boxSize="36px"
+                  cursor="pointer"
+                  onClick={onNextStep}
+                  flexShrink={0}
+                />
+              </HStack>
             </VStack>
           </VStack>
         ) : (
