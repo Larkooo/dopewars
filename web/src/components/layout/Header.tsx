@@ -27,75 +27,61 @@ export const Header = observer(() => {
   }, []);
 
   return (
-    <Box
-      position="absolute"
-      top="0"
-      left="0"
-      right="0"
-      zIndex="overlay"
-      pt={["50px", "16px"]}
-      pb={["20px", "16px"]}
+    <HStack
+      w="full"
       px="10px"
-      bg={["#172217", "none"]}
-      _after={{
-        content: '""',
-        display: ["block", "none"],
-        position: "absolute",
-        bottom: "-20px",
-        left: 0,
-        right: 0,
-        height: "20px",
-        background: "linear-gradient(to bottom, #172217, transparent)",
-        pointerEvents: "none",
-      }}
+      spacing="10px"
+      zIndex="overlay"
+      align="flex-end"
+      pt={["0", "16px"]}
+      pb={["10px", "16px"]}
+      h={["80px", "auto"]}
+      fontSize={["14px", "16px"]}
+      bg={["neon.900", "transparent"]}
     >
-      <HStack w="full" spacing="10px" align="flex-start" fontSize={["14px", "16px"]}>
-        <HStack gap={3} flex="1">
-          {/* Offline mode - no claim or migration buttons */}
-        </HStack>
+      <HStack gap={3} flex="1" />
 
-        {game && (
+      {game && (
+        <HStack
+          flex={["auto", 1]}
+          justify="center"
+          width={["100%", "auto"]}
+          cursor="help"
+          onClick={() => {
+            uiStore.openSeasonDetails();
+          }}
+        >
           <HStack
-            flex={["auto", 1]}
-            justify="center"
+            h={["40px", "48px"]}
             width={["100%", "auto"]}
-            cursor="help"
-            onClick={() => {
-              uiStore.openSeasonDetails();
-            }}
+            px="20px"
+            spacing={["10px", "30px"]}
+            bg="neon.700"
+            sx={{ ...headerStyles }}
           >
-            <HStack
-              h={["40px", "48px"]}
-              width={["100%", "auto"]}
-              px="20px"
-              spacing={["10px", "30px"]}
-              bg="neon.700"
-              sx={{ ...headerStyles }}
-            >
-              <Flex w="full" align="center" justify="center" gap="10px">
-                <HStack>
-                  <CashIndicator cash={formatCashHeader(game.player.cash)} />
-                  <Divider orientation="vertical" borderColor="neon.600" h="12px" />
-                  <HealthIndicator health={game.player.health} maxHealth={gameConfig?.health} />
-                  <Divider orientation="vertical" borderColor="neon.600" h="12px" />
-                  <DayIndicator day={game.player.turn} max={gameConfig?.max_turns} />
-                </HStack>
-              </Flex>
-            </HStack>
+            <Flex w="full" align="center" justify="center" gap="10px">
+              <HStack>
+                <CashIndicator cash={formatCashHeader(game.player.cash)} />
+                <Divider orientation="vertical" borderColor="neon.600" h="12px" />
+                <HealthIndicator health={game.player.health} maxHealth={gameConfig?.health} />
+                <Divider orientation="vertical" borderColor="neon.600" h="12px" />
+                <DayIndicator day={game.player.turn} max={gameConfig?.max_turns} />
+              </HStack>
+            </Flex>
           </HStack>
-        )}
-
-        <HStack flex="1" justify="right">
-          {!isMobile && <ConnectButton />}
-          {!isMobile && game && <ProfileLink />}
-
-          <Box display="none">
-            <MediaPlayer />
-          </Box>
-
-          <DrawerMenu />
         </HStack>
+      )}
+
+      <HStack flex="1" justify="right">
+        {!isMobile && <ConnectButton />}
+        {!isMobile && game && <ProfileLink />}
+
+        <Box display="none">
+          <MediaPlayer />
+        </Box>
+
+        <DrawerMenu />
       </HStack>
-    </Box>
+    </HStack>
   );
 });
