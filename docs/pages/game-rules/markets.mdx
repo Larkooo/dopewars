@@ -1,0 +1,74 @@
+# Markets
+
+Drug trading is the economic engine of Dope Wars. Markets fund your build and generate the cash that becomes your final score.
+
+## How markets work
+
+Each location has a **constant-product market** (Uniswap-like) for drugs. Your trades move prices, creating information asymmetry across locations.
+
+- **8 drugs** in ascending price tiers
+- You carry only **1 drug type** at a time
+- Carry capacity = Transport stat vs (drug weight x quantity)
+- Price formula: `price = base + (tick x step)`, tick range 0-63
+- Markets randomly vary at the end of each turn
+
+## Drug access
+
+Drug access is gated by `drug_level`, which advances with reputation:
+
+`drug_level = min(reputation / 20, 4)`
+
+You can only trade drugs within a sliding window of 4:
+
+| Level | Rep needed | Drugs available |
+|-------|-----------|----------------|
+| 0 | 0 | Ludes, Speed, Weed, Shrooms |
+| 1 | 20 | Speed, Weed, Shrooms, Acid |
+| 2 | 40 | Weed, Shrooms, Acid, Ketamine |
+| 3 | 60 | Shrooms, Acid, Ketamine, Heroin |
+| 4 | 80 | Acid, Ketamine, Heroin, Cocaine |
+
+Higher-tier drugs have higher prices and margins but weigh more, requiring Transport investment.
+
+## Drug tables
+
+The season's **DrugsMode** determines pricing across all drugs.
+
+### Normal Mode
+
+| Drug | ID | Base | Step | Weight | Price Range |
+|------|----|------|------|--------|-------------|
+| Ludes | 0 | 24 | 2 | 10 | 24 - 150 |
+| Speed | 1 | 150 | 8 | 14 | 150 - 654 |
+| Weed | 2 | 402 | 16 | 19 | 402 - 1,410 |
+| Shrooms | 3 | 906 | 32 | 27 | 906 - 2,922 |
+| Acid | 4 | 1,914 | 64 | 37 | 1,914 - 5,946 |
+| Ketamine | 5 | 3,930 | 128 | 52 | 3,930 - 12,002 |
+| Heroin | 6 | 7,962 | 256 | 72 | 7,962 - 24,090 |
+| Cocaine | 7 | 16,026 | 512 | 100 | 16,026 - 48,282 |
+
+### Cheap Mode
+
+| Drug | ID | Base | Step | Weight | Price Range |
+|------|----|------|------|--------|-------------|
+| Ludes | 0 | 18 | 1 | 5 | 18 - 81 |
+| Speed | 1 | 85 | 6 | 10 | 85 - 463 |
+| Weed | 2 | 290 | 18 | 15 | 290 - 1,424 |
+| Shrooms | 3 | 980 | 54 | 25 | 980 - 4,382 |
+| Acid | 4 | 2,900 | 111 | 30 | 2,900 - 9,893 |
+| Ketamine | 5 | 6,800 | 186 | 45 | 6,800 - 18,518 |
+| Heroin | 6 | 13,500 | 231 | 65 | 13,500 - 28,053 |
+| Cocaine | 7 | 19,800 | 284 | 100 | 19,800 - 37,692 |
+
+### Expensive Mode
+
+| Drug | ID | Base | Step | Weight | Price Range |
+|------|----|------|------|--------|-------------|
+| Ludes | 0 | 25 | 1 | 12 | 25 - 88 |
+| Speed | 1 | 76 | 3 | 17 | 76 - 265 |
+| Weed | 2 | 218 | 10 | 23 | 218 - 848 |
+| Shrooms | 3 | 796 | 28 | 31 | 796 - 2,560 |
+| Acid | 4 | 1,989 | 56 | 41 | 1,989 - 5,517 |
+| Ketamine | 5 | 4,467 | 109 | 58 | 4,467 - 11,334 |
+| Heroin | 6 | 7,934 | 186 | 76 | 7,934 - 19,652 |
+| Cocaine | 7 | 17,220 | 333 | 100 | 17,220 - 38,199 |

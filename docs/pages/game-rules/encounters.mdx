@@ -1,0 +1,113 @@
+# Encounters
+
+Encounters are where your build matters. Every encounter is a meaningful three-way decision: Fight, Run, or Pay.
+
+## Encounter types
+
+Two types determined by hash of game state (50/50 split):
+
+<div className="docs-card-grid">
+  <div className="docs-card">
+    <div className="docs-card__icon">&#128110;</div>
+    <div className="docs-card__title">Cops</div>
+    <p className="docs-card__desc">Confiscate your drugs (Pay). Jail you for 2 turns (failed Run). Threaten your inventory.</p>
+  </div>
+  <div className="docs-card">
+    <div className="docs-card__icon">&#128481;</div>
+    <div className="docs-card__title">Gang</div>
+    <p className="docs-card__desc">Take your cash + 1 HP damage (Pay). Hospitalize for 1 turn (failed Run). Threaten your capital.</p>
+  </div>
+</div>
+
+## Encounter level
+
+Encounters scale with reputation. Higher reputation means harder enemies.
+
+`level = reputation / divisor + 1` (capped at 6)
+
+| EncountersOddsMode | Divisor | Level at rep 60 | Level at rep 100 |
+|--------------------|---------|-----------------|------------------|
+| Easy | 20 | 4 | 6 |
+| Normal | 16 | 4 | 6 |
+| Hard | 12 | 6 | 6 |
+
+## Encounter stats
+
+Stats scale with level: `stat = base + (level x step)`
+
+### NoJokes baseline
+
+| Type | HP Base/Step | ATK Base/Step | DEF Base/Step | SPD Base/Step |
+|------|-------------|---------------|---------------|---------------|
+| Cops | 12 / 8 | 14 / 8 | 16 / 9 | 6 / 8 |
+| Gang | 1 / 11 | 5 / 11 | 7 / 8 | 2 / 8 |
+
+### Difficulty adjustments
+
+| Mode | Cops | Gang |
+|------|------|------|
+| Chill | All stats -2 | Base unchanged, step -2 |
+| NoJokes | Baseline | Baseline |
+| UltraViolence | All stats +2 | All stats +3 |
+
+## Fight
+
+Choose Fight when your Attack exceeds their effective HP.
+
+- Speed race determines initiative (who attacks first each round).
+- Attack = `player_attack +/- 20%` random variance.
+- Damage shielded = `attack x (defender_defense / 100)`.
+- Net damage = attack - shielded.
+- Continues until one side dies (no round limit).
+
+**Victory payout:** `(encounter_level x 3 + (turn / 5)^2) x 1,000` cash.
+
+**Victory rep:** +encounter_level x 3.
+
+:::tip
+**When to fight:** Fighter builds with Weapon Lv3 can clear most encounters profitably. The payout scales with level and turn, so late-game fights at high reputation are the biggest cash injections in the game.
+:::
+
+## Run
+
+Choose Run when Speed is your edge and you're carrying valuable inventory.
+
+- Speed race: `random(0, player_speed)` vs `random(0, encounter_speed)`. Up to **3 rounds**.
+- Each failed round: encounter attacks at attack/5 damage, lose max(1% drugs, 2 units).
+- **Escaped:** Rep gain = level x 2.
+- **Caught** (after 3 rounds): Redirected to random location.
+  - Cops: **Jailed** (lose 2 turns). Rep +6, -(level x 2).
+  - Gang: **Hospitalized** (lose 1 turn). Rep +4, -(level x 2).
+
+:::tip
+**When to run:** Runner builds with Feet Lv3 have a dominant speed advantage. Running preserves turns and inventory, which compounds over the session.
+:::
+
+## Pay
+
+Choose Pay as a calculated loss when the encounter outclasses your build.
+
+- **Cops:** Confiscate `demand_pct`% of your drugs.
+- **Gang:** Take `demand_pct`% of your cash + 1 HP damage (non-lethal).
+- **Rep loss:** level x 5.
+
+### demand_pct distribution
+
+| Roll (0-99) | < 1 | 1-9 | 10-19 | 20-49 | 50-99 |
+|-------------|-----|-----|-------|-------|-------|
+| demand_pct | 69% | 50% | 40% | 30% | 20% |
+
+:::tip
+**When to pay:** Paying 20% of your drugs (50% chance) is better than dying. Dead hustlers don't score. Finesse players pay strategically to preserve resources for fights they can win.
+:::
+
+## Outcomes
+
+| Outcome | Condition | Effect |
+|---------|-----------|--------|
+| Died | Health reaches 0 | Game over |
+| Paid | Chose Pay | Lose drugs (Cops) or cash (Gang) |
+| Escaped | Won Run speed check | Continue to destination |
+| Victorious | Won Fight | Cash payout + reputation |
+| Jailed | Failed Run vs Cops | Lose 2 turns, random location |
+| Hospitalized | Failed Run vs Gang | Lose 1 turn, random location |

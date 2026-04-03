@@ -1,0 +1,59 @@
+# Seasons
+
+Every season randomizes 7 dimensions, creating **2,187 possible configurations**. Like a new DFS slate every week, the optimal strategy changes and the meta resets.
+
+## Season settings
+
+Each dimension has 3 variants, randomly selected via VRF at season creation.
+
+| Dimension | Variant 1 | Variant 2 | Variant 3 |
+|-----------|-----------|-----------|-----------|
+| CashMode | Broke (420) | Average (1,000) | Rich (2,600) |
+| HealthMode | Junkie (70) | Hustler (90) | Streetboss (110) |
+| TurnsMode | OnSpeed (15) | OnWeed (18) | OnMush (21) |
+| EncountersMode | Chill (-2 stats) | NoJokes (base) | UltraViolence (+2/+3) |
+| EncountersOddsMode | Easy (/20) | Normal (/16) | Hard (/12) |
+| DrugsMode | Cheap | Normal | Expensive |
+| WantedMode | KoolAndTheGang | ThugLife | MostWanted |
+
+## How settings change optimal play
+
+- **Broke + UltraViolence** — Fighter builds dominate. You can't afford to lose drugs or cash to Pay. Every encounter is a must-win.
+- **Rich + Chill** — Trade-heavy Finesse plays are viable. Encounters are manageable, starting capital lets you invest in drugs immediately.
+- **OnSpeed + Hard** — Reputation races matter more. With only 15 turns and fast encounter scaling, commit to a build archetype early.
+- **OnMush + KoolAndTheGang** — Runner builds thrive. 21 turns with low encounter odds means more trading turns. High Transport pays off.
+
+## Fixed per-season config
+
+These values are constant across all seasons:
+
+| Parameter | Value | Description |
+|-----------|-------|-------------|
+| max_wanted_shopping | 5 | Wanted threshold to enter pawnshop |
+| max_rounds | 3 | Max rounds when running from encounter |
+| rep_drug_step | 20 | Reputation needed per drug level |
+| rep_buy_item | 3 | Rep earned per equipment purchase |
+| rep_carry_drugs | 2 | Rep earned per turn carrying > 5 drugs |
+| rep_hospitalized | 4 | Rep earned when hospitalized |
+| rep_jailed | 6 | Rep earned when jailed |
+
+## Season lifecycle
+
+<div className="docs-flow">
+  <div className="docs-flow__step">
+    <span className="docs-flow__num">1</span>
+    <div className="docs-flow__content"><strong>Creation</strong> — Season created with randomized settings via VRF</div>
+  </div>
+  <div className="docs-flow__step">
+    <span className="docs-flow__num">2</span>
+    <div className="docs-flow__content"><strong>Play</strong> — Players pay USD entry fees and play rounds. PAPER rewards are issued per game, immediately</div>
+  </div>
+  <div className="docs-flow__step">
+    <span className="docs-flow__num">3</span>
+    <div className="docs-flow__content"><strong>New season</strong> — When the season ends, new randomized settings are generated. The meta resets</div>
+  </div>
+</div>
+
+:::note
+Seasons control the **game parameters** (starting cash, health, turns, difficulty, drug pricing, wanted mode). Rewards are per-game, not per-season. You don't wait for a season to end to get paid.
+:::

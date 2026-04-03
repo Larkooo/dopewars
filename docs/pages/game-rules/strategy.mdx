@@ -1,0 +1,92 @@
+# Strategy Guide
+
+Dope Wars rewards skill, not luck. This guide covers the decision-making that separates top performers from the rest.
+
+## Read the season first
+
+Every season randomizes 7 dimensions. Before you play, read the settings and choose your archetype:
+
+| Season combo | Best archetype | Why |
+|-------------|---------------|-----|
+| Broke + UltraViolence | Fighter | Low starting cash means you need combat payouts. Encounters hit hard, so you need the stats to win them. |
+| Rich + Chill | Finesse | High starting cash lets you invest in drugs immediately. Encounters are manageable. Pay when convenient, fight when profitable. |
+| OnSpeed + Hard | Fighter or Finesse | Only 15 turns. Encounters scale fast. Commit to a build early. No time to pivot. |
+| OnMush + KoolAndTheGang | Runner | 21 turns with low encounter odds. More turns = more trades. High Transport compounds. |
+| Expensive + MostWanted | Fighter | Drugs cost more (harder to profit on margins), encounters are frequent. Combat payouts become the primary income. |
+
+## The capital allocation puzzle
+
+Every dollar has three uses: buy drugs, upgrade equipment, or save for emergencies. The allocation depends on your archetype.
+
+**Fighters:** Invest in Weapon and Clothes early. Accept lower trade profits in the first few turns. Once your build is online, combat payouts accelerate your cash faster than trading ever could. A fight win at encounter level 5, turn 15 pays 24,000 cash.
+
+**Runners:** Invest in Feet and Vehicle first. High Transport means more product per trip. High Speed means you escape encounters reliably. Your income is volume trading, not combat.
+
+**Finesse:** Spread investment across all slots. You need enough Attack to win easy fights, enough Speed to run from hard ones, and enough Transport to trade efficiently. The skill is knowing which encounters to fight and which to avoid.
+
+## Reputation management
+
+Reputation is both fuel and fire. Every point unlocks better drugs but spawns harder enemies.
+
+**Push reputation when:**
+- You're a Fighter with Weapon Lv2+ (you can handle harder encounters)
+- You need to unlock the next drug tier (rep 20/40/60/80 thresholds)
+- The season has Easy encounter odds (encounters scale slowly)
+
+**Slow reputation when:**
+- Your build isn't ready for harder encounters
+- You're in a Hard encounter odds season (encounters scale fast)
+- You're close to max turns and your current drug tier is profitable enough
+
+**Paying costs reputation.** Every time you Pay an encounter, you lose `encounter_level x 5` rep. For Finesse players, strategic Pays keep reputation in check. For Fighters, avoiding Pay means reputation climbs fast, which means you'll face level 5-6 encounters by mid-game.
+
+## Wanted level tactics
+
+Wanted determines encounter probability. Managing it is how Runners avoid fights and Fighters seek them.
+
+**To increase wanted (Fighters want this):**
+- Travel back to the same location repeatedly (+2/3/4 wanted)
+- Leave locations while carrying drugs (+5/5/6 wanted)
+
+**To decrease wanted (Runners want this):**
+- Rotate locations. Wanted decays -1 per turn at locations you're not visiting.
+- Drop your drugs before traveling (no leave-with-drugs penalty)
+
+**The Pawnshop gate:** Wanted must be below 5 to enter the Pawnshop. Fighters who push wanted too aggressively lose access to upgrades. Time your shop visits between encounter-heavy stretches.
+
+## Fight payout math
+
+The fight payout formula rewards late-game, high-reputation Fighters:
+
+`payout = (encounter_level x 3 + (turn / 5)^2) x 1,000`
+
+| Turn | Encounter Lv1 | Encounter Lv3 | Encounter Lv5 |
+|------|--------------|--------------|--------------|
+| 5 | 4,000 | 10,000 | 16,000 |
+| 10 | 7,000 | 13,000 | 19,000 |
+| 15 | 12,000 | 18,000 | 24,000 |
+| 18 | 15,960 | 21,960 | 27,960 |
+
+Late-game fights at high encounter levels pay more than most drug trades. This is why Fighters push reputation aggressively.
+
+## When to Pay (not when to fight)
+
+Paying is not losing. Paying is a calculated cost.
+
+**Pay when:**
+- Encounter level exceeds your Attack by more than 2x (you'll likely die fighting)
+- You're carrying high-value drugs and can't afford to lose them (Cops confiscate drugs)
+- Your health is low and one more hit kills you
+
+**Never pay when:**
+- You have 0 drugs and the encounter is Cops (you can't pay, fight or run instead)
+- You have 0 cash and the encounter is Gang (same thing)
+- The demand_pct roll is 69% (1% chance, but devastating. Run instead if your speed allows it)
+
+## The endgame
+
+The last 2-3 turns matter more than the first 5. Common mistakes:
+
+- **Forgetting to sell drugs.** Your final score is cash, not inventory. Sell everything before the last turn.
+- **Taking unnecessary fights.** If you're in a strong leaderboard position, don't fight a level 6 encounter on the last turn. The payout isn't worth the death risk.
+- **Not shopping.** If the Pawnshop is available on your second-to-last turn, consider upgrading. Higher item level = higher PAPER reward.

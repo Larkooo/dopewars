@@ -1,0 +1,59 @@
+# Rewards
+
+Dope Wars uses a **dynamic per-game reward system**. PAPER is issued immediately at the end of each round based on individual performance. There is no pooled jackpot or tournament payout.
+
+## How rewards work
+
+<div className="docs-flow">
+  <div className="docs-flow__step">
+    <span className="docs-flow__bullet" />
+    <div className="docs-flow__content"><strong>Play a round</strong> — Your final cash when the game ends is your performance metric</div>
+  </div>
+  <div className="docs-flow__step">
+    <span className="docs-flow__bullet" />
+    <div className="docs-flow__content"><strong>Reward computed</strong> — A dynamic function calculates your PAPER reward based on performance and item level</div>
+  </div>
+  <div className="docs-flow__step">
+    <span className="docs-flow__bullet" />
+    <div className="docs-flow__content"><strong>PAPER issued</strong> — Reward is issued immediately at round end. No claim step, no waiting</div>
+  </div>
+</div>
+
+## Reward function
+
+The reward is computed per game based on:
+
+| Factor | Effect |
+|--------|--------|
+| **Player performance** | Final cash at end of round. Higher cash = higher reward. |
+| **Player item level** | Higher item level raises encounter difficulty, which increases the reward multiplier. Better gear = harder game = more PAPER. |
+| **PAPER token dynamics** | Supply and market conditions factor into the computation. |
+
+## Item-level scaling
+
+This is the key economic mechanic. Your equipment choices don't just affect gameplay, they affect your reward ceiling.
+
+- **Low item level** — Easier encounters, lower PAPER rewards per game.
+- **High item level** — Harder encounters, higher PAPER rewards per game.
+
+This creates a natural progression loop: earn PAPER, upgrade gear, face harder challenges, earn more PAPER. Players self-select their difficulty by choosing their build.
+
+:::tip
+**The tradeoff is real.** A Fighter with Weapon Lv3 faces tougher encounters but earns more PAPER per win. A Runner with Feet Lv3 faces the same difficulty scaling but earns rewards through trade volume rather than combat. The reward function accounts for overall item level, not specific slot allocation.
+:::
+
+## Entry fee distribution
+
+Every USD entry fee is split:
+
+| Allocation | Percentage | Purpose |
+|-----------|-----------|---------|
+| Buy-back and burn | 70% | Purchases PAPER from the AMM and burns it. Reduces supply. |
+| Developer | 30% | Platform revenue and continued development. |
+
+## Key properties
+
+- **Not zero-sum.** Your reward depends on your individual performance, not on how other players did.
+- **Immediate.** No season-end processing, no claim transactions. PAPER arrives in your wallet at round end.
+- **Deflationary.** 70% of all entry fees permanently remove PAPER from circulation. The more games played, the more PAPER is burned.
+- **Self-balancing.** Item-level difficulty scaling means the reward function naturally adjusts. Players who push into harder territory earn more, but only if they can perform.

@@ -1,0 +1,98 @@
+# The Build
+
+Your equipment choices define your playstyle and determine how you handle every encounter. This is the core decision in Dope Wars.
+
+## Three archetypes
+
+<div className="docs-card-grid docs-card-grid--three">
+  <div className="docs-card">
+    <div className="docs-card__icon">&#9876;</div>
+    <div className="docs-card__title">Fighter</div>
+    <p className="docs-card__desc">Max Weapon + Clothes. Tank encounters, win combat payouts. High risk, high cash ceiling.</p>
+  </div>
+  <div className="docs-card">
+    <div className="docs-card__icon">&#128168;</div>
+    <div className="docs-card__title">Runner</div>
+    <p className="docs-card__desc">Max Feet + Transport. Evade encounters, carry more drugs. Consistent returns, lower ceiling.</p>
+  </div>
+  <div className="docs-card">
+    <div className="docs-card__icon">&#9813;</div>
+    <div className="docs-card__title">Finesse</div>
+    <p className="docs-card__desc">Balanced build. Adapt per encounter. Pay, fight, or run depending on the situation. Highest skill ceiling.</p>
+  </div>
+</div>
+
+### Fighter
+
+**Example loadout:** Weapon Lv3, Clothes Lv3, Feet Lv0, Transport Lv0
+
+Fighters live and die by combat. High Attack lets you clear most encounters profitably. High Defense absorbs hits when the enemy strikes first. The fight payout formula rewards this archetype:
+
+`payout = (encounter_level x 3 + (turn / 5)^2) x 1,000`
+
+A Fighter at reputation 80 on turn 15 earns **(5 x 3 + 9) x 1,000 = 24,000 cash** per fight won. Late-game fights at high reputation are the biggest cash injections in the game.
+
+**Risk:** Low Speed means running is unreliable. Low Transport means you can't carry much product. If you can't fight, you can't do anything.
+
+### Runner
+
+**Example loadout:** Weapon Lv0, Clothes Lv0, Feet Lv3, Transport Lv3
+
+Runners evade encounters and maximize trade volume. Speed advantage makes Run the dominant choice. High Transport lets you move maximum product per turn, compounding profits over the session.
+
+**Risk:** If you get cornered in a fight, you have no Attack or Defense. Getting caught is death.
+
+### Finesse
+
+**Example loadout:** Weapon Lv2, Clothes Lv1, Feet Lv2, Transport Lv1
+
+The three-way decision (Fight/Run/Pay) is genuinely open every encounter. Pay when outmatched, fight when strong, run when fast enough. Every encounter is a judgment call.
+
+**Risk:** Master of none. No dominant strategy for any situation.
+
+## Equipment slots
+
+The DopeLoot/DopeHustlers NFT system supports **9 equipment slots**. 4 are currently active, 5 are supported by the NFT but not yet wired into game mechanics.
+
+### Permanent gear (VRGDA Auction)
+
+Burn PAPER to permanently acquire items through a Variable Rate Gradual Dutch Auction. VRGDA pricing decays over time but rises when items are purchased faster than the target rate. Permanent gear persists across sessions.
+
+### Session upgrades (Pawnshop)
+
+Spend in-game cash at the Pawnshop to temporarily boost equipment for the current session. Upgrades reset each round. 4 levels (0-3), one upgrade per visit.
+
+### 9 Equipment slots
+
+| Slot | Stat | Effect |
+|------|------|--------|
+| Weapon | Attack | Damage dealt in combat |
+| Clothes | Defense | % damage reduction |
+| Feet | Speed | Initiative in combat, escape chance |
+| Vehicle | Transport | Max drug weight carriable |
+| Waist | Evasion | Reduce encounter trigger chance |
+| Hand | Negotiation | Reduce demand_pct when paying off encounters |
+| Neck | Reputation | Bonus rep gain per action |
+| Ring | Luck | Improve market price variance in your favor |
+| Drug | Tolerance | Carry multiple drug types or reduce drug weight |
+
+9 slots create **hybrid archetypes**: a Fighter with high Negotiation can Pay encounters they'd normally fight. A Runner with high Evasion avoids encounters entirely. The build space is combinatorial.
+
+### Stat progression
+
+Items have 3 tiers determining stat/cost per level:
+
+| Slot | Tier 1 (Lv0→3) | Tier 2 (Lv0→3) | Tier 3 (Lv0→3) |
+|------|----------------|----------------|----------------|
+| Weapon | 10 → 80 | 12 → 70 | 14 → 60 |
+| Clothes | 10 → 75 | 12 → 70 | 14 → 65 |
+| Feet | 6 → 54 | 8 → 50 | 10 → 46 |
+| Vehicle | 900 → 5,500 | 1,000 → 5,000 | 1,100 → 4,500 |
+
+- Shop access requires **wanted < 5** at the current location.
+- Each purchase awards **+3 reputation**.
+- All active slots maxed triggers the "Fully Loaded" achievement.
+
+:::tip
+**Capital allocation matters.** Every dollar spent on equipment is a dollar not invested in drug inventory. Fighters spend early on gear and rely on combat payouts. Runners spend on Vehicle and Feet, then profit from volume trading. With 9 slots, the allocation puzzle gets much deeper.
+:::

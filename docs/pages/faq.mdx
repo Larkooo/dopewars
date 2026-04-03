@@ -1,0 +1,69 @@
+# FAQ
+
+Frequently asked questions about Dope Wars.
+
+## Gameplay
+
+### What is Dope Wars?
+
+Dope Wars is a real-money skill game built onchain with Dojo Engine on Starknet. It's an adaptation of the classic Drug Wars game where you build a hustler, trade drugs across NYC neighborhoods, and navigate encounters with Cops and Gangs. Your build decisions and encounter choices determine your payout.
+
+### How do I win?
+
+End the game with the most cash possible. Your final cash determines your PAPER reward, issued immediately at round end. Higher performance and higher item level = more PAPER earned.
+
+### What are the three build archetypes?
+
+- **Fighter** — Max Weapon + Clothes. Tank encounters for combat payouts. High risk, high reward.
+- **Runner** — Max Feet + Transport. Evade encounters, carry more drugs. Consistent, lower ceiling.
+- **Finesse** — Balanced build. Adapt per encounter. Highest skill ceiling.
+
+See [The Build](/game-rules/builds) for detailed loadouts and strategy.
+
+### How do encounters work?
+
+When you travel, you may encounter Cops or Gangs based on your wanted level. You choose to **Fight** (use Attack/Defense), **Run** (use Speed), or **Pay** (lose a percentage of drugs or cash). Your build determines which choice is optimal. See [Encounters](/game-rules/encounters).
+
+### What is reputation?
+
+Reputation (0-100) gates drug access and scales encounter difficulty. Higher rep = better drugs but harder enemies. It's the core tension of the game. See [Reputation](/game-rules/reputation).
+
+### How long is a game?
+
+15-21 turns depending on the season's TurnsMode (OnSpeed = 15, OnWeed = 18, OnMush = 21). Each turn involves traveling, trading, and potentially handling an encounter.
+
+## Economy & token
+
+### How do I enter a game?
+
+Pay a USD entry fee to enter a Ranked game. 70% of the fee buys PAPER from the AMM and burns it. 30% goes to the developer.
+
+### What is the $PAPER token?
+
+$PAPER is the reward token of Dope Wars. Players earn PAPER based on their in-game performance. Entry fees are paid in USD, not PAPER. 70% of all entry fees buy and burn PAPER, creating deflationary pressure.
+
+### How do rewards work?
+
+PAPER is issued immediately at the end of each round based on a dynamic reward function. Your reward depends on your performance (final cash) and your item level (higher item level = harder game = more PAPER). Rewards are individual, not pooled. See [Rewards](/economy/payouts).
+
+### What are seasons?
+
+Seasons define the game parameters: 7 randomized dimensions (2,187 possible configs) that change starting cash, health, turns, encounter difficulty, drug pricing, and wanted escalation. Rewards are per-game within a season, not paid out when the season ends. See [Seasons](/economy/seasons).
+
+## Technical
+
+### Is the game provably fair?
+
+Yes. All game logic runs onchain on Starknet. Randomness comes from Cartridge VRF (verifiable random function). Every encounter outcome, payout calculation, and season configuration is verifiable. See [Contracts](/contracts).
+
+### What wallets are supported?
+
+Cartridge Controller, ArgentX, Braavos, and MetaMask (via Starknet bridge).
+
+### Can I play for free?
+
+Yes. **Noob mode** is free with no payouts. You can also use a Guest identity (8 free IDs per season) instead of an NFT.
+
+### Where is the game available?
+
+Dope Wars is available worldwide except in certain US states (AZ, AR, CT, DE, LA, MT, SC, SD, TN) where skill-based real-money gaming regulations apply.

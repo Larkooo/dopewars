@@ -1,0 +1,17 @@
+{
+  "name": "@cartridge/dopewars-docs",
+  "private": true,
+  "scripts": {
+    "docs:dev": "vocs dev",
+    "docs:build": "vocs build",
+    "docs:preview": "vocs preview"
+  },
+  "dependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "vocs": "^1.4.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.5"
+  }
+}

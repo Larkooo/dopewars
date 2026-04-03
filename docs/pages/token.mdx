@@ -1,0 +1,72 @@
+import { PaperFlywheel } from "../components/PaperFlywheel";
+
+# PAPER Token
+
+**PAPER** is the reward token of Dope Wars. Players earn PAPER through gameplay performance. PAPER is burned to acquire permanent gear through the VRGDA item auction. Entry fees are paid in USD.
+
+## How PAPER works
+
+<div className="docs-flow">
+  <div className="docs-flow__step">
+    <span className="docs-flow__num">1</span>
+    <div className="docs-flow__content"><strong>Earn</strong> — PAPER is issued at the end of each round based on your performance and item level. Better play = more PAPER</div>
+  </div>
+  <div className="docs-flow__step">
+    <span className="docs-flow__num">2</span>
+    <div className="docs-flow__content"><strong>Burn (Entry fees)</strong> — 70% of all USD entry fees purchase PAPER from the AMM and burn it permanently</div>
+  </div>
+  <div className="docs-flow__step">
+    <span className="docs-flow__num">3</span>
+    <div className="docs-flow__content"><strong>Burn (VRGDA)</strong> — Players burn PAPER to purchase permanent equipment through the VRGDA item auction</div>
+  </div>
+  <div className="docs-flow__step">
+    <span className="docs-flow__num">4</span>
+    <div className="docs-flow__content"><strong>Developer</strong> — 30% of USD entry fees go to the developer for platform operations and development</div>
+  </div>
+</div>
+
+## Entry fee distribution
+
+<div className="docs-stat-row">
+  <div className="docs-stat">
+    <div className="docs-stat__value">70%</div>
+    <div className="docs-stat__label">Buy-back & burn PAPER</div>
+  </div>
+  <div className="docs-stat">
+    <div className="docs-stat__value">30%</div>
+    <div className="docs-stat__label">Developer revenue</div>
+  </div>
+</div>
+
+<PaperFlywheel />
+
+## Two burn sources
+
+PAPER has two distinct burn mechanisms:
+
+**Entry fee burn:** Every USD entry fee automatically purchases PAPER from the AMM and burns it. The more games played, the more PAPER is removed from circulation.
+
+**VRGDA item burn:** Players choose to burn PAPER to permanently acquire equipment items through the Variable Rate Gradual Dutch Auction. This connects the token economy directly to the build system: the better your permanent gear, the more PAPER you burned to get it.
+
+## Reward mechanics
+
+PAPER rewards are computed dynamically per game based on:
+
+- **Performance** — Your final cash when the game ends
+- **Item level** — Higher total item level increases encounter difficulty, which increases the reward multiplier
+- **Token dynamics** — Supply and market conditions factor into the computation
+
+Rewards are **immediate**. PAPER is issued at round end with no claim step and no waiting period.
+
+:::note
+**Item-level scaling is the key mechanic.** Equipping better gear raises your difficulty, which raises your potential PAPER reward. This creates a natural progression loop: earn PAPER, buy permanent gear through VRGDA, face harder challenges, earn more PAPER.
+:::
+
+## VRGDA Item Auction
+
+The Variable Rate Gradual Dutch Auction is how players acquire permanent equipment.
+
+- **Pricing:** Starts at a target price and decays over time. If items are purchased faster than the target rate, the price rises. If demand is low, the price falls.
+- **Items:** All 9 equipment slots (Weapon, Clothes, Feet, Vehicle, Waist, Hand, Neck, Ring, Drug) are available through the auction.
+- **Permanence:** VRGDA items persist across sessions. They define your baseline build before any in-game Pawnshop upgrades.
+- **Burns PAPER:** Every VRGDA purchase removes PAPER from circulation permanently.

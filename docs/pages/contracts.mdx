@@ -1,0 +1,59 @@
+# Contracts
+
+Dope Wars is built with [Dojo](https://dojoengine.org), a framework for onchain games and applications on Starknet. All contracts are written in **Cairo** under the `dopewars_v0` namespace.
+
+## Stack
+
+- **Starknet L2** — Settlement and execution layer
+- **Dojo 1.7.1** (Cairo 2.12.2) — Game framework (world/system/model pattern)
+- **Cartridge VRF** — Provable onchain randomness for encounters, season generation, and market variations
+- **Torii** — Indexer with GraphQL subscriptions for real-time frontend state
+
+## Contract systems
+
+#### Game
+
+Core game logic: creation, travel, trading, shopping, and game end.
+
+| System | Purpose |
+|--------|---------|
+| `game` | Create game, travel, end game |
+| `decide` | Handle encounter decisions (Fight/Run/Pay) |
+
+#### Economy
+
+Season management, scoring, and rewards distribution.
+
+| System | Purpose |
+|--------|---------|
+| `laundromat` | Score registration, payout processing, reward claims |
+| `ryo` | Season configuration, admin controls, pause/unpause |
+
+#### Configuration
+
+Game parameters, drug pricing, encounter stats, and equipment.
+
+| System | Purpose |
+|--------|---------|
+| `config` | Emit item configs, initialize drug/encounter/location settings |
+
+## Deployments
+
+Addresses are sourced from deployment manifests.
+
+#### Dojo World
+
+| Network | Address |
+|---------|---------|
+| Mainnet | `0x06bc05ce...68cc85` |
+
+#### Key Addresses (Mainnet)
+
+| Contract | Address |
+|----------|---------|
+| VRF Provider | `0x051fea44...0ced8f` |
+| PAPER Token | `0x410466536b...997d113` |
+
+:::note
+**Fully onchain.** Every encounter outcome, payout calculation, and season configuration is verifiable on Starknet. Players don't have to trust the operator. They can verify.
+:::

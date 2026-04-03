@@ -1,0 +1,55 @@
+# Game Rules
+
+Dope Wars is a real-money skill game. Players land in a fictional NYC, build their hustler through equipment upgrades, and navigate encounters with Cops and Gangs. Your build decisions and encounter choices determine your payout.
+
+## Game flow
+
+<div className="docs-flow">
+  <div className="docs-flow__step">
+    <span className="docs-flow__num">1</span>
+    <div className="docs-flow__content"><strong>Enter a game</strong> — Pay a USD entry fee. Select your identity: Guest (free), DopeLoot NFT, or DopeHustlers NFT</div>
+  </div>
+  <div className="docs-flow__step">
+    <span className="docs-flow__num">2</span>
+    <div className="docs-flow__content"><strong>Start at Home</strong> — Markets and wanted levels are initialized via VRF. Your first travel is always encounter-free</div>
+  </div>
+  <div className="docs-flow__step">
+    <span className="docs-flow__num">3</span>
+    <div className="docs-flow__content"><strong>Travel to a neighborhood</strong> — Choose from 6 NYC locations. Each has its own drug prices and wanted level</div>
+  </div>
+  <div className="docs-flow__step">
+    <span className="docs-flow__num">4</span>
+    <div className="docs-flow__content"><strong>Trade drugs</strong> — Buy low, sell high on constant-product markets. Prices move with your trades. Fund your build through profit</div>
+  </div>
+  <div className="docs-flow__step">
+    <span className="docs-flow__num">5</span>
+    <div className="docs-flow__content"><strong>Upgrade equipment</strong> — Visit the Pawnshop (if wanted &lt; 5) to upgrade Weapon, Clothes, Feet, or Transport. Your build defines your playstyle</div>
+  </div>
+  <div className="docs-flow__step">
+    <span className="docs-flow__num">6</span>
+    <div className="docs-flow__content"><strong>Handle encounters</strong> — Cops and Gangs appear based on your wanted level. Choose to <strong>Fight</strong>, <strong>Run</strong>, or <strong>Pay</strong> based on your build</div>
+  </div>
+  <div className="docs-flow__step">
+    <span className="docs-flow__num">7</span>
+    <div className="docs-flow__content"><strong>End game and earn</strong> — After 15-21 turns (or death), your final cash determines your PAPER reward. Issued immediately</div>
+  </div>
+</div>
+
+## Win conditions
+
+End the game with the **most cash** possible. Your final cash determines your PAPER reward through a dynamic reward function. Higher performance = more PAPER, issued immediately at round end. Your reward also scales with your item level: better gear = harder game = bigger potential payout.
+
+## Lose conditions
+
+- **Death** — Health reaches 0 during an encounter. Game over immediately.
+- **Low performance** — Ending with less cash than you started means minimal or no PAPER reward.
+- **Mismanaged wanted** — Triggering encounters your build can't handle.
+- **Over-invested in equipment** — No capital left to trade drugs.
+
+## Game modes
+
+| Mode | Entry | Payouts | Encounters | Reputation |
+|------|-------|---------|------------|------------|
+| **Ranked** | USD entry fee | PAPER rewards | Based on wanted | Normal |
+| **Noob** | Free | None | Based on wanted | Normal |
+| **Warrior** | USD entry fee | PAPER rewards | Always | 2x gains/losses |

@@ -1,0 +1,152 @@
+/**
+ * Dope Wars Documentation - Dark theme
+ */
+
+/* Card grid for builds, encounters, locations */
+.docs-card-grid {
+  display: grid;
+  gap: 1rem;
+  margin: 2rem 0;
+  grid-template-columns: 1fr;
+}
+@media (min-width: 640px) {
+  .docs-card-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (min-width: 900px) {
+  .docs-card-grid--three {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.docs-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1.25rem;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
+  transition: border-color 0.15s, background-color 0.15s;
+}
+.docs-card:hover {
+  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.07);
+}
+.docs-card__icon {
+  font-size: 2rem;
+  margin-bottom: 0.75rem;
+}
+.docs-card__title {
+  font-weight: 600;
+  text-align: center;
+  margin-bottom: 0.5rem;
+}
+.docs-card__desc {
+  font-size: 0.875rem;
+  color: rgba(156, 163, 175, 1);
+  text-align: center;
+  margin: 0;
+}
+
+/* Game flow steps */
+.docs-flow {
+  margin: 2rem 0;
+}
+.docs-flow__step {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+.docs-flow__step:last-child {
+  border-bottom: none;
+}
+.docs-flow__num {
+  flex-shrink: 0;
+  width: 2rem;
+  height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(234, 179, 8, 0.25);
+  color: rgb(234, 179, 8);
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+.docs-flow__content {
+  flex: 1;
+}
+.docs-flow__content strong {
+  color: rgba(0, 0, 0, 0.9);
+}
+:root.dark .docs-flow__content strong,
+.dark .docs-flow__content strong {
+  color: rgba(255, 255, 255, 0.95);
+}
+.docs-flow__bullet {
+  flex-shrink: 0;
+  width: 0.5rem;
+  height: 0.5rem;
+  margin-top: 0.5rem;
+  border-radius: 50%;
+  background: rgba(234, 179, 8, 0.6);
+}
+
+/* Stat highlight */
+.docs-stat-row {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin: 1.5rem 0;
+}
+.docs-stat {
+  flex: 1;
+  min-width: 140px;
+  padding: 1rem;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.03);
+  text-align: center;
+}
+.docs-stat__value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: rgb(234, 179, 8);
+}
+.docs-stat__label {
+  font-size: 0.8125rem;
+  color: rgba(156, 163, 175, 1);
+  margin-top: 0.25rem;
+}
+
+/* Flywheel diagram */
+.docs-flywheel {
+  margin: 2rem 0;
+  padding: 1.5rem;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.03);
+}
+.docs-flywheel__svg {
+  width: 100%;
+  max-width: 500px;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+}
+.docs-flywheel__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: center;
+  margin-top: 1rem;
+  font-size: 0.8125rem;
+  color: rgba(156, 163, 175, 1);
+}
+.docs-flywheel__legend-item span {
+  font-weight: 600;
+}

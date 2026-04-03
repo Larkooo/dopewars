@@ -1,0 +1,68 @@
+# The Map
+
+6 playable neighborhoods plus a Home hub. Each location has its own drug market and wanted level.
+
+## Locations
+
+| ID | Location | Notes |
+|----|----------|-------|
+| 0 | Home | Starting location. Safe hub, no encounters. |
+| 1 | Queens | |
+| 2 | The Bronx | |
+| 3 | Brooklyn | |
+| 4 | Jersey City | |
+| 5 | Central Park | |
+| 6 | Coney Island | |
+
+## Wanted level
+
+Each location tracks its own **wanted level** (3-bit value, range 0-7). Wanted determines encounter probability.
+
+### Encounter probability
+
+`encounter_risk = (wanted x 15) - risk_modifier`
+
+| Wanted | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 |
+|--------|---|---|---|---|---|---|---|---|
+| Raw risk | 0% | 15% | 30% | 45% | 60% | 75% | 90% | 105% |
+
+Risk is reduced by the season's risk modifier (see below).
+
+### Wanted changes
+
+<div className="docs-flow">
+  <div className="docs-flow__step">
+    <span className="docs-flow__bullet" />
+    <div className="docs-flow__content"><strong>Travel back to same location</strong> — Wanted increases by +2 / +3 / +4 (WantedMode dependent)</div>
+  </div>
+  <div className="docs-flow__step">
+    <span className="docs-flow__bullet" />
+    <div className="docs-flow__content"><strong>Leave while carrying drugs</strong> — Wanted increases by +5 / +5 / +6 (WantedMode dependent)</div>
+  </div>
+  <div className="docs-flow__step">
+    <span className="docs-flow__bullet" />
+    <div className="docs-flow__content"><strong>Other locations</strong> — Passively decay -1 wanted per turn</div>
+  </div>
+</div>
+
+### Wanted mode
+
+The season's WantedMode determines how fast wanted escalates.
+
+| Mode | Risk modifier | Travel-back | Leave-with-drugs |
+|------|--------------|-------------|------------------|
+| KoolAndTheGang | -20 | +2 | +5 |
+| ThugLife | -15 | +3 | +5 |
+| MostWanted | -10 | +4 | +6 |
+
+:::note
+**Warrior mode** always triggers encounters regardless of wanted level. Wanted still accumulates but doesn't affect encounter probability.
+:::
+
+## Strategy
+
+High-wanted locations have better market opportunities (your trades have been moving prices there) but higher encounter risk. Low-wanted locations are safe but margins are thinner.
+
+- **Fighters** want encounters. Travel aggressively.
+- **Runners** avoid encounters. Rotate locations to keep wanted low.
+- **Finesse** players read the situation. Sometimes you run toward danger, sometimes away.

@@ -1,0 +1,59 @@
+# Reputation
+
+Reputation (0-100) is the central progression system. It gates drug access **and** scales encounter difficulty simultaneously. Every reputation point is both an asset and a liability.
+
+## The tension
+
+Higher reputation unlocks more profitable drugs (better margins) but spawns harder encounters (more risk). This is the core strategic tradeoff.
+
+## Reputation gains
+
+| Action | Rep Change |
+|--------|-----------|
+| Travel with > 5 drugs | +2 per turn |
+| Travel without drugs | +1 per turn |
+| Buy equipment | +3 |
+| Win fight | +(encounter_level x 3) |
+| Escape encounter | +(encounter_level x 2) |
+| Jailed (failed run, Cops) | +6 |
+| Hospitalized (failed run, Gang) | +4 |
+
+## Reputation losses
+
+| Action | Rep Change |
+|--------|-----------|
+| Pay off encounter | -(encounter_level x 5) |
+| Failed run (Cops) | -(encounter_level x 2) |
+| Failed run (Gang) | -(encounter_level x 2) |
+
+:::warning
+**Warrior mode** doubles all reputation gains and losses. Reputation moves fast, which means drug access opens quickly but encounters escalate just as fast.
+:::
+
+## Drug level progression
+
+`drug_level = min(reputation / 20, 4)`
+
+| Level | Rep threshold | Drugs available |
+|-------|--------------|----------------|
+| 0 | 0 | Ludes, Speed, Weed, Shrooms |
+| 1 | 20 | Speed, Weed, Shrooms, Acid |
+| 2 | 40 | Weed, Shrooms, Acid, Ketamine |
+| 3 | 60 | Shrooms, Acid, Ketamine, Heroin |
+| 4 | 80 | Acid, Ketamine, Heroin, Cocaine |
+
+## Encounter scaling
+
+Encounter level = `reputation / divisor + 1` (capped at 6). The divisor depends on the season's EncountersOddsMode:
+
+| Mode | Divisor | Rep for max level (6) |
+|------|---------|----------------------|
+| Easy | 20 | 100 |
+| Normal | 16 | 80 |
+| Hard | 12 | 60 |
+
+## Strategy by archetype
+
+- **Fighters** want high reputation. Harder encounters mean bigger fight payouts. Push rep aggressively through combat wins and drug carrying.
+- **Runners** want moderate reputation. Enough to access mid-tier drugs, but not so much that encounters become deadly. Manage rep carefully.
+- **Finesse** players ride the edge. Push rep when the build can handle it, pay to slow rep growth when encounters get dangerous.
