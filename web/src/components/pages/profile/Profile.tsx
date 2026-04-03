@@ -60,7 +60,7 @@ export const ProfileLinkMobile = () => {
           tokenIdType={gameInfos?.token_id_type}
           tokenId={Number(gameInfos?.token_id)}
         />
-        <Text ml="10px">{gameInfos.player_name?.value || "Player"}</Text>
+        <Text ml="10px">{gameInfos.player_name?.value || gameInfos.player_name || "Player"}</Text>
       </HStack>
     </>
   );
@@ -89,7 +89,7 @@ export const ProfileLinkDrawer = () => {
         tokenIdType={gameInfos?.token_id_type}
         tokenId={Number(gameInfos?.token_id)}
       />
-      <Text ml="4px">{gameInfos.player_name?.value || "Player"}</Text>
+      <Text ml="4px">{gameInfos.player_name?.value || gameInfos.player_name || "Player"}</Text>
     </HStack>
   );
 };
