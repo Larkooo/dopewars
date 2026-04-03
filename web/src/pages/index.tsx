@@ -254,11 +254,11 @@ export default function Home() {
           {/* Fixed bottom buttons */}
           <VStack
             position="absolute"
-            bottom={0}
+            bottom={["60px", "40px"]}
             left={0}
             right={0}
             px={["16px", "0"]}
-            pb={["24px", "16px"]}
+            pb="8px"
             pt="16px"
             background="linear-gradient(transparent, #172217 30%)"
             align="center"
