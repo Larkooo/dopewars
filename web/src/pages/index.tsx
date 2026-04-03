@@ -189,12 +189,32 @@ export default function Home() {
   if (screen === "games") {
     return (
       <Layout customLeftPanel={<HomeLeftPanel />} rigthPanelScrollable={false}>
-        <VStack boxSize="full" px={["16px", "0"]} pt={["80px", "16px"]} justifyContent={["flex-start", "center"]}>
-          <VStack w="full" maxW="400px" mx="auto" gap={4}>
-            <Heading fontSize={["24px", "36px"]} fontWeight="400" textAlign="center" w="full">
-              Your Games
-            </Heading>
+        <Flex direction="column" boxSize="full" px={["16px", "0"]} pt={["80px", "16px"]}>
+          <Heading
+            fontSize={["24px", "36px"]}
+            fontWeight="400"
+            textAlign="center"
+            w="full"
+            maxW="400px"
+            mx="auto"
+            pb={4}
+            flexShrink={0}
+          >
+            Your Games
+          </Heading>
 
+          {/* Scrollable game list */}
+          <VStack
+            w="full"
+            maxW="400px"
+            mx="auto"
+            flex={1}
+            minH={0}
+            overflowY="auto"
+            gap={2}
+            pb="120px"
+            __css={{ "scrollbar-width": "none", "&::-webkit-scrollbar": { display: "none" } }}
+          >
             {savedGames.map((g) => (
               <HStack
                 key={g.gameId}
@@ -206,6 +226,7 @@ export default function Home() {
                 _hover={{ bg: "neon.800" }}
                 onClick={() => onContinue(g.gameId)}
                 justify="space-between"
+                flexShrink={0}
               >
                 <VStack align="flex-start" gap={0}>
                   <Text fontSize="14px" color="neon.200">
@@ -228,23 +249,37 @@ export default function Home() {
                 </VStack>
               </HStack>
             ))}
-
-            <Button variant="primary" w="full" onClick={() => setScreen("new")}>
-              New Game
-            </Button>
-
-            <Text
-              fontSize="12px"
-              color="neon.500"
-              cursor="pointer"
-              _hover={{ color: "neon.400" }}
-              onClick={() => setScreen("home")}
-              textAlign="center"
-            >
-              Back
-            </Text>
           </VStack>
-        </VStack>
+
+          {/* Fixed bottom buttons */}
+          <VStack
+            position="absolute"
+            bottom={0}
+            left={0}
+            right={0}
+            px={["16px", "0"]}
+            pb={["24px", "16px"]}
+            pt="16px"
+            background="linear-gradient(transparent, #172217 30%)"
+            align="center"
+          >
+            <VStack w="full" maxW="400px" gap={2}>
+              <Button variant="primary" w="full" onClick={() => setScreen("new")}>
+                New Game
+              </Button>
+              <Text
+                fontSize="12px"
+                color="neon.500"
+                cursor="pointer"
+                _hover={{ color: "neon.400" }}
+                onClick={() => setScreen("home")}
+                textAlign="center"
+              >
+                Back
+              </Text>
+            </VStack>
+          </VStack>
+        </Flex>
       </Layout>
     );
   }
