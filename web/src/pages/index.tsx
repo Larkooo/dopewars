@@ -87,7 +87,7 @@ export default function Home() {
       {!showGame ? (
         <Flex direction="column" boxSize="full" px={["16px", "0"]}>
           {/* Fixed section - Play Now + saved games */}
-          <VStack w="full" maxW="400px" mx="auto" gap={[3, 6]} pt={["130px", "16px"]} pb={2} flexShrink={0}>
+          <VStack w="full" maxW="400px" mx="auto" gap={[3, 6]} pt={["140px", "16px"]} pb={2} flexShrink={0}>
             <Card variant="pixelated" w="full">
               <HStack w="full" p={["10px", "20px"]} gap="10px" justify="center">
                 <Button flex="1" isLoading={isPending} onClick={onPlayNow}>
