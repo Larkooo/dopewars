@@ -51,10 +51,10 @@ const DrawerMenu = () => {
       <HeaderButton
         ref={btnRef}
         onClick={onOpen}
-        h={["40px", "48px"]}
+        h={["120px", "48px"]}
         w={["40px", "48px"]}
         mt={["-80px", "0"]}
-        pt={["80px", "6px"]}
+        pb={["6px", "0"]}
         display="flex"
         alignItems="flex-end"
         justifyContent="center"
