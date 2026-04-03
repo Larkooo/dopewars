@@ -27,6 +27,8 @@ const LOCATION_NAMES: Record<number, string> = {
   6: "Coney",
 };
 
+type Screen = "home" | "games" | "new";
+
 export default function Home() {
   const { createGame, isPending } = useSystems();
   const { gameStore } = useDojoContext();
@@ -34,7 +36,7 @@ export default function Home() {
   const { connect, connectors } = useConnect();
   const { username } = useControllerUsername(address as string);
 
-  const [showNameInput, setShowNameInput] = useState(false);
+  const [screen, setScreen] = useState<Screen>("home");
   const [name, setName] = useState("");
   const [error, setError] = useState("");
   const [savedGames, setSavedGames] = useState<SavedGameSummary[]>([]);
@@ -57,7 +59,11 @@ export default function Home() {
     if (!account) {
       connect({ connector: connectors[0] });
     }
-    setShowNameInput(true);
+    if (savedGames.length > 0) {
+      setScreen("games");
+    } else {
+      setScreen("new");
+    }
   };
 
   const onStartGame = async () => {
@@ -71,23 +77,17 @@ export default function Home() {
   };
 
   const onContinue = (gameId: number) => {
-    if (!account) {
-      connect({ connector: connectors[0] });
-    }
     const loaded = gameStore.loadGame(gameId);
     if (loaded) {
       gameStore.navigate();
     }
   };
 
-  const showGame = account && showNameInput;
-
-  return (
-    <Layout customLeftPanel={<HomeLeftPanel />} rigthPanelScrollable={false}>
-      {!showGame ? (
+  if (screen === "home" || !account) {
+    return (
+      <Layout customLeftPanel={<HomeLeftPanel />} rigthPanelScrollable={false}>
         <Flex direction="column" boxSize="full" px={["16px", "0"]}>
-          {/* Fixed section - Play Now + saved games */}
-          <VStack w="full" maxW="400px" mx="auto" gap={[3, 6]} pt={["80px", "16px"]} pb={2} flexShrink={0}>
+          <VStack w="full" maxW="400px" mx="auto" pt={["80px", "16px"]} flexShrink={0}>
             <Card variant="pixelated" w="full">
               <HStack w="full" p={["10px", "20px"]} gap="10px" justify="center">
                 <Button flex="1" isLoading={isPending} onClick={onPlayNow}>
@@ -95,50 +95,8 @@ export default function Home() {
                 </Button>
               </HStack>
             </Card>
-
-            {savedGames.length > 0 && (
-              <VStack w="full" gap={2}>
-                <Text textStyle="subheading" fontSize="11px" letterSpacing="0.25em" color="neon.500">
-                  Continue
-                </Text>
-                {savedGames.map((g) => (
-                  <HStack
-                    key={g.gameId}
-                    w="full"
-                    p={3}
-                    bg="neon.900"
-                    borderRadius="2px"
-                    cursor="pointer"
-                    _hover={{ bg: "neon.800" }}
-                    onClick={() => onContinue(g.gameId)}
-                    justify="space-between"
-                  >
-                    <VStack align="flex-start" gap={0}>
-                      <Text fontSize="14px" color="neon.200">
-                        {g.playerName}
-                      </Text>
-                      <Text fontSize="10px" color="neon.500">
-                        Day {g.turn}/{g.maxTurns} - {LOCATION_NAMES[g.location] || "Unknown"}
-                      </Text>
-                    </VStack>
-                    <VStack align="flex-end" gap={0}>
-                      <Text fontSize="12px" color="yellow.400">
-                        {formatCash(g.cash)}
-                      </Text>
-                      <HStack gap={1}>
-                        <Heart width="10px" height="10px" />
-                        <Text fontSize="10px" color="red">
-                          {g.health}
-                        </Text>
-                      </HStack>
-                    </VStack>
-                  </HStack>
-                ))}
-              </VStack>
-            )}
           </VStack>
 
-          {/* Scrollable section - steps only */}
           <VStack
             w="full"
             maxW="400px"
@@ -147,6 +105,7 @@ export default function Home() {
             minH={0}
             overflowY="auto"
             gap={0}
+            pt={4}
             pb="80px"
             __css={{ "scrollbar-width": "none", "&::-webkit-scrollbar": { display: "none" } }}
           >
@@ -170,52 +129,120 @@ export default function Home() {
             ))}
           </VStack>
         </Flex>
-      ) : (
-        <VStack boxSize="full" px={["16px", "0"]} pt={["100px", "0"]} justifyContent={["flex-start", "center"]}>
-          <VStack w="full" maxW="300px" mx="auto" gap={6}>
-            <Heading fontSize={["28px", "40px"]} fontWeight="400" textAlign="center" w="full">
-              Name your hustler
+      </Layout>
+    );
+  }
+
+  if (screen === "games") {
+    return (
+      <Layout customLeftPanel={<HomeLeftPanel />} rigthPanelScrollable={false}>
+        <VStack boxSize="full" px={["16px", "0"]} justifyContent="center">
+          <VStack w="full" maxW="400px" mx="auto" gap={4}>
+            <Heading fontSize={["24px", "36px"]} fontWeight="400" textAlign="center" w="full">
+              Your Games
             </Heading>
 
-            <VStack w="full" gap={3}>
-              <Box w="full">
-                <Input
-                  w="full"
-                  maxLength={16}
-                  placeholder="Enter name"
-                  autoFocus
-                  value={name}
-                  onChange={(e) => {
-                    setError("");
-                    setName(e.target.value);
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") onStartGame();
-                  }}
-                />
-              </Box>
-              {error && (
-                <Text align="center" color="red" fontSize="12px">
-                  {error}
-                </Text>
-              )}
-              <Button variant="primary" w="full" isLoading={isPending} onClick={onStartGame}>
-                Play
-              </Button>
-              <Text
-                fontSize="12px"
-                color="neon.500"
+            {savedGames.map((g) => (
+              <HStack
+                key={g.gameId}
+                w="full"
+                p={3}
+                bg="neon.900"
+                borderRadius="2px"
                 cursor="pointer"
-                _hover={{ color: "neon.400" }}
-                onClick={() => setShowNameInput(false)}
-                textAlign="center"
+                _hover={{ bg: "neon.800" }}
+                onClick={() => onContinue(g.gameId)}
+                justify="space-between"
               >
-                Back
-              </Text>
-            </VStack>
+                <VStack align="flex-start" gap={0}>
+                  <Text fontSize="14px" color="neon.200">
+                    {g.playerName}
+                  </Text>
+                  <Text fontSize="10px" color="neon.500">
+                    Day {g.turn}/{g.maxTurns} - {LOCATION_NAMES[g.location] || "Unknown"}
+                  </Text>
+                </VStack>
+                <VStack align="flex-end" gap={0}>
+                  <Text fontSize="12px" color="yellow.400">
+                    {formatCash(g.cash)}
+                  </Text>
+                  <HStack gap={1}>
+                    <Heart width="10px" height="10px" />
+                    <Text fontSize="10px" color="red">
+                      {g.health}
+                    </Text>
+                  </HStack>
+                </VStack>
+              </HStack>
+            ))}
+
+            <Button variant="primary" w="full" onClick={() => setScreen("new")}>
+              New Game
+            </Button>
+
+            <Text
+              fontSize="12px"
+              color="neon.500"
+              cursor="pointer"
+              _hover={{ color: "neon.400" }}
+              onClick={() => setScreen("home")}
+              textAlign="center"
+            >
+              Back
+            </Text>
           </VStack>
         </VStack>
-      )}
+      </Layout>
+    );
+  }
+
+  // screen === "new"
+  return (
+    <Layout customLeftPanel={<HomeLeftPanel />} rigthPanelScrollable={false}>
+      <VStack boxSize="full" px={["16px", "0"]} justifyContent="center">
+        <VStack w="full" maxW="300px" mx="auto" gap={6}>
+          <Heading fontSize={["28px", "40px"]} fontWeight="400" textAlign="center" w="full">
+            Name your hustler
+          </Heading>
+
+          <VStack w="full" gap={3}>
+            <Box w="full">
+              <Input
+                w="full"
+                maxLength={16}
+                placeholder="Enter name"
+                autoFocus
+                value={name}
+                onChange={(e) => {
+                  setError("");
+                  setName(e.target.value);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") onStartGame();
+                }}
+              />
+            </Box>
+            {error && (
+              <Text align="center" color="red" fontSize="12px">
+                {error}
+              </Text>
+            )}
+            <Button variant="primary" w="full" isLoading={isPending} onClick={onStartGame}>
+              Play
+            </Button>
+            <Text
+              fontSize="12px"
+              color="neon.500"
+              cursor="pointer"
+              _hover={{ color: "neon.400" }}
+              onClick={() => setScreen(savedGames.length > 0 ? "games" : "home")}
+              textAlign="center"
+            >
+              Back
+            </Text>
+          </VStack>
+        </VStack>
+      </VStack>
     </Layout>
   );
 }
