@@ -1,9 +1,9 @@
 // Hardcoded game configuration for offline mode
-// Ported from Cairo contracts
+// Ported 1:1 from Cairo contracts
 
 import { ItemSlot } from "@/dojo/types";
 
-// Drug config per DrugsMode
+// Drug config per DrugsMode - exact values from src/config/drugs.cairo
 export interface DrugConfig {
   drug_id: number;
   drug: string;
@@ -24,24 +24,24 @@ export const DRUG_CONFIGS: Record<string, DrugConfig[]> = {
     { drug_id: 7, drug: "Cocaine", base: 16026, step: 512, weight: 100 },
   ],
   Cheap: [
-    { drug_id: 0, drug: "Ludes", base: 16, step: 1, weight: 8 },
-    { drug_id: 1, drug: "Speed", base: 100, step: 5, weight: 11 },
-    { drug_id: 2, drug: "Weed", base: 268, step: 11, weight: 15 },
-    { drug_id: 3, drug: "Shrooms", base: 604, step: 21, weight: 22 },
-    { drug_id: 4, drug: "Acid", base: 1276, step: 43, weight: 30 },
-    { drug_id: 5, drug: "Ketamine", base: 2620, step: 85, weight: 42 },
-    { drug_id: 6, drug: "Heroin", base: 5308, step: 171, weight: 58 },
-    { drug_id: 7, drug: "Cocaine", base: 10684, step: 341, weight: 80 },
+    { drug_id: 0, drug: "Ludes", base: 18, step: 1, weight: 5 },
+    { drug_id: 1, drug: "Speed", base: 85, step: 6, weight: 10 },
+    { drug_id: 2, drug: "Weed", base: 290, step: 18, weight: 15 },
+    { drug_id: 3, drug: "Shrooms", base: 980, step: 54, weight: 25 },
+    { drug_id: 4, drug: "Acid", base: 2900, step: 111, weight: 30 },
+    { drug_id: 5, drug: "Ketamine", base: 6800, step: 186, weight: 45 },
+    { drug_id: 6, drug: "Heroin", base: 13500, step: 231, weight: 65 },
+    { drug_id: 7, drug: "Cocaine", base: 19800, step: 284, weight: 100 },
   ],
   Expensive: [
-    { drug_id: 0, drug: "Ludes", base: 36, step: 3, weight: 13 },
-    { drug_id: 1, drug: "Speed", base: 225, step: 12, weight: 18 },
-    { drug_id: 2, drug: "Weed", base: 603, step: 24, weight: 25 },
-    { drug_id: 3, drug: "Shrooms", base: 1359, step: 48, weight: 35 },
-    { drug_id: 4, drug: "Acid", base: 2871, step: 96, weight: 48 },
-    { drug_id: 5, drug: "Ketamine", base: 5895, step: 192, weight: 68 },
-    { drug_id: 6, drug: "Heroin", base: 11943, step: 384, weight: 94 },
-    { drug_id: 7, drug: "Cocaine", base: 24039, step: 768, weight: 130 },
+    { drug_id: 0, drug: "Ludes", base: 25, step: 1, weight: 12 },
+    { drug_id: 1, drug: "Speed", base: 76, step: 3, weight: 17 },
+    { drug_id: 2, drug: "Weed", base: 218, step: 10, weight: 23 },
+    { drug_id: 3, drug: "Shrooms", base: 796, step: 28, weight: 31 },
+    { drug_id: 4, drug: "Acid", base: 1989, step: 56, weight: 41 },
+    { drug_id: 5, drug: "Ketamine", base: 4467, step: 109, weight: 58 },
+    { drug_id: 6, drug: "Heroin", base: 7934, step: 186, weight: 76 },
+    { drug_id: 7, drug: "Cocaine", base: 17220, step: 333, weight: 100 },
   ],
 };
 
@@ -60,48 +60,107 @@ export const LOCATIONS: LocationConfig[] = [
   { location_id: 6, location: "Coney" },
 ];
 
-// Encounter stats per mode
-export interface EncounterStats {
+// Encounter stats - exact base/step per mode from src/config/encounters.cairo
+// Formula: stat = base + level * step
+export interface EncounterStatsTemplate {
   encounter: string;
-  level: number;
-  health: number;
-  attack: number;
-  defense: number;
-  speed: number;
+  health_base: number;
+  health_step: number;
+  attack_base: number;
+  attack_step: number;
+  defense_base: number;
+  defense_step: number;
+  speed_base: number;
+  speed_step: number;
 }
 
-function generateEncounterStats(mode: string): EncounterStats[] {
-  const stats: EncounterStats[] = [];
-  const mod = mode === "Chill" ? -2 : mode === "UltraViolence" ? 2 : 0;
-
-  for (let level = 1; level <= 6; level++) {
-    // Cops
-    stats.push({
+export const ENCOUNTER_TEMPLATES: Record<string, EncounterStatsTemplate[]> = {
+  Chill: [
+    {
       encounter: "Cops",
-      level,
-      health: Math.max(1, 12 + level * 8 + mod),
-      attack: Math.max(1, 14 + level * 8 + mod),
-      defense: Math.max(1, 16 + level * 9 + mod),
-      speed: Math.max(1, 6 + level * 8 + mod),
-    });
-    // Gang
-    stats.push({
+      health_base: 10,
+      health_step: 6,
+      attack_base: 12,
+      attack_step: 6,
+      defense_base: 14,
+      defense_step: 7,
+      speed_base: 4,
+      speed_step: 6,
+    },
+    {
       encounter: "Gang",
-      level,
-      health: Math.max(1, 1 + level * 11 + mod),
-      attack: Math.max(1, 5 + level * 11 + mod),
-      defense: Math.max(1, 7 + level * 8 + mod),
-      speed: Math.max(1, 2 + level * 8 + mod),
-    });
-  }
-  return stats;
-}
-
-export const ENCOUNTER_STATS: Record<string, EncounterStats[]> = {
-  Chill: generateEncounterStats("Chill"),
-  NoJokes: generateEncounterStats("NoJokes"),
-  UltraViolence: generateEncounterStats("UltraViolence"),
+      health_base: 1,
+      health_step: 9,
+      attack_base: 5,
+      attack_step: 9,
+      defense_base: 7,
+      defense_step: 6,
+      speed_base: 2,
+      speed_step: 6,
+    },
+  ],
+  NoJokes: [
+    {
+      encounter: "Cops",
+      health_base: 12,
+      health_step: 8,
+      attack_base: 14,
+      attack_step: 8,
+      defense_base: 16,
+      defense_step: 9,
+      speed_base: 6,
+      speed_step: 8,
+    },
+    {
+      encounter: "Gang",
+      health_base: 1,
+      health_step: 11,
+      attack_base: 5,
+      attack_step: 11,
+      defense_base: 7,
+      defense_step: 8,
+      speed_base: 2,
+      speed_step: 8,
+    },
+  ],
+  UltraViolence: [
+    {
+      encounter: "Cops",
+      health_base: 14,
+      health_step: 10,
+      attack_base: 16,
+      attack_step: 10,
+      defense_base: 18,
+      defense_step: 11,
+      speed_base: 8,
+      speed_step: 10,
+    },
+    {
+      encounter: "Gang",
+      health_base: 4,
+      health_step: 14,
+      attack_base: 8,
+      attack_step: 14,
+      defense_base: 10,
+      defense_step: 11,
+      speed_base: 5,
+      speed_step: 11,
+    },
+  ],
 };
+
+// Generate encounter stats for a given mode, type, and level
+export function getEncounterStats(mode: string, encounterType: string, level: number) {
+  const templates = ENCOUNTER_TEMPLATES[mode] || ENCOUNTER_TEMPLATES.NoJokes;
+  const tmpl = templates.find((t) => t.encounter === encounterType);
+  if (!tmpl) return { health: 20, attack: 20, defense: 20, speed: 10 };
+  return {
+    health: tmpl.health_base + level * tmpl.health_step,
+    attack: tmpl.attack_base + level * tmpl.attack_step,
+    defense: tmpl.defense_base + level * tmpl.defense_step,
+    speed: tmpl.speed_base + level * tmpl.speed_step,
+  };
+}
 
 // Game config per season settings
 export interface GameSettings {
@@ -114,6 +173,7 @@ export interface GameSettings {
   wantedMode: string;
 }
 
+// From src/config/settings.cairo
 export const CASH_VALUES: Record<string, number> = {
   Broke: 420,
   Average: 1000,
@@ -132,11 +192,25 @@ export const TURNS_VALUES: Record<string, number> = {
   OnMush: 21,
 };
 
-// Wanted mode risk modifiers (subtract from risk percentage)
-export const WANTED_MODE_MODIFIER: Record<string, number> = {
+// Wanted mode: risk modifier subtracted from wanted_risk percentage
+export const WANTED_RISK_MODIFIER: Record<string, number> = {
   KoolAndTheGang: 20,
   ThugLife: 15,
   MostWanted: 10,
+};
+
+// Wanted mode: how much wanted increases when traveling back to same location
+export const WANTED_TRAVEL_BACK: Record<string, number> = {
+  KoolAndTheGang: 2,
+  ThugLife: 3,
+  MostWanted: 4,
+};
+
+// Wanted mode: how much wanted increases when leaving with drugs
+export const WANTED_LEAVE_WITH_DRUGS: Record<string, number> = {
+  KoolAndTheGang: 5,
+  ThugLife: 5,
+  MostWanted: 6,
 };
 
 // Encounter odds mode: reputation divisor for level calculation
@@ -146,8 +220,12 @@ export const ENCOUNTER_ODDS_DIVISOR: Record<string, number> = {
   Hard: 12,
 };
 
-// Item tier configs (slot -> tier -> levels[])
-// Each level has { cost, stat }
+// Reputation modifiers per encounter level
+export const REP_PAY_MULTIPLIER = 5; // negative: level * 5
+export const REP_RUN_MULTIPLIER = 2; // positive on escape, rep_jailed/rep_hospitalized on capture
+export const REP_FIGHT_MULTIPLIER = 3; // positive on victory
+
+// Item tier configs
 export interface TierLevelConfig {
   cost: number;
   stat: number;
@@ -159,7 +237,6 @@ export interface ItemTierConfig {
   levels: TierLevelConfig[];
 }
 
-// Default gear tiers (4 levels per tier, 3 tiers per slot)
 export const DEFAULT_ITEM_TIERS: ItemTierConfig[] = [
   // Weapon (slot 0) - ATK
   {
@@ -287,9 +364,7 @@ export const DEFAULT_ITEM_TIERS: ItemTierConfig[] = [
   },
 ];
 
-// Default component values (gear item names)
 export const DEFAULT_GEAR_NAMES: Record<number, Record<number, string>> = {
-  // Weapon (slot 0)
   0: {
     0: "Pocket Knife",
     1: "Chain",
@@ -310,25 +385,8 @@ export const DEFAULT_GEAR_NAMES: Record<number, Record<number, string>> = {
     16: "Glock",
     17: "Uzi",
   },
-  // Clothes (slot 1)
-  1: {
-    0: "T-Shirt",
-    1: "Leather Jacket",
-    2: "Bullet Proof Vest",
-    3: "Hoodie",
-    4: "Trench Coat",
-    5: "Kevlar",
-  },
-  // Transport (slot 2)
-  2: {
-    0: "Plastic Bag",
-    1: "Backpack",
-    2: "Duffel Bag",
-    3: "Shopping Cart",
-    4: "Bicycle",
-    5: "Motorcycle",
-  },
-  // Feet (slot 5)
+  1: { 0: "T-Shirt", 1: "Leather Jacket", 2: "Bullet Proof Vest", 3: "Hoodie", 4: "Trench Coat", 5: "Kevlar" },
+  2: { 0: "Plastic Bag", 1: "Backpack", 2: "Duffel Bag", 3: "Shopping Cart", 4: "Bicycle", 5: "Motorcycle" },
   5: {
     0: "Sandals",
     1: "All-Black Sneakers",
@@ -339,7 +397,6 @@ export const DEFAULT_GEAR_NAMES: Record<number, Record<number, string>> = {
   },
 };
 
-// Default item tier assignments (item -> tier)
 export const DEFAULT_ITEM_TIER_MAP: Record<number, Record<number, number>> = {
   0: {
     0: 1,
@@ -366,7 +423,6 @@ export const DEFAULT_ITEM_TIER_MAP: Record<number, Record<number, number>> = {
   5: { 0: 1, 1: 1, 2: 2, 3: 2, 4: 3, 5: 3 },
 };
 
-// Map ItemSlot enum to DopeLoot slot ids
 export const ITEM_SLOT_TO_GEAR_SLOT: Record<number, number> = {
   [ItemSlot.Weapon]: 0,
   [ItemSlot.Clothes]: 1,
@@ -381,18 +437,21 @@ export const GEAR_SLOT_TO_ITEM_SLOT: Record<number, number> = {
   2: ItemSlot.Transport,
 };
 
-// Constants
+// Constants from src/config/game.cairo
 export const MAX_DRUG_LEVEL = 4;
 export const REP_DRUG_STEP = 20;
 export const DRUGS_PER_LOCATION = 4;
 export const MAX_TICK = 63;
 export const MAX_WANTED = 7;
 export const MAX_WANTED_SHOPPING = 5;
+export const MAX_ROUNDS = 3; // max rounds per run encounter
 export const REP_BUY_ITEM = 3;
+export const REP_CARRY_DRUGS = 2;
+export const REP_HOSPITALIZED = 4;
+export const REP_JAILED = 6;
 export const MAX_REP = 100;
 export const MAX_ITEM_LEVEL = 3;
 
-// Random season settings
 export function randomizeSettings(): GameSettings {
   const pick = <T>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)];
   return {
