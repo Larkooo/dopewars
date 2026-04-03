@@ -96,7 +96,15 @@ export default function Home() {
     }
   };
 
-  const tuto = tutorialSteps[currentStep];
+  // Auto-advance carousel every 4 seconds, reset timer on manual interaction
+  const [autoPlay, setAutoPlay] = useState(true);
+  useEffect(() => {
+    if (!autoPlay) return;
+    const interval = setInterval(() => {
+      setCurrentStep((s) => (s + 1) % tutorialSteps.length);
+    }, 4000);
+    return () => clearInterval(interval);
+  }, [autoPlay, currentStep]);
 
   if (screen === "home" || !account) {
     return (
@@ -111,20 +119,27 @@ export default function Home() {
               </HStack>
             </Card>
 
-            {/* Desktop: tutorial carousel */}
+            {/* Desktop: auto-scrolling tutorial carousel */}
             <VStack w="full" gap={3} display={["none", "flex"]}>
-              <Text textStyle="subheading" fontSize="11px" letterSpacing="0.25em" color="neon.500">
-                How to play
-              </Text>
-              <VStack gap={2} textAlign="center" w="full">
-                <Text fontSize="14px" fontWeight="bold" color="neon.200">
-                  {tuto.title}
-                </Text>
-                <Text fontSize="12px" color="neon.500">
-                  {tuto.desc}
-                </Text>
-                <Image src={tuto.img} alt={tuto.title} w="full" maxH="280px" objectFit="contain" borderRadius="4px" />
-              </VStack>
+              <Box w="full" overflow="hidden" borderRadius="4px">
+                <HStack
+                  w={`${tutorialSteps.length * 100}%`}
+                  transition="transform 0.5s ease"
+                  transform={`translateX(-${(currentStep * 100) / tutorialSteps.length}%)`}
+                >
+                  {tutorialSteps.map((t, i) => (
+                    <VStack key={i} w={`${100 / tutorialSteps.length}%`} gap={2} textAlign="center" flexShrink={0}>
+                      <Image src={t.img} alt={t.title} w="full" maxH="280px" objectFit="contain" />
+                      <Text fontSize="14px" fontWeight="bold" color="neon.200">
+                        {t.title}
+                      </Text>
+                      <Text fontSize="12px" color="neon.500">
+                        {t.desc}
+                      </Text>
+                    </VStack>
+                  ))}
+                </HStack>
+              </Box>
               <HStack gap="10px">
                 {tutorialSteps.map((_, i) => (
                   <Dot key={i} active={i === currentStep} onClick={() => setCurrentStep(i)} />
