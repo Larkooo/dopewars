@@ -9,7 +9,6 @@ import { Glock } from "@/components/icons/items";
 import { SavedGameSummary } from "@/offline/store";
 import { formatCash } from "@/utils/ui";
 import { Heart } from "@/components/icons";
-import { ScrollDown } from "@/components/icons/ScrollDown";
 import { useAccount, useConnect } from "@starknet-react/core";
 
 const steps = [
@@ -137,10 +136,6 @@ export default function Home() {
                 ))}
               </VStack>
             )}
-
-            <Box mx="auto">
-              <ScrollDown width="32px" height="32px" />
-            </Box>
           </VStack>
 
           {/* Scrollable section - steps only */}
