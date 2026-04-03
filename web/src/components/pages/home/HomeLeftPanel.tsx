@@ -82,9 +82,9 @@ export const HomeLeftPanel = () => {
     <>
       <VStack
         my="auto"
-        flex={["auto", "1"]}
+        flex={["0 0 auto", "1"]}
         position="relative"
-        maxH={["none", "800px"]}
+        maxH={["auto", "800px"]}
         overflow={["visible", "hidden"]}
         overflowY={["visible", "auto"]}
         sx={{
