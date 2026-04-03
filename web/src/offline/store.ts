@@ -89,16 +89,17 @@ export class OfflineGameStoreClass {
   }
 
   // Process travel action
-  doTravel(nextLocation: number, pendingCalls: PendingCall[]) {
-    const actions = this.pendingCallsToActions(pendingCalls);
+  doTravel(nextLocation: number, _pendingCalls: PendingCall[]) {
+    // Use game.pending which has costs, not the stripped pendingCalls
+    const actions = this.getActionsWithCosts();
     this.engine.travel(nextLocation, actions);
     this.initFromEngine();
     this.navigate();
   }
 
   // Process end game
-  doEndGame(pendingCalls: PendingCall[]) {
-    const actions = this.pendingCallsToActions(pendingCalls);
+  doEndGame(_pendingCalls: PendingCall[]) {
+    const actions = this.getActionsWithCosts();
     this.engine.endGame(actions);
     this.initFromEngine();
 
@@ -118,27 +119,27 @@ export class OfflineGameStoreClass {
     if (state.isFinished) {
       this.router.push(`/${gameId}/event/consequence`);
     } else if (state.status === PlayerStatus.Normal) {
-      // Encounter resolved - show consequence then go to location
       this.router.push(`/${gameId}/event/consequence`);
     } else {
-      // Still in encounter (shouldn't happen with current logic)
       this.router.push(`/${gameId}/event/decision`);
     }
   }
 
-  private pendingCallsToActions(pendingCalls: PendingCall[]): PendingAction[] {
-    return pendingCalls.map((call) => {
+  // Get pending actions WITH costs from the game's pending array
+  private getActionsWithCosts(): PendingAction[] {
+    if (!this.game?.pending) return [];
+    return this.game.pending.map((call) => {
       if (isTradeAction(call)) {
         return {
           direction: call.direction,
           drug: call.drug,
           quantity: call.quantity,
-          cost: 0, // Cost is computed by engine
+          cost: call.cost,
         };
       } else if (isShopAction(call)) {
         return {
           slot: call.slot,
-          cost: 0,
+          cost: call.cost,
         };
       }
       return call as any;
