@@ -1,11 +1,14 @@
 import { Button, Input } from "@/components/common";
 import { Layout } from "@/components/layout";
 import { HomeLeftPanel } from "@/components/pages/home";
-import { useSystems } from "@/dojo/hooks";
-import { Box, HStack, Heading, Image, Text, VStack } from "@chakra-ui/react";
-import { useState } from "react";
+import { useDojoContext, useSystems } from "@/dojo/hooks";
+import { Box, Divider, HStack, Heading, Image, Text, VStack } from "@chakra-ui/react";
+import { useEffect, useState } from "react";
 import { GameMode } from "@/dojo/types";
 import Dot from "@/components/icons/Dot";
+import { SavedGameSummary } from "@/offline/store";
+import { formatCash } from "@/utils/ui";
+import { Heart } from "@/components/icons";
 
 const tutorialSteps = [
   { title: "GAME STATE", desc: "Displays important details about the game", img: "/images/tutorial/tuto1.png" },
@@ -18,12 +21,31 @@ const tutorialSteps = [
   { title: "A WORD OF ADVICE", desc: "The streets can be mean, Watch your back.", img: "/images/tutorial/tuto4.png" },
 ];
 
+const LOCATION_NAMES: Record<number, string> = {
+  1: "Queens",
+  2: "Bronx",
+  3: "Brooklyn",
+  4: "Jersey",
+  5: "Central",
+  6: "Coney",
+};
+
 export default function Home() {
   const { createGame, isPending } = useSystems();
+  const { gameStore } = useDojoContext();
 
   const [currentStep, setCurrentStep] = useState(0);
   const [name, setName] = useState("");
   const [error, setError] = useState("");
+  const [savedGames, setSavedGames] = useState<SavedGameSummary[]>([]);
+
+  useEffect(() => {
+    const games = gameStore
+      .getSavedGames()
+      .filter((g) => !g.isFinished)
+      .sort((a, b) => b.lastPlayed - a.lastPlayed);
+    setSavedGames(games);
+  }, [gameStore]);
 
   const onPlay = async () => {
     setError("");
@@ -33,6 +55,13 @@ export default function Home() {
       return;
     }
     await createGame(GameMode.Noob, playerName);
+  };
+
+  const onContinue = (gameId: number) => {
+    const loaded = gameStore.loadGame(gameId);
+    if (loaded) {
+      gameStore.navigate();
+    }
   };
 
   const step = tutorialSteps[currentStep];
@@ -71,6 +100,48 @@ export default function Home() {
               Play
             </Button>
           </VStack>
+
+          {savedGames.length > 0 && (
+            <VStack w="full" gap={3}>
+              <Divider borderColor="neon.700" />
+              <Text textStyle="subheading" fontSize="12px" letterSpacing="0.25em" color="neon.500">
+                Continue
+              </Text>
+              {savedGames.map((g) => (
+                <HStack
+                  key={g.gameId}
+                  w="full"
+                  p={3}
+                  bg="neon.900"
+                  borderRadius="2px"
+                  cursor="pointer"
+                  _hover={{ bg: "neon.800" }}
+                  onClick={() => onContinue(g.gameId)}
+                  justify="space-between"
+                >
+                  <VStack align="flex-start" gap={0}>
+                    <Text fontSize="14px" color="neon.200">
+                      {g.playerName}
+                    </Text>
+                    <Text fontSize="10px" color="neon.500">
+                      Day {g.turn}/{g.maxTurns} - {LOCATION_NAMES[g.location] || "Unknown"}
+                    </Text>
+                  </VStack>
+                  <VStack align="flex-end" gap={0}>
+                    <Text fontSize="12px" color="yellow.400">
+                      {formatCash(g.cash)}
+                    </Text>
+                    <HStack gap={1}>
+                      <Heart width="10px" height="10px" />
+                      <Text fontSize="10px" color="red">
+                        {g.health}
+                      </Text>
+                    </HStack>
+                  </VStack>
+                </HStack>
+              ))}
+            </VStack>
+          )}
 
           <VStack w="full" gap={3} pt={2}>
             <Text textStyle="subheading" fontSize="12px" letterSpacing="0.25em" color="neon.500">

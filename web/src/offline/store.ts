@@ -3,9 +3,24 @@ import { action, makeObservable, observable } from "mobx";
 import { NextRouter } from "next/router";
 import { OfflineGameEngine, EngineState, PendingAction } from "./engine";
 import { OfflineConfigStore, OfflineGameClass, OfflineEventClass } from "./game";
-import { PlayerStatus, EncountersAction, Locations } from "@/dojo/types";
+import { PlayerStatus, EncountersAction } from "@/dojo/types";
 import { PendingCall, isTradeAction, isShopAction } from "@/dojo/class/Game";
-import { DojoEvent } from "@/dojo/class/Events";
+
+const STORAGE_KEY = "dopewars_saved_games";
+
+export interface SavedGameSummary {
+  gameId: number;
+  playerName: string;
+  cash: number;
+  health: number;
+  turn: number;
+  maxTurns: number;
+  reputation: number;
+  location: number;
+  isFinished: boolean;
+  finalScore: number;
+  lastPlayed: number;
+}
 
 type OfflineGameStoreProps = {
   configStore: OfflineConfigStore;
@@ -38,6 +53,7 @@ export class OfflineGameStoreClass {
       seasonSettings: observable,
       reset: action,
       initFromEngine: action,
+      loadGame: action,
     });
   }
 
@@ -60,6 +76,26 @@ export class OfflineGameStoreClass {
     this.gameConfig = this.game.gameConfig;
     this.seasonSettings = this.game.seasonSettings;
     this.isInitialized = true;
+
+    this.persistCurrentGame();
+  }
+
+  // Load a saved game by gameId
+  loadGame(gameId: number): boolean {
+    const saved = this.getSavedGames();
+    const key = `dopewars_game_${gameId}`;
+    const raw = typeof window !== "undefined" ? localStorage.getItem(key) : null;
+    if (!raw) return false;
+
+    try {
+      const state: EngineState = JSON.parse(raw);
+      this.engine.state = state;
+      this.engine.reseed();
+      this.initFromEngine();
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   // Navigate based on game state
@@ -79,25 +115,20 @@ export class OfflineGameStoreClass {
       if (location && location.location_id > 0) {
         this.router.push(`/${gameId}/${location.location.toLowerCase()}`);
       } else {
-        // Fallback - shouldn't happen since we start at a real location
         this.router.push(`/${gameId}/queens`);
       }
     } else {
-      // In encounter
       this.router.push(`/${gameId}/event/decision`);
     }
   }
 
-  // Process travel action
   doTravel(nextLocation: number, _pendingCalls: PendingCall[]) {
-    // Use game.pending which has costs, not the stripped pendingCalls
     const actions = this.getActionsWithCosts();
     this.engine.travel(nextLocation, actions);
     this.initFromEngine();
     this.navigate();
   }
 
-  // Process end game
   doEndGame(_pendingCalls: PendingCall[]) {
     const actions = this.getActionsWithCosts();
     this.engine.endGame(actions);
@@ -108,7 +139,6 @@ export class OfflineGameStoreClass {
     this.router.push(`/${gameId}/end`);
   }
 
-  // Process encounter decision
   doDecide(action: EncountersAction) {
     this.engine.decide(action);
     this.initFromEngine();
@@ -125,7 +155,60 @@ export class OfflineGameStoreClass {
     }
   }
 
-  // Get pending actions WITH costs from the game's pending array
+  // === Persistence ===
+
+  private persistCurrentGame() {
+    if (typeof window === "undefined") return;
+    const state = this.engine.state;
+    if (!state) return;
+
+    // Save full state
+    const key = `dopewars_game_${state.gameId}`;
+    localStorage.setItem(key, JSON.stringify(state));
+
+    // Update index
+    const saved = this.getSavedGames();
+    const existing = saved.findIndex((g) => g.gameId === state.gameId);
+    const summary: SavedGameSummary = {
+      gameId: state.gameId,
+      playerName: state.playerName,
+      cash: state.cash,
+      health: state.health,
+      turn: state.turn,
+      maxTurns: state.maxTurns,
+      reputation: state.reputation,
+      location: state.location,
+      isFinished: state.isFinished,
+      finalScore: state.finalScore,
+      lastPlayed: Date.now(),
+    };
+
+    if (existing >= 0) {
+      saved[existing] = summary;
+    } else {
+      saved.push(summary);
+    }
+
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
+  }
+
+  getSavedGames(): SavedGameSummary[] {
+    if (typeof window === "undefined") return [];
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  deleteSavedGame(gameId: number) {
+    if (typeof window === "undefined") return;
+    localStorage.removeItem(`dopewars_game_${gameId}`);
+    const saved = this.getSavedGames().filter((g) => g.gameId !== gameId);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
+  }
+
   private getActionsWithCosts(): PendingAction[] {
     if (!this.game?.pending) return [];
     return this.game.pending.map((call) => {

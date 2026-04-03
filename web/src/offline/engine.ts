@@ -94,7 +94,17 @@ export interface EngineState {
   finalScore: number;
 }
 
-let nextGameId = 1;
+function getNextGameId(): number {
+  if (typeof window === "undefined") return 1;
+  try {
+    const raw = localStorage.getItem("dopewars_saved_games");
+    const saved = raw ? JSON.parse(raw) : [];
+    const maxId = saved.reduce((max: number, g: any) => Math.max(max, g.gameId || 0), 0);
+    return maxId + 1;
+  } catch {
+    return Date.now();
+  }
+}
 
 export class OfflineGameEngine {
   state: EngineState;
@@ -105,12 +115,18 @@ export class OfflineGameEngine {
     this.rng = null as any;
   }
 
+  // Re-seed RNG for a loaded game
+  reseed() {
+    const seed = Date.now() ^ Math.floor(Math.random() * 0x7fffffff);
+    this.rng = new Random(seed);
+  }
+
   createGame(playerName: string, gameMode: GameMode): EngineState {
     const seed = Date.now() ^ Math.floor(Math.random() * 0x7fffffff);
     this.rng = new Random(seed);
 
     const settings = randomizeSettings();
-    const gameId = nextGameId++;
+    const gameId = getNextGameId();
 
     const initialCash = CASH_VALUES[settings.cashMode] || 1000;
     const initialHealth = Math.min(HEALTH_VALUES[settings.healthMode] || 90, 100);
