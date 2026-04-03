@@ -59,6 +59,14 @@ export function DopeProvider({
 
 export function useDopeStore<T>(selector: (state: DopeState) => T): T {
   const store = useContext(CollectionStoreContext);
-  if (!store) throw new Error("Missing CollectionStoreContext.Provider in the tree");
+  if (!store) {
+    // Offline mode - return default empty state
+    return selector({
+      componentValues: [],
+      tokens: [],
+      collections: [],
+      dopeLootClaimState: {},
+    } as unknown as DopeState);
+  }
   return useStore(store, selector);
 }
