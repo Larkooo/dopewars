@@ -1,15 +1,15 @@
 import { Button, Input } from "@/components/common";
-import { Arrow } from "@/components/icons";
 import { Layout } from "@/components/layout";
 import { HomeLeftPanel } from "@/components/pages/home";
 import { useControllerUsername, useDojoContext, useSystems } from "@/dojo/hooks";
 import { Box, Card, HStack, Heading, Image, Text, VStack } from "@chakra-ui/react";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { GameMode } from "@/dojo/types";
 import { Glock } from "@/components/icons/items";
 import { SavedGameSummary } from "@/offline/store";
 import { formatCash } from "@/utils/ui";
 import { Heart } from "@/components/icons";
+import { ScrollDown } from "@/components/icons/ScrollDown";
 import { useAccount, useConnect } from "@starknet-react/core";
 
 const steps = [
@@ -35,8 +35,8 @@ export default function Home() {
   const { connect, connectors } = useConnect();
   const { username } = useControllerUsername(address as string);
 
-  const [currentStep, setCurrentStep] = useState(0);
   const [showNameInput, setShowNameInput] = useState(false);
+  const stepsRef = useRef<HTMLDivElement>(null);
   const [name, setName] = useState("");
   const [error, setError] = useState("");
   const [savedGames, setSavedGames] = useState<SavedGameSummary[]>([]);
@@ -82,15 +82,10 @@ export default function Home() {
     }
   };
 
-  const onNextStep = useCallback(() => {
-    setCurrentStep((s) => (s + 1) % steps.length);
-  }, []);
+  const onScrollToSteps = () => {
+    stepsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
 
-  const onPrevStep = useCallback(() => {
-    setCurrentStep((s) => (s - 1 + steps.length) % steps.length);
-  }, []);
-
-  const step = steps[currentStep];
   const showGame = account && showNameInput;
 
   return (
@@ -155,51 +150,29 @@ export default function Home() {
               </VStack>
             )}
 
-            <VStack w="full" gap={3} pt={[2, 4]}>
-              <Text textStyle="subheading" fontSize="11px" letterSpacing="0.25em" color="neon.500">
-                How to play
-              </Text>
+            <Box cursor="pointer" onClick={onScrollToSteps} py={2} mx="auto">
+              <ScrollDown width="32px" height="32px" />
+            </Box>
 
-              <HStack w="full" align="center" gap={2}>
-                <Arrow
-                  style="outline"
-                  direction="left"
-                  boxSize="36px"
-                  cursor="pointer"
-                  onClick={onPrevStep}
-                  flexShrink={0}
-                />
-
-                <VStack flex="1" gap={3} align="center">
-                  <Image
-                    src={`/images/landing/step${step.step}.png`}
-                    alt={step.title}
-                    w="full"
-                    maxH="180px"
-                    objectFit="contain"
-                  />
-                  <HStack gap={3}>
-                    <Image src={`/images/landing/step${step.step}-icon.png`} alt={step.title} w="48px" h="48px" />
-                    <VStack align="flex-start" gap={0}>
-                      <Text fontSize="11px" fontFamily="broken-console" backgroundColor="#174127" px={2} py={1}>
-                        Step {step.step}
-                      </Text>
-                      <Heading fontFamily="ppneuebit" fontSize="32px" lineHeight="1">
-                        {step.title}
-                      </Heading>
-                    </VStack>
-                  </HStack>
-                </VStack>
-
-                <Arrow
-                  style="outline"
-                  direction="right"
-                  boxSize="36px"
-                  cursor="pointer"
-                  onClick={onNextStep}
-                  flexShrink={0}
-                />
-              </HStack>
+            <VStack ref={stepsRef} w="full" gap={0}>
+              {steps.map((s) => (
+                <HStack key={s.step} w="full" flexDirection={s.step % 2 === 1 ? "row" : "row-reverse"} gap={3} py={4}>
+                  <Image src={`/images/landing/step${s.step}.png`} alt={s.title} w="42%" objectFit="contain" />
+                  <VStack w="58%" align="flex-start" gap={1}>
+                    <HStack gap={2}>
+                      <Image src={`/images/landing/step${s.step}-icon.png`} alt={s.title} w="48px" h="48px" />
+                      <VStack align="flex-start" gap={0}>
+                        <Text fontSize="11px" fontFamily="broken-console" backgroundColor="#174127" px={2} py={1}>
+                          Step {s.step}
+                        </Text>
+                        <Heading fontFamily="ppneuebit" fontSize="32px" lineHeight="1">
+                          {s.title}
+                        </Heading>
+                      </VStack>
+                    </HStack>
+                  </VStack>
+                </HStack>
+              ))}
             </VStack>
           </VStack>
         ) : (
