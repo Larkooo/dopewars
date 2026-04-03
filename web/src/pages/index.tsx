@@ -95,7 +95,7 @@ export default function Home() {
         boxSize="full"
         gap={["16px", "10px"]}
         justifyContent={["flex-start", "center"]}
-        pt={["90px", "0"]}
+        pt={["100px", "0"]}
         px={["16px", "0"]}
         overflowY="auto"
         pb={["80px", "0"]}

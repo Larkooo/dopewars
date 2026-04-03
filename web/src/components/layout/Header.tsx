@@ -27,64 +27,64 @@ export const Header = observer(() => {
   }, []);
 
   return (
-    <HStack
-      w="full"
-      px="10px"
-      spacing="10px"
+    <Box
+      position="absolute"
+      top="0"
+      left="0"
+      right="0"
       zIndex="overlay"
-      align="flex-start"
-      pt={["24px", "16px"]}
-      pb={["16px", "16px"]}
-      minH={["70px", "auto"]}
-      fontSize={["14px", "16px"]}
-      background={["linear-gradient(to bottom, #172217 0%, #172217 60%, transparent 100%)", "none"]}
+      pt={["50px", "16px"]}
+      pb={["20px", "16px"]}
+      px="10px"
+      background={["linear-gradient(to bottom, #172217 0%, #172217 70%, transparent 100%)", "none"]}
     >
-      <HStack gap={3} flex="1">
-        {/* Offline mode - no claim or migration buttons */}
-      </HStack>
-
-      {game /*|| router.asPath.includes("logs")*/ && (
-        <HStack
-          flex={["auto", 1]}
-          justify="center"
-          width={["100%", "auto"]}
-          cursor="help"
-          onClick={() => {
-            uiStore.openSeasonDetails();
-          }}
-        >
-          <HStack
-            h={["40px", "48px"]}
-            width={["100%", "auto"]}
-            px="20px"
-            spacing={["10px", "30px"]}
-            bg="neon.700"
-            sx={{ ...headerStyles }}
-          >
-            <Flex w="full" align="center" justify="center" gap="10px">
-              <HStack>
-                <CashIndicator cash={formatCashHeader(game.player.cash)} />
-                <Divider orientation="vertical" borderColor="neon.600" h="12px" />
-                <HealthIndicator health={game.player.health} maxHealth={gameConfig?.health} />
-                <Divider orientation="vertical" borderColor="neon.600" h="12px" />
-                <DayIndicator day={game.player.turn} max={gameConfig?.max_turns} />
-              </HStack>
-            </Flex>
-          </HStack>
+      <HStack w="full" spacing="10px" align="flex-start" fontSize={["14px", "16px"]}>
+        <HStack gap={3} flex="1">
+          {/* Offline mode - no claim or migration buttons */}
         </HStack>
-      )}
 
-      <HStack flex="1" justify="right">
-        {!isMobile && <ConnectButton />}
-        {!isMobile && game && <ProfileLink />}
+        {game && (
+          <HStack
+            flex={["auto", 1]}
+            justify="center"
+            width={["100%", "auto"]}
+            cursor="help"
+            onClick={() => {
+              uiStore.openSeasonDetails();
+            }}
+          >
+            <HStack
+              h={["40px", "48px"]}
+              width={["100%", "auto"]}
+              px="20px"
+              spacing={["10px", "30px"]}
+              bg="neon.700"
+              sx={{ ...headerStyles }}
+            >
+              <Flex w="full" align="center" justify="center" gap="10px">
+                <HStack>
+                  <CashIndicator cash={formatCashHeader(game.player.cash)} />
+                  <Divider orientation="vertical" borderColor="neon.600" h="12px" />
+                  <HealthIndicator health={game.player.health} maxHealth={gameConfig?.health} />
+                  <Divider orientation="vertical" borderColor="neon.600" h="12px" />
+                  <DayIndicator day={game.player.turn} max={gameConfig?.max_turns} />
+                </HStack>
+              </Flex>
+            </HStack>
+          </HStack>
+        )}
 
-        {/* trick to allow autoplay.. */}
-        <Box display="none">
-          <MediaPlayer />
-        </Box>
+        <HStack flex="1" justify="right">
+          {!isMobile && <ConnectButton />}
+          {!isMobile && game && <ProfileLink />}
 
-        <DrawerMenu />
+          <Box display="none">
+            <MediaPlayer />
+          </Box>
+
+          <DrawerMenu />
+        </HStack>
       </HStack>
-    </HStack>
+    </Box>
   );
 });
