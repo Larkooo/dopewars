@@ -48,17 +48,7 @@ const DrawerMenu = () => {
   const { uiStore } = useDojoContext();
   return (
     <>
-      <HeaderButton
-        ref={btnRef}
-        onClick={onOpen}
-        h={["120px", "48px"]}
-        w={["40px", "48px"]}
-        mt={["-80px", "0"]}
-        pb={["6px", "0"]}
-        display="flex"
-        alignItems="flex-end"
-        justifyContent="center"
-      >
+      <HeaderButton ref={btnRef} onClick={onOpen} h={["40px", "48px"]} w={["40px", "48px"]}>
         <Dots />
       </HeaderButton>
       <Drawer isOpen={isOpen} placement="right" size="xs" onClose={onClose} trapFocus={false}>

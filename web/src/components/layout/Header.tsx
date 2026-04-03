@@ -51,15 +51,12 @@ export const Header = observer(() => {
           }}
         >
           <HStack
-            h={["120px", "48px"]}
-            mt={["-80px", "0"]}
+            h={["40px", "48px"]}
             width={["100%", "auto"]}
             px="20px"
-            pb={["10px", "0"]}
             spacing={["10px", "30px"]}
             bg="neon.700"
             sx={{ ...headerStyles }}
-            alignItems="flex-end"
           >
             <Flex w="full" align="center" justify="center" gap="10px">
               <HStack>
