@@ -62,6 +62,11 @@ export default function Home() {
     setSavedGames(games);
   }, [gameStore]);
 
+  // Clear game state so the header status bar hides
+  useEffect(() => {
+    gameStore.reset();
+  }, []);
+
   useEffect(() => {
     if (username && !name) {
       setName(username);
