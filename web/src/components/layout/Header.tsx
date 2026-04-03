@@ -9,6 +9,7 @@ import { useEffect } from "react";
 import { ProfileLink } from "../pages/profile/Profile";
 import { CashIndicator, DayIndicator, HealthIndicator } from "../player";
 import { ConnectButton } from "../wallet/ConnectButton";
+import { Dots } from "../icons";
 
 import DrawerMenu from "./DrawerMenu";
 
@@ -34,10 +35,8 @@ export const Header = observer(() => {
       zIndex="overlay"
       align="flex-end"
       pt={["0", "16px"]}
-      pb={["10px", "16px"]}
-      h={["80px", "auto"]}
+      pb={["8px", "16px"]}
       fontSize={["14px", "16px"]}
-      bg={["neon.900", "transparent"]}
     >
       <HStack gap={3} flex="1" />
 
@@ -47,6 +46,7 @@ export const Header = observer(() => {
           justify="center"
           width={["100%", "auto"]}
           cursor="help"
+          pt={["40px", "0"]}
           onClick={() => {
             uiStore.openSeasonDetails();
           }}
@@ -72,7 +72,7 @@ export const Header = observer(() => {
         </HStack>
       )}
 
-      <HStack flex="1" justify="right">
+      <HStack flex="1" justify="right" align="flex-end" pt={["40px", "0"]}>
         {!isMobile && <ConnectButton />}
         {!isMobile && game && <ProfileLink />}
 
