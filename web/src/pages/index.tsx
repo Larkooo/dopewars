@@ -296,38 +296,32 @@ export default function Home() {
           </VStack>
         </VStack>
 
-        {/* Mobile: landing steps */}
-        <VStack
-          w="full"
-          maxW="400px"
-          mx="auto"
-          flex={1}
-          minH={0}
-          overflowY="auto"
-          gap={0}
-          pt={4}
-          pb="80px"
-          display={["flex", "none"]}
-          __css={{ "scrollbar-width": "none", "&::-webkit-scrollbar": { display: "none" } }}
-        >
-          {steps.map((s) => (
-            <HStack key={s.step} w="full" flexDirection={s.step % 2 === 1 ? "row" : "row-reverse"} gap={3} py={4}>
-              <Image src={`/images/landing/step${s.step}.png`} alt={s.title} w="42%" objectFit="contain" />
-              <VStack w="58%" align="flex-start" gap={1}>
-                <HStack gap={2}>
-                  <Image src={`/images/landing/step${s.step}-icon.png`} alt={s.title} w="48px" h="48px" />
-                  <VStack align="flex-start" gap={0}>
-                    <Text fontSize="11px" fontFamily="broken-console" backgroundColor="#174127" px={2} py={1}>
-                      Step {s.step}
-                    </Text>
-                    <Heading fontFamily="ppneuebit" fontSize="32px" lineHeight="1">
-                      {s.title}
-                    </Heading>
-                  </VStack>
-                </HStack>
-              </VStack>
+        {/* Mobile: how to play carousel */}
+        <VStack w="full" maxW="400px" mx="auto" gap={3} pt={4} display={["flex", "none"]}>
+          <Box w="full" overflow="hidden" borderRadius="4px">
+            <HStack
+              w={`${tutorialSteps.length * 100}%`}
+              transition="transform 0.5s ease"
+              transform={`translateX(-${(currentStep * 100) / tutorialSteps.length}%)`}
+            >
+              {tutorialSteps.map((t, i) => (
+                <VStack key={i} w={`${100 / tutorialSteps.length}%`} gap={2} textAlign="center" flexShrink={0}>
+                  <Image src={t.img} alt={t.title} w="full" maxH="180px" objectFit="contain" />
+                  <Text fontSize="14px" fontWeight="bold" color="neon.200">
+                    {t.title}
+                  </Text>
+                  <Text fontSize="12px" color="neon.500">
+                    {t.desc}
+                  </Text>
+                </VStack>
+              ))}
             </HStack>
-          ))}
+          </Box>
+          <HStack gap="10px">
+            {tutorialSteps.map((_, i) => (
+              <Dot key={i} active={i === currentStep} onClick={() => setCurrentStep(i)} />
+            ))}
+          </HStack>
         </VStack>
       </Flex>
     </Layout>
