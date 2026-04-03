@@ -94,7 +94,7 @@ export const HomeLeftPanel = () => {
           "scrollbar-width": "none",
         }}
       >
-        <VStack zIndex="2" position="relative">
+        <VStack zIndex="2" position="relative" pt={["60px", "0"]}>
           <Box w="full" position={"fixed"} top="0" display={["block", "none"]}>
             <Image
               position="absolute"
