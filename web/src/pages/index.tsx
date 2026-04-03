@@ -89,8 +89,8 @@ export default function Home() {
       <VStack boxSize="full" pt={["100px", "0"]} px={["16px", "0"]}>
         {!showGame ? (
           <VStack w="full" maxW="400px" mx="auto" h="full">
-            {/* Fixed top section */}
-            <VStack w="full" gap={[3, 6]} pb={2}>
+            {/* Fixed top section - never shrinks */}
+            <VStack w="full" gap={[3, 6]} pb={2} flexShrink={0}>
               <Card variant="pixelated" w="full">
                 <HStack w="full" p={["10px", "20px"]} gap="10px" justify="center">
                   <Button flex="1" isLoading={isPending} onClick={onPlayNow}>
@@ -155,6 +155,7 @@ export default function Home() {
               ref={scrollRef}
               w="full"
               flex="1"
+              minH={0}
               overflowY="auto"
               pb="80px"
               gap={0}
