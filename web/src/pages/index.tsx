@@ -10,12 +10,24 @@ import { SavedGameSummary } from "@/offline/store";
 import { formatCash } from "@/utils/ui";
 import { Heart } from "@/components/icons";
 import { useAccount, useConnect } from "@starknet-react/core";
+import Dot from "@/components/icons/Dot";
 
 const steps = [
   { step: 1, title: "Buy Low" },
   { step: 2, title: "Sell High" },
   { step: 3, title: "???" },
   { step: 4, title: "Profit" },
+];
+
+const tutorialSteps = [
+  { title: "GAME STATE", desc: "Displays important details about the game", img: "/images/tutorial/tuto1.png" },
+  { title: "BUYING PRODUCT", desc: "Buy the ones you can flip for profit", img: "/images/tutorial/tuto2.png" },
+  {
+    title: "KEEP IT MOVING",
+    desc: "Different locations will offer different prices",
+    img: "/images/tutorial/tuto3.png",
+  },
+  { title: "A WORD OF ADVICE", desc: "The streets can be mean, Watch your back.", img: "/images/tutorial/tuto4.png" },
 ];
 
 const LOCATION_NAMES: Record<number, string> = {
@@ -37,6 +49,7 @@ export default function Home() {
   const { username } = useControllerUsername(address as string);
 
   const [screen, setScreen] = useState<Screen>("home");
+  const [currentStep, setCurrentStep] = useState(0);
   const [name, setName] = useState("");
   const [error, setError] = useState("");
   const [savedGames, setSavedGames] = useState<SavedGameSummary[]>([]);
@@ -83,11 +96,13 @@ export default function Home() {
     }
   };
 
+  const tuto = tutorialSteps[currentStep];
+
   if (screen === "home" || !account) {
     return (
       <Layout customLeftPanel={<HomeLeftPanel />} rigthPanelScrollable={false}>
-        <Flex direction="column" boxSize="full" px={["16px", "0"]}>
-          <VStack w="full" maxW="400px" mx="auto" pt={["80px", "16px"]} flexShrink={0}>
+        <Flex direction="column" boxSize="full" px={["16px", "0"]} justifyContent={["flex-start", "center"]}>
+          <VStack w="full" maxW="400px" mx="auto" pt={["80px", "0"]} gap={[3, 6]}>
             <Card variant="pixelated" w="full">
               <HStack w="full" p={["10px", "20px"]} gap="10px" justify="center">
                 <Button flex="1" isLoading={isPending} onClick={onPlayNow}>
@@ -95,8 +110,30 @@ export default function Home() {
                 </Button>
               </HStack>
             </Card>
+
+            {/* Desktop: tutorial carousel */}
+            <VStack w="full" gap={3} display={["none", "flex"]}>
+              <Text textStyle="subheading" fontSize="11px" letterSpacing="0.25em" color="neon.500">
+                How to play
+              </Text>
+              <VStack gap={2} textAlign="center" w="full">
+                <Text fontSize="14px" fontWeight="bold" color="neon.200">
+                  {tuto.title}
+                </Text>
+                <Text fontSize="12px" color="neon.500">
+                  {tuto.desc}
+                </Text>
+                <Image src={tuto.img} alt={tuto.title} w="full" maxH="280px" objectFit="contain" borderRadius="4px" />
+              </VStack>
+              <HStack gap="10px">
+                {tutorialSteps.map((_, i) => (
+                  <Dot key={i} active={i === currentStep} onClick={() => setCurrentStep(i)} />
+                ))}
+              </HStack>
+            </VStack>
           </VStack>
 
+          {/* Mobile: landing steps */}
           <VStack
             w="full"
             maxW="400px"
