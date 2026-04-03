@@ -46,18 +46,20 @@ export const Header = observer(() => {
           justify="center"
           width={["100%", "auto"]}
           cursor="help"
-          pt={["40px", "0"]}
           onClick={() => {
             uiStore.openSeasonDetails();
           }}
         >
           <HStack
-            h={["40px", "48px"]}
+            h={["120px", "48px"]}
+            mt={["-80px", "0"]}
             width={["100%", "auto"]}
             px="20px"
+            pb={["10px", "0"]}
             spacing={["10px", "30px"]}
             bg="neon.700"
             sx={{ ...headerStyles }}
+            alignItems="flex-end"
           >
             <Flex w="full" align="center" justify="center" gap="10px">
               <HStack>
