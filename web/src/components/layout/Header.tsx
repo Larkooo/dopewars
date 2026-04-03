@@ -33,7 +33,7 @@ export const Header = observer(() => {
       px="10px"
       spacing="10px"
       zIndex="overlay"
-      align="flex-end"
+      align="flex-start"
       pt={["0", "16px"]}
       pb={["8px", "16px"]}
       fontSize={["14px", "16px"]}
@@ -71,7 +71,7 @@ export const Header = observer(() => {
         </HStack>
       )}
 
-      <HStack flex="1" justify="right" align="flex-end" pt={["40px", "0"]}>
+      <HStack flex="1" justify="right">
         {!isMobile && <ConnectButton />}
         {!isMobile && game && <ProfileLink />}
 
