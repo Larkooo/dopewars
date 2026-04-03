@@ -2,7 +2,7 @@ import { Button, Input } from "@/components/common";
 import { Layout } from "@/components/layout";
 import { HomeLeftPanel } from "@/components/pages/home";
 import { useControllerUsername, useDojoContext, useSystems } from "@/dojo/hooks";
-import { Box, Card, HStack, Heading, Image, Text, VStack } from "@chakra-ui/react";
+import { Box, Card, Flex, HStack, Heading, Image, Text, VStack } from "@chakra-ui/react";
 import { useEffect, useState } from "react";
 import { GameMode } from "@/dojo/types";
 import { Glock } from "@/components/icons/items";
@@ -86,14 +86,9 @@ export default function Home() {
   return (
     <Layout customLeftPanel={<HomeLeftPanel />} rigthPanelScrollable={false}>
       {!showGame ? (
-        <VStack
-          boxSize="full"
-          px={["16px", "0"]}
-          pt={["100px", "16px"]}
-          overflowY="auto"
-          __css={{ "scrollbar-width": "none", "&::-webkit-scrollbar": { display: "none" } }}
-        >
-          <VStack w="full" maxW="400px" mx="auto" gap={[3, 6]}>
+        <Flex direction="column" boxSize="full" px={["16px", "0"]}>
+          {/* Fixed section - Play Now + saved games */}
+          <VStack w="full" maxW="400px" mx="auto" gap={[3, 6]} pt={["300px", "16px"]} pb={2} flexShrink={0}>
             <Card variant="pixelated" w="full">
               <HStack w="full" p={["10px", "20px"]} gap="10px" justify="center">
                 <Button flex="1" isLoading={isPending} onClick={onPlayNow}>
@@ -143,32 +138,43 @@ export default function Home() {
               </VStack>
             )}
 
-            <Box pt={4} mx="auto">
+            <Box mx="auto">
               <ScrollDown width="32px" height="32px" />
             </Box>
-
-            <VStack w="full" gap={0} pb="100px">
-              {steps.map((s) => (
-                <HStack key={s.step} w="full" flexDirection={s.step % 2 === 1 ? "row" : "row-reverse"} gap={3} py={4}>
-                  <Image src={`/images/landing/step${s.step}.png`} alt={s.title} w="42%" objectFit="contain" />
-                  <VStack w="58%" align="flex-start" gap={1}>
-                    <HStack gap={2}>
-                      <Image src={`/images/landing/step${s.step}-icon.png`} alt={s.title} w="48px" h="48px" />
-                      <VStack align="flex-start" gap={0}>
-                        <Text fontSize="11px" fontFamily="broken-console" backgroundColor="#174127" px={2} py={1}>
-                          Step {s.step}
-                        </Text>
-                        <Heading fontFamily="ppneuebit" fontSize="32px" lineHeight="1">
-                          {s.title}
-                        </Heading>
-                      </VStack>
-                    </HStack>
-                  </VStack>
-                </HStack>
-              ))}
-            </VStack>
           </VStack>
-        </VStack>
+
+          {/* Scrollable section - steps only */}
+          <VStack
+            w="full"
+            maxW="400px"
+            mx="auto"
+            flex={1}
+            minH={0}
+            overflowY="auto"
+            gap={0}
+            pb="80px"
+            __css={{ "scrollbar-width": "none", "&::-webkit-scrollbar": { display: "none" } }}
+          >
+            {steps.map((s) => (
+              <HStack key={s.step} w="full" flexDirection={s.step % 2 === 1 ? "row" : "row-reverse"} gap={3} py={4}>
+                <Image src={`/images/landing/step${s.step}.png`} alt={s.title} w="42%" objectFit="contain" />
+                <VStack w="58%" align="flex-start" gap={1}>
+                  <HStack gap={2}>
+                    <Image src={`/images/landing/step${s.step}-icon.png`} alt={s.title} w="48px" h="48px" />
+                    <VStack align="flex-start" gap={0}>
+                      <Text fontSize="11px" fontFamily="broken-console" backgroundColor="#174127" px={2} py={1}>
+                        Step {s.step}
+                      </Text>
+                      <Heading fontFamily="ppneuebit" fontSize="32px" lineHeight="1">
+                        {s.title}
+                      </Heading>
+                    </VStack>
+                  </HStack>
+                </VStack>
+              </HStack>
+            ))}
+          </VStack>
+        </Flex>
       ) : (
         <VStack boxSize="full" px={["16px", "0"]} pt={["100px", "0"]} justifyContent={["flex-start", "center"]}>
           <VStack w="full" maxW="300px" mx="auto" gap={6}>
