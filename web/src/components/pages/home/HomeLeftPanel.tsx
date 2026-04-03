@@ -84,7 +84,7 @@ export const HomeLeftPanel = () => {
         my="auto"
         flex={["auto", "1"]}
         position="relative"
-        maxH={["70px", "800px"]}
+        maxH={["120px", "800px"]}
         overflow="hidden"
         overflowY="auto"
         sx={{
