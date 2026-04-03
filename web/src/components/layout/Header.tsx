@@ -36,7 +36,18 @@ export const Header = observer(() => {
       pt={["50px", "16px"]}
       pb={["20px", "16px"]}
       px="10px"
-      background={["linear-gradient(to bottom, #172217 0%, #172217 70%, transparent 100%)", "none"]}
+      bg={["#172217", "none"]}
+      _after={{
+        content: '""',
+        display: ["block", "none"],
+        position: "absolute",
+        bottom: "-20px",
+        left: 0,
+        right: 0,
+        height: "20px",
+        background: "linear-gradient(to bottom, #172217, transparent)",
+        pointerEvents: "none",
+      }}
     >
       <HStack w="full" spacing="10px" align="flex-start" fontSize={["14px", "16px"]}>
         <HStack gap={3} flex="1">
