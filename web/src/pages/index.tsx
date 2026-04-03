@@ -2,7 +2,7 @@ import { Button, Input } from "@/components/common";
 import { Layout } from "@/components/layout";
 import { HomeLeftPanel } from "@/components/pages/home";
 import { useControllerUsername, useDojoContext, useSystems } from "@/dojo/hooks";
-import { Box, Card, Divider, HStack, Heading, Image, Text, VStack } from "@chakra-ui/react";
+import { Box, Card, HStack, Heading, Image, Text, VStack } from "@chakra-ui/react";
 import { useEffect, useState } from "react";
 import { GameMode } from "@/dojo/types";
 import Dot from "@/components/icons/Dot";
@@ -59,16 +59,8 @@ export default function Home() {
     }
   }, [username]);
 
-  // Once connected, show name input
-  useEffect(() => {
-    if (account && showNameInput) {
-      // Already showing
-    }
-  }, [account]);
-
   const onPlayNow = () => {
     if (!account) {
-      // Connect first, then show name input
       connect({ connector: connectors[0] });
     }
     setShowNameInput(true);
@@ -85,6 +77,9 @@ export default function Home() {
   };
 
   const onContinue = (gameId: number) => {
+    if (!account) {
+      connect({ connector: connectors[0] });
+    }
     const loaded = gameStore.loadGame(gameId);
     if (loaded) {
       gameStore.navigate();
@@ -96,10 +91,18 @@ export default function Home() {
 
   return (
     <Layout customLeftPanel={<HomeLeftPanel />} rigthPanelScrollable={false}>
-      <VStack boxSize="full" gap="10px" justifyContent="center" px={["16px", "0"]}>
+      <VStack
+        boxSize="full"
+        gap={["16px", "10px"]}
+        justifyContent={["flex-start", "center"]}
+        pt={["60px", "0"]}
+        px={["16px", "0"]}
+        overflowY="auto"
+        pb={["80px", "0"]}
+      >
         {!showGame ? (
-          <VStack w="full" maxW="400px" mx="auto" gap={6}>
-            <Card variant="pixelated">
+          <VStack w="full" maxW="400px" mx="auto" gap={[4, 6]}>
+            <Card variant="pixelated" w="full">
               <HStack w="full" p={["10px", "20px"]} gap="10px" justify="center">
                 <Button flex="1" isLoading={isPending} onClick={onPlayNow}>
                   <Glock /> Play Now
@@ -108,8 +111,8 @@ export default function Home() {
             </Card>
 
             {savedGames.length > 0 && (
-              <VStack w="full" gap={3}>
-                <Text textStyle="subheading" fontSize="12px" letterSpacing="0.25em" color="neon.500">
+              <VStack w="full" gap={2}>
+                <Text textStyle="subheading" fontSize="11px" letterSpacing="0.25em" color="neon.500">
                   Continue
                 </Text>
                 {savedGames.map((g) => (
@@ -121,12 +124,7 @@ export default function Home() {
                     borderRadius="2px"
                     cursor="pointer"
                     _hover={{ bg: "neon.800" }}
-                    onClick={() => {
-                      if (!account) {
-                        connect({ connector: connectors[0] });
-                      }
-                      onContinue(g.gameId);
-                    }}
+                    onClick={() => onContinue(g.gameId)}
                     justify="space-between"
                   >
                     <VStack align="flex-start" gap={0}>
@@ -153,11 +151,11 @@ export default function Home() {
               </VStack>
             )}
 
-            <VStack w="full" gap={3} pt={2}>
-              <Text textStyle="subheading" fontSize="12px" letterSpacing="0.25em" color="neon.500">
+            <VStack w="full" gap={3} pt={[0, 2]}>
+              <Text textStyle="subheading" fontSize="11px" letterSpacing="0.25em" color="neon.500">
                 How to play
               </Text>
-              <VStack gap={2} textAlign="center">
+              <VStack gap={2} textAlign="center" w="full">
                 <Text fontSize="14px" fontWeight="bold" color="neon.200">
                   {step.title}
                 </Text>
@@ -174,8 +172,8 @@ export default function Home() {
             </VStack>
           </VStack>
         ) : (
-          <VStack w="280px" gap={6} mx="auto">
-            <Heading fontSize={["30px", "40px"]} fontWeight="400" textAlign="center" w="full">
+          <VStack w="full" maxW="300px" mx="auto" gap={6} pt={["20px", "0"]}>
+            <Heading fontSize={["28px", "40px"]} fontWeight="400" textAlign="center" w="full">
               Name your hustler
             </Heading>
 
@@ -210,6 +208,7 @@ export default function Home() {
                 cursor="pointer"
                 _hover={{ color: "neon.400" }}
                 onClick={() => setShowNameInput(false)}
+                textAlign="center"
               >
                 Back
               </Text>
