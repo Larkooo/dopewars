@@ -5,7 +5,7 @@ import { OfflineGameEngine } from "@/offline/engine";
 import { OfflineGameStoreClass } from "@/offline/store";
 import { Flex, VStack } from "@chakra-ui/react";
 import { observer } from "mobx-react-lite";
-import { ReactNode, createContext, useContext, useMemo, useState, useEffect } from "react";
+import { ReactNode, createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { UiStore } from "../stores/ui";
 import { useRouter } from "next/router";
 
@@ -24,14 +24,25 @@ export const DojoContextProvider = observer(({ children }: { children: ReactNode
 
   const [isReady, setIsReady] = useState(false);
   const router = useRouter();
+  const routerRef = useRef(router);
+  routerRef.current = router;
 
   const configStore = useMemo(() => new OfflineConfigStore(), []);
   const engine = useMemo(() => new OfflineGameEngine(), []);
   const uiStore = useMemo(() => new UiStore(), []);
 
+  // Use a stable proxy so gameStore never gets recreated on route changes
+  const stableRouter = useMemo(
+    () =>
+      new Proxy({} as typeof router, {
+        get: (_target, prop) => (routerRef.current as any)[prop],
+      }),
+    [],
+  );
+
   const gameStore = useMemo(
-    () => new OfflineGameStoreClass({ configStore, engine, router }),
-    [configStore, engine, router],
+    () => new OfflineGameStoreClass({ configStore, engine, router: stableRouter }),
+    [configStore, engine, stableRouter],
   );
 
   useEffect(() => {

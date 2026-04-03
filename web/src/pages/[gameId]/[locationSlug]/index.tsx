@@ -55,8 +55,12 @@ const Location = observer(() => {
     }
   }, [location, game]);
 
-  if (!game || !gameInfos || !prices || !location || !configStore || !gameId) {
-    return <></>;
+  if (!game || !gameInfos || !location || !configStore || !gameId) {
+    return (
+      <Layout isSinglePanel>
+        <></>
+      </Layout>
+    );
   }
 
   // const prefixTitle = isLastDay
