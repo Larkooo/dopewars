@@ -106,7 +106,7 @@ export default function Home() {
     return () => clearInterval(interval);
   }, [autoPlay, currentStep]);
 
-  if (screen === "home" || !account) {
+  if (screen === "home") {
     return (
       <Layout customLeftPanel={<HomeLeftPanel />} rigthPanelScrollable={false}>
         <Flex direction="column" boxSize="full" px={["16px", "0"]} justifyContent={["flex-start", "center"]}>
