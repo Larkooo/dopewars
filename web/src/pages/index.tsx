@@ -2,9 +2,10 @@ import { Button, Input } from "@/components/common";
 import { Layout } from "@/components/layout";
 import { HomeLeftPanel } from "@/components/pages/home";
 import { useSystems } from "@/dojo/hooks";
-import { Box, Heading, Image, Text, VStack } from "@chakra-ui/react";
+import { Box, HStack, Heading, Image, Text, VStack } from "@chakra-ui/react";
 import { useState } from "react";
 import { GameMode } from "@/dojo/types";
+import Dot from "@/components/icons/Dot";
 
 const tutorialSteps = [
   { title: "GAME STATE", desc: "Displays important details about the game", img: "/images/tutorial/tuto1.png" },
@@ -20,7 +21,7 @@ const tutorialSteps = [
 export default function Home() {
   const { createGame, isPending } = useSystems();
 
-  const [showTutorial, setShowTutorial] = useState(false);
+  const [currentStep, setCurrentStep] = useState(0);
   const [name, setName] = useState("");
   const [error, setError] = useState("");
 
@@ -33,6 +34,8 @@ export default function Home() {
     }
     await createGame(GameMode.Noob, playerName);
   };
+
+  const step = tutorialSteps[currentStep];
 
   return (
     <Layout customLeftPanel={<HomeLeftPanel />} rigthPanelScrollable={false}>
@@ -69,33 +72,27 @@ export default function Home() {
             </Button>
           </VStack>
 
-          <Text
-            textStyle="subheading"
-            fontSize="12px"
-            letterSpacing="0.25em"
-            color="neon.500"
-            cursor="pointer"
-            _hover={{ color: "neon.400" }}
-            onClick={() => setShowTutorial(!showTutorial)}
-          >
-            {showTutorial ? "Hide" : "How to play"}
-          </Text>
+          <VStack w="full" gap={3} pt={2}>
+            <Text textStyle="subheading" fontSize="12px" letterSpacing="0.25em" color="neon.500">
+              How to play
+            </Text>
 
-          {showTutorial && (
-            <VStack w="full" gap={6} pb={6}>
-              {tutorialSteps.map((step, i) => (
-                <VStack key={i} gap={2} textAlign="center">
-                  <Text fontSize="14px" fontWeight="bold" color="neon.200">
-                    {step.title}
-                  </Text>
-                  <Text fontSize="12px" color="neon.500">
-                    {step.desc}
-                  </Text>
-                  <Image src={step.img} alt={step.title} w="full" borderRadius="4px" />
-                </VStack>
-              ))}
+            <VStack gap={2} textAlign="center">
+              <Text fontSize="14px" fontWeight="bold" color="neon.200">
+                {step.title}
+              </Text>
+              <Text fontSize="12px" color="neon.500">
+                {step.desc}
+              </Text>
+              <Image src={step.img} alt={step.title} w="full" borderRadius="4px" />
             </VStack>
-          )}
+
+            <HStack gap="10px">
+              {tutorialSteps.map((_, i) => (
+                <Dot key={i} active={i === currentStep} onClick={() => setCurrentStep(i)} />
+              ))}
+            </HStack>
+          </VStack>
         </VStack>
       </VStack>
     </Layout>
