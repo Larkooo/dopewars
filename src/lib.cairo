@@ -37,9 +37,13 @@ pub mod helpers {
 pub mod models {
     pub mod game;
     pub mod game_store_packed;
+    pub mod gear_template;
+    pub mod hustler_instance;
+    pub mod hustler_template;
     pub mod payment_config;
 
     pub mod season;
+    pub mod starterpack;
 }
 
 pub mod packing {
@@ -71,6 +75,7 @@ pub mod systems {
 
 pub mod tokens {
     // pub mod chips;
+    pub mod hustler;
     pub mod paper;
 }
 
