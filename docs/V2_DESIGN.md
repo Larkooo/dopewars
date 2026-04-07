@@ -108,7 +108,7 @@ Dropped in PR-0a: `dope_types` (path dep on `../dope-migration/cairo/types`).
 ## What survives
 
 - Rewarder math + EMA tracking + target supply curve (already ported on `feat/nums-reward-curve`)
-- Season concept (versions, time limits, leaderboards)
+- Season concept — but **stripped to a leaderboard-only wrapper** in PR-1e (no `paper_balance` jackpot, no `paper_fee` / `treasury_fee_pct` knobs — those moved to `PaymentConfig`). Keeps `version`, `season_duration`, `season_time_limit`, `next_version_timestamp`, `high_score`, plus optional snapshot fields like `paper_minted`, `games_played`, `avg_score_at_start` for end-of-season UI.
 - Existing dopewars game loop (markets, drugs, encounters, locations, turns)
 - VRF (cartridge_vrf) for randomness
 - `achievement` arcade integration (with refreshed task list)
@@ -134,7 +134,7 @@ Dropped in PR-0a: `dope_types` (path dep on `../dope-migration/cairo/types`).
 - [ ] **Hustler NFT metadata + art** — placeholder OK for engineering, real art is a separate workstream
 - [ ] **Ekubo USDC↔PAPER pool** — needs to be deployed before v2 launch (depends on PR-1 PAPER v2 contract address)
 - [ ] **Free pack at launch?** — defaulting to no; can add a Twitter-gated pack later via a new pack id
-- [ ] **Season transition mechanics** — current dopewars uses `launder` to roll seasons; with no laundromat, need a new trigger (cron? anyone-can-call after `next_version_timestamp`?)
+- [ ] **Season transition mechanics** — current dopewars uses `launder` to roll seasons; with no laundromat, need a new trigger (cron? anyone-can-call after `next_version_timestamp`?). Whatever lands also needs to (a) snapshot the leaderboard, (b) optionally reset `RyoConfig.average_*` so the new season recalibrates the EMA from scratch.
 - [ ] **Pack pricing for tiers 2/3/4** — defaulting to nums formula, override with concrete numbers if there's a target
 
 ## Decisions log
@@ -151,3 +151,5 @@ Dropped in PR-0a: `dope_types` (path dep on `../dope-migration/cairo/types`).
 - **2026-04-07** — PR-0a merged as cartridge-gg/dopewars#431 (commit `53619d91`)
 - **2026-04-07** — PR-0b: vendor VRF interface internally (nums uses the same approach) — `cartridge_vrf` package is pinned to OZ 2.x across all branches/tags, blocking the upgrade
 - **2026-04-07** — PR-0b: disable achievement integration in this PR (don't try to migrate the API). Reasons: (a) arcade `Store::progress` moved to a component method whose Event auto-Into impl conflicts with `ContractAddress::Into<felt252>`, requiring either a vendored fork of arcade's progress logic or a real architectural refactor of the helper modules; (b) the v2 plan was already removing the L1-keyed achievement tasks; (c) re-adding a v2-shaped achievement system is now tracked as PR-5
+- **2026-04-07** — PR-1a merged as cartridge-gg/dopewars#433 (rewarder math + EMA helpers on `RyoConfig`, no call sites yet)
+- **2026-04-07** — `Season` model survives v2 as a **leaderboard-only wrapper** (option 2 of three). Drop `paper_balance` / `paper_fee` / `treasury_fee_pct` (those become `PaymentConfig` fields). Keep `version`, `season_duration`, `season_time_limit`, `next_version_timestamp`, `high_score`. Lands in PR-1e alongside the `season_manager` rewrite — Season struct is left untouched until then.
