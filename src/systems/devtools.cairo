@@ -13,7 +13,7 @@ mod devtools {
     use dojo::world::IWorldDispatcherTrait;
     use rollyourown::constants::ns;
     use rollyourown::helpers::season_manager::SeasonManagerTrait;
-    use rollyourown::models::game::{Game, GameMode, TokenId};
+    use rollyourown::models::game::{Game, GameMode};
     use rollyourown::packing::game_store::{GameStoreImpl, GameStorePackerImpl};
     use rollyourown::store::{StoreImpl, StoreTrait};
     use rollyourown::utils::bytes16::Bytes16Impl;
@@ -43,7 +43,6 @@ mod devtools {
             };
 
             let multiplier = randomizer.between::<u8>(1, 10);
-            let loot_id = randomizer.between::<u32>(1, 8000);
 
             let mut game = Game {
                 game_id,
@@ -61,7 +60,11 @@ mod devtools {
                 claimed: false,
                 claimable: 0,
                 position: 0,
-                token_id: TokenId::LootId(loot_id.into()),
+                // PR-1e: 0 = no real hustler. on_register_score will read
+                // the missing HustlerInstance, fall through with burn=0,
+                // and skip the mint.
+                hustler_token_id: 0,
+                reward: 0,
                 equipment_by_slot: array![0, 0, 0, 0].span(),
             };
 

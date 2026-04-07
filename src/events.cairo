@@ -1,6 +1,4 @@
-// PR-0a: dope_types dropped — using local stubs until PR-1.
-use rollyourown::_stubs::dope_stubs::{HustlerBody, HustlerSlot};
-use rollyourown::models::game::{GameMode, TokenId};
+use rollyourown::models::game::GameMode;
 use rollyourown::systems::game::{EncounterActions};
 use rollyourown::systems::helpers::traveling::{EncounterOutcomes};
 use starknet::ContractAddress;
@@ -15,9 +13,9 @@ pub struct GameCreated {
     pub game_mode: GameMode,
     pub player_name: felt252,
     pub multiplier: u8,
-    pub token_id: TokenId,
-    pub hustler_equipment: Span<HustlerSlot>,
-    pub hustler_body: Span<HustlerBody>,
+    // PR-1e: replaces TokenId enum + hustler_equipment/body L1 spans.
+    // The hustler is the v2 native ERC721 minted by the purchase contract.
+    pub hustler_token_id: u64,
 }
 
 
@@ -43,11 +41,13 @@ pub struct GameOver {
     pub player_id: ContractAddress,
     pub season_version: u16,
     pub player_name: felt252,
-    pub token_id: TokenId,
+    pub hustler_token_id: u64,
     pub turn: u8,
     pub cash: u32,
     pub health: u8,
     pub reputation: u8,
+    // PR-1e: PAPER reward minted on game over (0 if score below curve).
+    pub reward: u128,
 }
 
 #[derive(Drop, Serde)]
@@ -151,7 +151,7 @@ pub struct NewHighScore {
     #[key]
     pub season_version: u16,
     pub player_name: felt252,
-    pub token_id: TokenId,
+    pub hustler_token_id: u64,
     pub cash: u32,
     pub health: u8,
     pub reputation: u8,

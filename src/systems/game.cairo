@@ -1,5 +1,5 @@
 use rollyourown::config::locations::Locations;
-use rollyourown::models::game::{GameMode, TokenId};
+use rollyourown::models::game::GameMode;
 use rollyourown::packing::game_store::GameStoreImpl;
 use rollyourown::systems::helpers::{shopping, trading};
 
@@ -19,7 +19,11 @@ pub enum EncounterActions {
 #[starknet::interface]
 trait IGameActions<T> {
     fn create_game(
-        self: @T, game_mode: GameMode, player_name: felt252, multiplier: u8, token_id: TokenId,
+        self: @T,
+        game_mode: GameMode,
+        player_name: felt252,
+        multiplier: u8,
+        hustler_token_id: u64,
     );
     fn end_game(self: @T, game_id: u32, actions: Span<Actions>);
     fn travel(self: @T, game_id: u32, next_location: Locations, actions: Span<Actions>);
@@ -27,19 +31,17 @@ trait IGameActions<T> {
 
 #[dojo::contract]
 mod game {
-    // use achievement::store::StoreTrait as BushidoStoreTrait; // PR-0b: disabled
     use rollyourown::interfaces::vrf::{IVrfProviderDispatcher, IVrfProviderDispatcherTrait, Source};
     use dojo::event::EventStorage;
+    use dojo::model::ModelStorage;
     use dojo::world::{IWorldDispatcherTrait, WorldStorageTrait};
-    // PR-0a: dope_types dropped — using local stubs until PR-1.
-    use rollyourown::_stubs::dope_stubs::{HustlerSlots, HustlerStoreImpl, HustlerStoreTrait};
-    // use rollyourown::achievements::achievements_v1::Tasks; // PR-0b: disabled
+    use openzeppelin::interfaces::token::erc721::{IERC721Dispatcher, IERC721DispatcherTrait};
     use rollyourown::config::locations::Locations;
     use rollyourown::constants::ns;
     use rollyourown::events::GameCreated;
     use rollyourown::helpers::season_manager::SeasonManagerTrait;
-    use rollyourown::interfaces::erc721::{IERC721ABIDispatcher, IERC721ABIDispatcherTrait};
-    use rollyourown::models::game::{GameImpl, GameMode, TokenId};
+    use rollyourown::models::game::{GameImpl, GameMode};
+    use rollyourown::models::hustler_instance::HustlerInstance;
     use rollyourown::packing::game_store::{GameStore, GameStoreImpl};
     use rollyourown::packing::player::PlayerImpl;
     use rollyourown::store::{StoreImpl, StoreTrait};
@@ -57,11 +59,9 @@ mod game {
             game_mode: GameMode,
             player_name: felt252,
             multiplier: u8,
-            token_id: TokenId,
+            hustler_token_id: u64,
         ) {
             self.assert_not_paused();
-            // assert(game_mode == GameMode::Noob || game_mode == GameMode::Ranked, 'invalid game
-            // mode!');
 
             let mut world = self.world(@ns());
             let mut store = StoreImpl::new(world);
@@ -78,102 +78,56 @@ mod game {
             let mut season_manager = SeasonManagerTrait::new(store);
             let season_version = season_manager.get_current_version();
 
-            // if RANKED
-            if game_mode == GameMode::Ranked {
-                // pay paper_fee * multiplier
-                season_manager.on_game_start(multiplier);
-            }
+            // PR-1e: ranked vs noob distinction is gone in v2 — entry stake
+            // is paid via the purchase contract (PR-1d), not on game start.
+            // The game_mode field still flows through to the helpers because
+            // trading::execute_trade rejects Warrior mode.
 
-            let mut dope_world = self.world(@"dope");
+            // [Lookup] Hustler ERC721 contract via DNS.
+            let hustler_address = world
+                .dns_address(@"hustler")
+                .expect('hustler not found');
+            let hustler_dispatcher = IERC721Dispatcher { contract_address: hustler_address };
 
-            let mut game_created = GameCreated {
-                game_id,
-                player_id,
-                game_mode,
-                player_name,
-                multiplier,
-                token_id,
-                hustler_equipment: array![].span(),
-                hustler_body: array![].span(),
-            };
+            // [Check] Caller owns the hustler token.
+            assert(
+                player_id == hustler_dispatcher.owner_of(hustler_token_id.into()),
+                'not hustler owner',
+            );
 
-            match token_id {
-                TokenId::GuestLootId(guest_loot_id) => {
-                    // check if enabled
-                    assert!(store.ryo_config().f2p_hustlers, "f2p hustlers are disabled");
+            // [Read] HustlerInstance — written by the purchase contract on
+            // mint. Holds the gear loadout the buyer's pack came with.
+            let mut hustler_instance: HustlerInstance = world.read_model(hustler_token_id);
+            assert(hustler_instance.token_id == hustler_token_id, 'hustler not registered');
+            assert(!hustler_instance.used, 'hustler already used');
 
-                    // check one of the availble guest_loot_id for season
-                    let mut i: u32 = 0;
-                    let mut is_valid = false;
-                    while i < 8 {
-                        let hash: u256 = core::poseidon::poseidon_hash_span(
-                            array![season_version.into(), i.into()].span(),
-                        )
-                            .into();
-                        let id: felt252 = ((hash % 8000) + 1).try_into().unwrap();
-                        if guest_loot_id == id {
-                            is_valid = true;
-                            break;
-                        }
-                        i += 1;
-                    }
+            // [Compute] equipment_by_slot — slot order matches ItemSlot enum
+            // (0=Weapon, 1=Clothes, 2=Feet, 3=Transport). Stored as felt252
+            // ids; items_packed reads the low byte as the item id.
+            let equipment_by_slot = array![
+                hustler_instance.gear_weapon.into(),
+                hustler_instance.gear_clothes.into(),
+                hustler_instance.gear_feet.into(),
+                hustler_instance.gear_transport.into(),
+            ]
+                .span();
 
-                    assert!(is_valid, "invalid guest loot id");
-                },
-                TokenId::LootId(loot_id) => {
-                    // check if enabled
-                    assert!(store.ryo_config().play_with_loot, "play_with_loot is disabled");
-
-                    // check if owner of loot_id
-                    let loot_dispatcher = IERC721ABIDispatcher {
-                        contract_address: dope_world.dns_address(@"DopeLoot").unwrap(),
-                    };
-                    assert(
-                        player_id == loot_dispatcher.owner_of(loot_id.into()),
-                        'caller is not loot owner',
-                    );
-                },
-                TokenId::HustlerId(hustler_id) => {
-                    // check if enabled
-                    assert!(
-                        store.ryo_config().play_with_hustlers, "play_with_hustlers is disabled",
-                    );
-
-                    // check if owner of hustler_id
-                    let erc721_dispatcher = IERC721ABIDispatcher {
-                        contract_address: dope_world.dns_address(@"DopeHustlers").unwrap(),
-                    };
-
-                    assert(
-                        player_id == erc721_dispatcher.owner_of(hustler_id.into()),
-                        'caller is not hustler owner',
-                    );
-
-                    let mut hustler_store = HustlerStoreImpl::new(dope_world);
-
-                    game_created
-                        .hustler_equipment = hustler_store
-                        .hustler_slot_full(hustler_id.into());
-
-                    game_created.hustler_body = hustler_store.hustler_body_full(hustler_id.into());
-
-                    let _accessory = hustler_store
-                        .hustler_slot(hustler_id.into(), HustlerSlots::Accessory);
-                    // PR-0b: ELEGANT achievement disabled — see helpers/shopping.cairo.
-                },
-            }
+            // [Effect] Mark the hustler used and bind it to this game.
+            hustler_instance.used = true;
+            hustler_instance.game_id = game_id;
+            world.write_model(@hustler_instance);
 
             // create game
             let mut game_config = store.game_config(season_version);
             let mut game = GameImpl::new(
-                dope_world,
                 game_id,
                 player_id,
                 season_version,
                 game_mode,
                 player_name,
                 multiplier,
-                token_id,
+                hustler_token_id,
+                equipment_by_slot,
             );
 
             // save Game
@@ -184,6 +138,14 @@ mod game {
             game_store.save();
 
             // emit GameCreated
+            let game_created = GameCreated {
+                game_id,
+                player_id,
+                game_mode,
+                player_name,
+                multiplier,
+                hustler_token_id,
+            };
             world.emit_event(@game_created);
         }
 

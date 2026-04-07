@@ -102,13 +102,6 @@ pub mod _mocks {
     pub mod vrf_provider_mock;
 }
 
-// Transitional stubs replacing the dropped `dope_types` external crate.
-// PR-1 deletes this entire module — see docs/V2_DESIGN.md.
-pub mod _stubs {
-    pub mod dope_stubs;
-}
-
-
 pub mod libraries {
     pub mod dopewars_items;
 }

@@ -1,25 +1,8 @@
-use dojo::world::{WorldStorage};
-
-// PR-0a: dope_types dropped — using local stubs until PR-1 lands the v2
-// Hustler/Gear models. See docs/V2_DESIGN.md.
-use rollyourown::_stubs::dope_stubs::{
-    HustlerSlots, HustlerStoreImpl, HustlerStoreTrait, LootStoreImpl, LootStoreTrait,
-};
-
 use rollyourown::store::StoreImpl;
 use rollyourown::{utils::{bytes16::{Bytes16, Bytes16Impl}}};
 use starknet::ContractAddress;
 
 pub type GearId = felt252;
-
-#[derive(Copy, Drop, Serde, PartialEq, Introspect, DojoStore, Default)]
-pub enum TokenId {
-    #[default]
-    GuestLootId: felt252,
-    LootId: felt252,
-    HustlerId: felt252,
-}
-
 
 #[derive(Copy, Drop, Serde, PartialEq, IntrospectPacked, DojoStore, Default)]
 pub enum GameMode {
@@ -51,70 +34,31 @@ pub struct Game {
     pub claimable: u32,
     pub position: u16,
     //
-    pub token_id: TokenId,
-    // sorted by slot order 0,1,2,3
+    // PR-1e: replaces the v0 TokenId enum (GuestLootId/LootId/HustlerId).
+    // The hustler is the v2 native ERC721 token id minted by the purchase
+    // contract; the player must own this NFT at create_game time.
+    pub hustler_token_id: u64,
+    // PAPER reward minted on game over (0 if the score is below the
+    // curve break-even or PAPER supply is over 2x target). Set by
+    // season_manager::on_register_score in PR-1e.
+    pub reward: u128,
+    // sorted by slot order 0,1,2,3 (Weapon, Clothes, Feet, Transport).
+    // Holds raw item ids as felt252 — the slot is implied by the index.
     pub equipment_by_slot: Span<GearId>,
 }
 
 #[generate_trait]
 pub impl GameImpl of GameTrait {
     fn new(
-        dope_world: WorldStorage,
         game_id: u32,
         player_id: ContractAddress,
         season_version: u16,
         game_mode: GameMode,
         player_name: felt252,
         multiplier: u8,
-        token_id: TokenId,
+        hustler_token_id: u64,
+        equipment_by_slot: Span<GearId>,
     ) -> Game {
-        let equipment_by_slot = match token_id {
-            TokenId::GuestLootId(loot_id) |
-            TokenId::LootId(loot_id) => {
-                let mut loot_store = LootStoreImpl::new(dope_world);
-
-                let loot_id: u256 = loot_id.into();
-                let mut equipment = array![
-                    loot_store.gear_item_id(loot_id, HustlerSlots::Weapon).try_into().unwrap(),
-                    loot_store.gear_item_id(loot_id, HustlerSlots::Clothe).try_into().unwrap(),
-                    loot_store.gear_item_id(loot_id, HustlerSlots::Foot).try_into().unwrap(),
-                    loot_store.gear_item_id(loot_id, HustlerSlots::Vehicle).try_into().unwrap(),
-                ];
-
-                equipment.span()
-            },
-            TokenId::HustlerId(hustler_id) => {
-                let mut hustler_store = HustlerStoreImpl::new(dope_world);
-
-                let weapon = hustler_store.hustler_slot(hustler_id.into(), HustlerSlots::Weapon);
-                let clothe = hustler_store.hustler_slot(hustler_id.into(), HustlerSlots::Clothe);
-                let foot = hustler_store.hustler_slot(hustler_id.into(), HustlerSlots::Foot);
-                let vehicle = hustler_store.hustler_slot(hustler_id.into(), HustlerSlots::Vehicle);
-
-                let weapon_id: felt252 = weapon
-                    .gear_item_id
-                    .expect('must equip a weapon')
-                    .try_into()
-                    .unwrap();
-                let clothe_id: felt252 = clothe
-                    .gear_item_id
-                    .expect('must equip a clothe')
-                    .try_into()
-                    .unwrap();
-                let foot_id: felt252 = foot
-                    .gear_item_id
-                    .expect('must equip a foot')
-                    .try_into()
-                    .unwrap();
-                let vehicle_id: felt252 = vehicle
-                    .gear_item_id
-                    .expect('must equip a weapon')
-                    .try_into()
-                    .unwrap();
-
-                array![weapon_id, clothe_id, foot_id, vehicle_id].span()
-            },
-        };
         Game {
             game_id,
             player_id,
@@ -132,7 +76,8 @@ pub impl GameImpl of GameTrait {
             claimable: 0,
             position: 0,
             //
-            token_id,
+            hustler_token_id,
+            reward: 0,
             equipment_by_slot,
         }
     }

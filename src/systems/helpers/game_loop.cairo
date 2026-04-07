@@ -2,6 +2,7 @@ use dojo::event::EventStorage;
 
 use rollyourown::{
     config::{locations::{Locations}, settings::{SeasonSettings}}, events::{GameOver, Traveled},
+    helpers::season_manager::SeasonManagerTrait,
     packing::{
         drugs_packed::{DrugsPackedTrait},
         game_store::{GameStore, GameStoreImpl, GameStorePackerImpl},
@@ -85,16 +86,21 @@ pub fn on_turn_end(ref game_store: GameStore, ref randomizer: Random, ref store:
 pub fn on_game_over(ref game_store: GameStore, ref store: Store) {
     assert(game_store.game.game_over == false, 'already game_over');
 
-    // save
+    // save game store snapshot
     game_store.save();
 
     // set game_over on game
     game_store.game.game_over = true;
-
-    // save game
     store.set_game(@game_store.game);
 
-    // emit GameOver
+    // PR-1e: register the score and mint the rewarder reward. This also
+    // pushes the score into the EMA tracker, updates the season high score,
+    // and writes back to HustlerInstance + Game.reward.
+    let mut season_manager = SeasonManagerTrait::new(store);
+    let reward = season_manager.on_register_score(ref game_store);
+
+    // emit GameOver — payload now includes the reward minted (0 if the
+    // score was below the curve break-even or supply is over 2x target).
     store
         .world
         .emit_event(
@@ -103,11 +109,12 @@ pub fn on_game_over(ref game_store: GameStore, ref store: Store) {
                 player_id: game_store.game.player_id,
                 season_version: game_store.game.season_version,
                 player_name: game_store.game.player_name.into(),
-                token_id: game_store.game.token_id,
+                hustler_token_id: game_store.game.hustler_token_id,
                 turn: game_store.player.turn,
                 cash: game_store.player.cash,
                 health: game_store.player.health,
                 reputation: game_store.player.reputation,
+                reward,
             },
         );
 }

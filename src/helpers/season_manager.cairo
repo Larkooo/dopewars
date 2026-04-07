@@ -1,11 +1,18 @@
 use dojo::event::EventStorage;
-
-use rollyourown::{
-    config::{ryo::{RyoConfigTrait}, settings::{SeasonSettingsImpl, SeasonSettingsTrait}},
-    constants::{ETHER, MAX_MULTIPLIER}, events::NewHighScore,
-    models::{season::{SeasonImpl, SeasonTrait}}, packing::game_store::{GameStore},
-    store::{Store, StoreImpl, StoreTrait}, utils::{math::{MathImpl, MathTrait}, random::{Random}},
-};
+use dojo::model::ModelStorage;
+use dojo::world::WorldStorageTrait;
+use openzeppelin::interfaces::token::erc20::{IERC20Dispatcher, IERC20DispatcherTrait};
+use rollyourown::config::ryo::RyoConfigTrait;
+use rollyourown::config::settings::SeasonSettingsImpl;
+use rollyourown::constants::TEN_POW_18;
+use rollyourown::events::NewHighScore;
+use rollyourown::helpers::rewarder::Rewarder;
+use rollyourown::models::hustler_instance::HustlerInstance;
+use rollyourown::models::starterpack::Starterpack;
+use rollyourown::packing::game_store::GameStore;
+use rollyourown::store::{Store, StoreImpl, StoreTrait};
+use rollyourown::tokens::paper::{IPaperTokenDispatcher, IPaperTokenDispatcherTrait};
+use rollyourown::utils::random::Random;
 
 #[derive(Drop, Copy)]
 pub struct SeasonManager {
@@ -44,80 +51,100 @@ pub impl SeasonManagerImpl of SeasonManagerTrait {
         store.save_game_config(@game_config);
     }
 
-    fn on_game_start(ref self: SeasonManager, multiplier: u8) {
+    /// PR-1e: entry-stake collection moved to the purchase contract
+    /// (PR-1d). The purchase flow burns PAPER directly, so the per-game
+    /// transfer here is gone. Kept as a no-op for the create_game caller
+    /// path until PR-1g (cleanup) drops it entirely.
+    fn on_game_start(ref self: SeasonManager, _multiplier: u8) {}
+
+    /// Compute the per-game PAPER reward via the supply-aware curve, mint
+    /// it to the player, and update the EMA tracker. Called from
+    /// game_loop::on_game_over after the GameOver event is emitted. Also
+    /// updates the season high score and writes the final score back to
+    /// the player's HustlerInstance for the leaderboard / trophy view.
+    ///
+    /// Returns the reward amount in PAPER wei.
+    fn on_register_score(ref self: SeasonManager, ref game_store: GameStore) -> u128 {
         let mut store = self.store;
+        let mut world = store.world;
+        let final_score = game_store.player.cash;
+
+        // [Read] PAPER + reward params.
+        let paper_address = world.dns_address(@"paper").expect('paper not found');
+        let paper = IPaperTokenDispatcher { contract_address: paper_address };
+        let paper_erc20 = IERC20Dispatcher { contract_address: paper_address };
         let mut ryo_config = store.ryo_config();
 
-        // get current season infos
-        let mut season = store.season(ryo_config.season_version);
+        // [Read] Pack the hustler was minted from — gives us the burn input
+        // for the rewarder. Falls back to 0 if the hustler is missing
+        // (e.g. devtools fake games), which collapses the multiplier to 0
+        // and skips the mint.
+        let hustler_instance: HustlerInstance = world.read_model(game_store.game.hustler_token_id);
+        let pack: Starterpack = world.read_model(hustler_instance.starterpack_id);
 
-        // check if season is opened
-        assert(season.is_open(), 'season has closed');
-        // check if enought time for a game before season end
-        assert(season.can_create_game(), 'not enought time for a game');
+        // [Compute] rewarder inputs. supply / target / burn are all in
+        // PAPER wei (18 decimals). target_supply on RyoConfig is whole
+        // tokens, so multiply up.
+        let supply: u256 = paper_erc20.total_supply();
+        let target: u256 = ryo_config.target_supply.into() * TEN_POW_18.into();
+        let burn: u256 = pack.price_paper.into();
+        let (avg_num, avg_den) = ryo_config.get_average_score();
+        let max_score: u256 = ryo_config.max_score.into();
 
-        // check multiplier
-        assert(multiplier > 0 && multiplier <= MAX_MULTIPLIER, 'invalid multiplier');
+        let multiplier = Rewarder::multiplier(
+            supply, target, burn, avg_num.into(), avg_den.into(), max_score,
+        );
+        let reward_u256 = Rewarder::amount(final_score.into(), 1, max_score, multiplier);
+        let reward: u128 = reward_u256.try_into().unwrap_or(0);
 
-        // get paper_fee
-        let paper_fee: u32 = season.paper_fee.into() * multiplier.into();
-        let paper_fee_eth: u256 = paper_fee.into() * ETHER;
+        // [Effect] Mint the reward to the player. Requires MINTER_ROLE on
+        // the PAPER contract; deploy script grants it to this game contract.
+        if reward > 0 {
+            paper.reward(game_store.game.player_id, reward.into());
+        }
 
-        // calc treasury share
-        let treasury_share = paper_fee.pct(season.treasury_fee_pct.into());
-        let jackpot_share = paper_fee - treasury_share;
+        // [Effect] Record the reward on the Game model so the UI can show it
+        // without re-deriving from events.
+        game_store.game.reward = reward;
+        game_store.game.final_score = final_score;
+        game_store.game.registered = true;
+        store.set_game(@game_store.game);
 
-        // add jackpot_share to current_season & save
-        season.paper_balance += jackpot_share;
-        store.save_season(@season);
-
-        // add treasury_share to treasury_balance & save
-        ryo_config.treasury_balance += treasury_share;
+        // [Effect] Push the score into the EMA tracker.
+        ryo_config.push_score(final_score);
         store.save_ryo_config(@ryo_config);
 
-        // PR-0a: laundromat removed. PR-1 replaces this entire function with
-        // the starterpack purchase flow (USDC → Ekubo swap → burn PAPER →
-        // mint Hustler NFT). For now, the entry-fee transfer is a no-op so
-        // that builds work — see docs/V2_DESIGN.md.
-        let _ = paper_fee_eth;
-    }
+        // [Effect] Update HustlerInstance with the final score for the
+        // trophy view. The `used` flag was already set in create_game.
+        let mut updated_instance = hustler_instance;
+        updated_instance.final_score = final_score;
+        world.write_model(@updated_instance);
 
-    fn on_register_score(ref self: SeasonManager, ref game_store: GameStore) -> bool {
-        let mut store = self.store;
-        // check if new high_score & update high_score & next_version_timestamp if necessary
+        // [Effect] Update the season high score. The Season model still has
+        // a high_score field; PR-1g may strip the rest of the jackpot
+        // bookkeeping but the leaderboard wrapper survives v2.
         let current_version = self.get_current_version();
         let mut season = store.season(current_version);
-
-        // new high score
-        if game_store.player.cash > season.high_score {
-            //set highscore
-            season.high_score = game_store.player.cash;
-
-            // reset current version timer
+        if final_score > season.high_score {
+            season.high_score = final_score;
             season.next_version_timestamp = self.get_next_version_timestamp();
-
-            // save season
             store.save_season(@season);
 
-            // // emit NewHighScore
-            store
-                .world
+            world
                 .emit_event(
                     @NewHighScore {
                         game_id: game_store.game.game_id,
                         player_id: game_store.game.player_id,
                         season_version: game_store.game.season_version,
                         player_name: game_store.game.player_name.into(),
-                        token_id: game_store.game.token_id,
-                        cash: game_store.player.cash,
+                        hustler_token_id: game_store.game.hustler_token_id,
+                        cash: final_score,
                         health: game_store.player.health,
                         reputation: game_store.player.reputation,
                     },
                 );
-
-            true
-        } else {
-            false
         }
+
+        reward
     }
 }
