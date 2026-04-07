@@ -61,6 +61,7 @@ pub mod packing {
 pub mod systems {
     pub mod decide;
     pub mod game;
+    pub mod purchase;
     pub mod ryo;
 
     pub mod helpers {

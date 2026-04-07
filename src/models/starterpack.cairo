@@ -35,6 +35,11 @@ pub struct Starterpack {
     // Multiplier baked into the pack (1..10). Used both as the game
     // multiplier at run time and as an input to the price formula.
     pub stake_multiplier: u8,
+    // Price in PAPER wei. PR-1d's purchase contract reads this directly so
+    // the discount formula only runs once at registration time. PR-1f will
+    // add a USDC quote on top (the buyer pays USDC, the contract still
+    // burns this amount of PAPER via the Ekubo swap).
+    pub price_paper: u128,
     // Whether this pack is currently buyable. Lets admin disable a pack
     // without re-deploying — e.g. retire a season's free pack.
     pub enabled: bool,
@@ -51,6 +56,7 @@ pub impl StarterpackImpl of StarterpackTrait {
         gear_feet: u8,
         gear_transport: u8,
         stake_multiplier: u8,
+        price_paper: u128,
     ) -> Starterpack {
         Starterpack {
             id,
@@ -61,6 +67,7 @@ pub impl StarterpackImpl of StarterpackTrait {
             gear_feet,
             gear_transport,
             stake_multiplier,
+            price_paper,
             enabled: true,
         }
     }
