@@ -7,10 +7,13 @@ pub mod store;
 #[cfg(test)]
 pub mod tests;
 
-pub mod achievements {
-    // pub mod achievements_v0;
-    pub mod achievements_v1;
-}
+// PR-0b: achievement integration disabled until v2 redesign — see
+// docs/V2_DESIGN.md. The arcade dojo_1.7.1 → main upgrade migrated the
+// `Store::progress` API to a component-based one, and the v2 plan removes
+// most of the existing tasks anyway (the L1-keyed ones).
+// pub mod achievements {
+//     pub mod achievements_v1;
+// }
 
 pub mod traits;
 pub mod config {
@@ -82,6 +85,7 @@ pub mod interfaces {
     pub mod chips;
     pub mod erc721;
     pub mod paper;
+    pub mod vrf;
 }
 
 pub mod _mocks {

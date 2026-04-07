@@ -1,5 +1,5 @@
 [package]
-cairo-version = "2.12.2"
+cairo-version = "2.13.1"
 name = "rollyourown"
 version = "0.1.0"
 edition = "2024_07"
@@ -23,14 +23,16 @@ build-external-contracts = [
 
 
 [dependencies]
-starknet = "2.12.2"
-dojo = "1.7.1" 
-openzeppelin = "2.0.0"
+starknet = "2.13.1"
+dojo = "1.8.0"
+openzeppelin = "3.0.0"
 
-cartridge_vrf = { git = "https://github.com/cartridge-gg/vrf" }
-# cartridge_vrf = { path = "../vrf" }
+# cartridge_vrf: dropped in PR-0b. The cartridge-gg/vrf package is pinned to
+# openzeppelin 2.x and blocks the v2 OZ 3.0 upgrade. We vendor a minimal
+# IVrfProvider trait at src/interfaces/vrf.cairo (matching the production
+# VRF ABI) and use a hash-based mock for dev. See docs/V2_DESIGN.md.
 
-achievement = { git = "https://github.com/cartridge-gg/arcade", branch="dojo_1.7.1" }
+achievement = { git = "https://github.com/cartridge-gg/arcade", rev = "fc2e81c" }
 # achievement = { git = "https://github.com/cartridge-gg/arcade" }
 
 # dope_types: dropped in PR-0a (v2 reset). v2 hustlers are native Starknet,

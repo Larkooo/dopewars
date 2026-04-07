@@ -8,7 +8,7 @@ trait IDecide<T> {
 
 #[dojo::contract]
 mod decide {
-    use cartridge_vrf::{IVrfProviderDispatcher, IVrfProviderDispatcherTrait, Source};
+    use rollyourown::interfaces::vrf::{IVrfProviderDispatcher, IVrfProviderDispatcherTrait, Source};
     use rollyourown::constants::ns;
     use rollyourown::packing::game_store::GameStoreImpl;
     use rollyourown::packing::player::PlayerImpl;

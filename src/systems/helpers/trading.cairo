@@ -1,8 +1,9 @@
-use achievement::store::{StoreTrait as BushidoStoreTrait};
+// PR-0b: achievement integration disabled — arcade migrated to component-
+// based API. v2 redesigns achievements (see docs/V2_DESIGN.md).
 use dojo::event::EventStorage;
-use rollyourown::achievements::achievements_v1::Tasks;
+// use rollyourown::achievements::achievements_v1::Tasks; // PR-0b: disabled
 use rollyourown::{
-    config::{drugs::{Drugs}}, events::{TradeDrug}, models::{game::{GameMode, GameTrait}},
+    config::{drugs::{Drugs}}, events::{TradeDrug}, models::{game::{GameMode}},
     packing::{
         drugs_packed::{DrugsPackedImpl}, game_store::{GameStore, GameStoreTrait},
         items_packed::{ItemsPackedImpl}, markets_packed::{MarketsPackedImpl}, player::{PlayerImpl},
@@ -67,7 +68,7 @@ pub fn buy(ref game_store: GameStore, trade: Trade, is_first_buy: bool) {
     assert(trade.quantity <= max_transport, 'not enought space');
 
     // check cash
-    let (tick, market_price) = game_store
+    let (_tick, market_price) = game_store
         .get_tick_and_drug_price(game_store.player.location, trade.drug);
     let total_cost = market_price * trade.quantity;
     assert(game_store.player.cash >= total_cost, 'not enought ca$h');
@@ -96,21 +97,10 @@ pub fn buy(ref game_store: GameStore, trade: Trade, is_first_buy: bool) {
             },
         );
 
-    if game_store.game.is_ranked() {
-        let bushido_store = BushidoStoreTrait::new(store.world);
-
-        if is_first_buy {
-            if tick == MIN_TICK {
-                bushido_store
-                    .progress(
-                        game_store.game.player_id.into(),
-                        Tasks::BUY_LOW,
-                        1,
-                        starknet::get_block_timestamp(),
-                    );
-            };
-        };
-    }
+    // PR-0b: BUY_LOW achievement disabled — see helpers/shopping.cairo header.
+    // if game_store.game.is_ranked() && is_first_buy && tick == MIN_TICK {
+    //     bushido_store.progress(player_id_felt, Tasks::BUY_LOW, 1, time);
+    // }
 }
 
 
@@ -127,7 +117,7 @@ pub fn sell(ref game_store: GameStore, trade: Trade, is_first_sell: bool) {
     // must have enought to sell
     assert(drugs.quantity >= trade.quantity, 'not enought drug');
 
-    let (tick, market_price) = game_store
+    let (_tick, market_price) = game_store
         .get_tick_and_drug_price(game_store.player.location, trade.drug);
     let total = market_price * trade.quantity;
 
@@ -154,27 +144,11 @@ pub fn sell(ref game_store: GameStore, trade: Trade, is_first_sell: bool) {
             },
         );
 
-    if game_store.game.is_ranked() {
-        let bushido_store = BushidoStoreTrait::new(store.world);
-
-        if is_first_sell {
-            bushido_store
-                .progress(
-                    game_store.game.player_id.into(),
-                    Tasks::VOLUME,
-                    total.into(),
-                    starknet::get_block_timestamp(),
-                );
-
-            if tick == MAX_TICK {
-                bushido_store
-                    .progress(
-                        game_store.game.player_id.into(),
-                        Tasks::SELL_HIGH,
-                        1,
-                        starknet::get_block_timestamp(),
-                    );
-            };
-        };
-    }
+    // PR-0b: VOLUME / SELL_HIGH achievements disabled — see header.
+    // if game_store.game.is_ranked() && is_first_sell {
+    //     bushido_store.progress(player_id_felt, Tasks::VOLUME, total.into(), time);
+    //     if tick == MAX_TICK {
+    //         bushido_store.progress(player_id_felt, Tasks::SELL_HIGH, 1, time);
+    //     }
+    // }
 }

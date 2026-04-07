@@ -10,7 +10,7 @@ trait IRyo<T> {
     fn set_treasury(self: @T, treasury_address: ContractAddress);
     fn set_vrf(self: @T, vrf_address: ContractAddress);
     //
-    fn update_quests(self: @T);
+    // fn update_quests(self: @T); // PR-0b: achievement integration disabled
     //
     fn paper(self: @T) -> ContractAddress;
     fn treasury(self: @T) -> ContractAddress;
@@ -32,10 +32,13 @@ trait IRyo<T> {
 
 #[dojo::contract]
 mod ryo {
-    use achievement::components::achievable::AchievableComponent;
+    // PR-0b: AchievableComponent removed. The arcade `Store::progress` API
+    // moved to a component method whose Event auto-Into impl conflicts with
+    // ContractAddress's existing Into<felt252>. v2 will redesign achievements
+    // (see docs/V2_DESIGN.md). Keeping the contract bare avoids the
+    // EventAchievableEventIntoEvent collision until then.
     use core::num::traits::Zero;
     use dojo::world::{IWorldDispatcherTrait, WorldStorageTrait};
-    use rollyourown::achievements::achievements_v1::AchievementImpl;
     use rollyourown::config::ryo::{RyoConfig, RyoConfigImpl};
     use rollyourown::constants::ns;
     use rollyourown::helpers::season_manager::SeasonManagerTrait;
@@ -44,23 +47,14 @@ mod ryo {
     use starknet::{ContractAddress, get_caller_address};
     use dojo::utils::selector_from_names;
 
-    component!(path: AchievableComponent, storage: achievable, event: AchievableEvent);
-    impl AchievableInternalImpl = AchievableComponent::InternalImpl<ContractState>;
-
     // Storage
     #[storage]
-    struct Storage {
-        #[substorage(v0)]
-        achievable: AchievableComponent::Storage,
-    }
+    struct Storage {}
 
     // Events
     #[event]
     #[derive(Drop, starknet::Event)]
-    enum Event {
-        #[flat]
-        AchievableEvent: AchievableComponent::Event,
-    }
+    enum Event {}
 
     fn dojo_init(
         self: @ContractState,
@@ -123,13 +117,7 @@ mod ryo {
 
     #[abi(embed_v0)]
     impl RyoExternalImpl of super::IRyo<ContractState> {
-        fn update_quests(self: @ContractState) {
-            self.assert_caller_is_owner();
-
-            // [Event] Emit all Trophy events
-            let world = self.world(@ns());
-            AchievementImpl::declare_all(world);
-        }
+        // PR-0b: update_quests removed — see ryo module header.
 
         fn set_paused(self: @ContractState, paused: bool) {
             self.assert_caller_is_owner();

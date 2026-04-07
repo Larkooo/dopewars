@@ -27,13 +27,13 @@ trait IGameActions<T> {
 
 #[dojo::contract]
 mod game {
-    use achievement::store::StoreTrait as BushidoStoreTrait;
-    use cartridge_vrf::{IVrfProviderDispatcher, IVrfProviderDispatcherTrait, Source};
+    // use achievement::store::StoreTrait as BushidoStoreTrait; // PR-0b: disabled
+    use rollyourown::interfaces::vrf::{IVrfProviderDispatcher, IVrfProviderDispatcherTrait, Source};
     use dojo::event::EventStorage;
     use dojo::world::{IWorldDispatcherTrait, WorldStorageTrait};
     // PR-0a: dope_types dropped — using local stubs until PR-1.
     use rollyourown::_stubs::dope_stubs::{HustlerSlots, HustlerStoreImpl, HustlerStoreTrait};
-    use rollyourown::achievements::achievements_v1::Tasks;
+    // use rollyourown::achievements::achievements_v1::Tasks; // PR-0b: disabled
     use rollyourown::config::locations::Locations;
     use rollyourown::constants::ns;
     use rollyourown::events::GameCreated;
@@ -157,19 +157,9 @@ mod game {
 
                     game_created.hustler_body = hustler_store.hustler_body_full(hustler_id.into());
 
-                    let accessory = hustler_store
+                    let _accessory = hustler_store
                         .hustler_slot(hustler_id.into(), HustlerSlots::Accessory);
-
-                    let bushido_store = BushidoStoreTrait::new(world);
-                    if accessory.gear_item_id.is_some() {
-                        bushido_store
-                            .progress(
-                                player_id.into(),
-                                Tasks::ELEGANT,
-                                1,
-                                starknet::get_block_timestamp(),
-                            );
-                    };
+                    // PR-0b: ELEGANT achievement disabled — see helpers/shopping.cairo.
                 },
             }
 

@@ -1,11 +1,13 @@
-use achievement::store::{StoreTrait as BushidoStoreTrait};
+// PR-0b: achievement integration disabled — arcade migrated from
+// `Store::progress` to a component-based API. v2 will redesign achievements
+// from scratch (see docs/V2_DESIGN.md). All bushido_store calls in this file
+// are commented out for now.
 use dojo::event::EventStorage;
-use rollyourown::achievements::achievements_v1::Tasks;
 use rollyourown::packing::game_store::GameStoreTrait;
 
 use rollyourown::{
     config::{hustlers::{ItemSlot}, locations::{Locations}}, events::{UpgradeItem},
-    models::game::{GameImpl, GameTrait},
+    models::game::{GameImpl},
     packing::{
         game_store::{GameStore, GameStoreImpl}, items_packed::{ItemsPackedImpl},
         player::{PlayerImpl}, wanted_packed::{WantedPackedImpl},
@@ -75,15 +77,10 @@ pub fn execute_action(ref game_store: GameStore, action: Action) {
             },
         );
 
-    if game_store.game.is_ranked() && game_store.items.is_maxed_out() {
-        let bushido_store = BushidoStoreTrait::new(game_store.store.world);
-        bushido_store
-            .progress(
-                game_store.game.player_id.into(),
-                Tasks::STUFFED,
-                1,
-                starknet::get_block_timestamp(),
-            );
-    }
+    // PR-0b: STUFFED achievement progression disabled. Re-add via the v2
+    // achievement system once it's redesigned.
+    // if game_store.game.is_ranked() && game_store.items.is_maxed_out() {
+    //     bushido_store.progress(player_id_felt, Tasks::STUFFED, 1, time);
+    // }
 }
 

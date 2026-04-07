@@ -1,38 +1,28 @@
+//! Dev/test VRF stub. Returns the current transaction hash as the random
+//! value — sufficient for local development against katana, NOT secure for
+//! production. Production uses the real Cartridge VRF provider; this mock is
+//! only deployed under the dev profile.
+//!
+//! Replaces the previous mock that depended on `cartridge_vrf::vrf_provider`,
+//! which is pinned to openzeppelin 2.x. See docs/V2_DESIGN.md.
+
 #[dojo::contract]
 mod vrf_provider_mock {
-    use cartridge_vrf::PublicKey;
-    use cartridge_vrf::vrf_provider::vrf_provider_component::VrfProviderComponent;
-    use openzeppelin::access::ownable::OwnableComponent;
+    use rollyourown::interfaces::vrf::Source;
+    use starknet::ContractAddress;
 
-    component!(path: OwnableComponent, storage: ownable, event: OwnableEvent);
-    component!(path: VrfProviderComponent, storage: vrf_provider, event: VrfProviderEvent);
+    #[generate_trait]
+    #[abi(per_item)]
+    impl ExternalImpl of ExternalTrait {
+        #[external(v0)]
+        fn request_random(ref self: ContractState, caller: ContractAddress, source: Source) {}
 
-    impl OwnableInternalImpl = OwnableComponent::InternalImpl<ContractState>;
+        #[external(v0)]
+        fn consume_random(ref self: ContractState, source: Source) -> felt252 {
+            starknet::get_tx_info().unbox().transaction_hash
+        }
 
-    #[abi(embed_v0)]
-    impl VrfProviderImpl = VrfProviderComponent::VrfProviderImpl<ContractState>;
-
-    impl VrfProviderInternalImpl = VrfProviderComponent::InternalImpl<ContractState>;
-
-    #[storage]
-    struct Storage {
-        #[substorage(v0)]
-        ownable: OwnableComponent::Storage,
-        #[substorage(v0)]
-        vrf_provider: VrfProviderComponent::Storage,
-    }
-
-    #[event]
-    #[derive(Drop, starknet::Event)]
-    enum Event {
-        #[flat]
-        OwnableEvent: OwnableComponent::Event,
-        #[flat]
-        VrfProviderEvent: VrfProviderComponent::Event,
-    }
-
-    fn dojo_init(ref self: ContractState, pubkey_x: felt252, pubkey_y: felt252) {
-        self.ownable.initializer(starknet::get_caller_address());
-        self.vrf_provider.initializer(PublicKey { x: pubkey_x, y: pubkey_y });
+        #[external(v0)]
+        fn assert_consumed(ref self: ContractState, source: Source) {}
     }
 }

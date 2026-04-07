@@ -1,13 +1,13 @@
-use achievement::store::StoreTrait as BushidoStoreTrait;
+// PR-0b: achievement integration disabled — see helpers/shopping.cairo.
 use dojo::event::EventStorage;
-use rollyourown::achievements::achievements_v1::Tasks;
+// use rollyourown::achievements::achievements_v1::Tasks; // PR-0b: disabled
 use rollyourown::config::encounters::{
     EncounterConfig, EncounterImpl, EncounterSpawnerImpl, Encounters,
 };
 use rollyourown::config::locations::LocationsRandomizableImpl;
 use rollyourown::config::settings::SeasonSettings;
 use rollyourown::events::{TravelEncounter, TravelEncounterResult};
-use rollyourown::models::game::{GameMode, GameTrait};
+use rollyourown::models::game::{GameMode};
 use rollyourown::packing::drugs_packed::{DrugsPackedImpl, DrugsPackedTrait, DrugsUnpacked};
 use rollyourown::packing::game_store::{GameStore, GameStoreImpl, GameStoreTrait};
 use rollyourown::packing::items_packed::{ItemsPackedImpl, ItemsPackedTrait};
@@ -169,28 +169,17 @@ pub fn decide(
     // emit TravelEncounterResult
     game_store.store.world.emit_event(@result);
 
-    if game_store.game.is_ranked() {
-        let bushido_store = BushidoStoreTrait::new(game_store.store.world);
-        let player_id: felt252 = game_store.game.player_id.into();
-
-        if result.outcome == EncounterOutcomes::Victorious {
-            bushido_store.progress(player_id, Tasks::ENCOUNTER, 1, starknet::get_block_timestamp());
-
-            if encounter.encounter == Encounters::Cops {
-                if encounter.level == 6 {
-                    bushido_store
-                        .progress(player_id, Tasks::BRAWLER_C, 1, starknet::get_block_timestamp());
-                }
-            }
-
-            if encounter.encounter == Encounters::Gang {
-                if encounter.level == 6 {
-                    bushido_store
-                        .progress(player_id, Tasks::BRAWLER_G, 1, starknet::get_block_timestamp());
-                }
-            }
-        }
-    }
+    // PR-0b: ENCOUNTER / BRAWLER_C / BRAWLER_G achievements disabled — see
+    // helpers/shopping.cairo header. Re-add via the v2 achievement system.
+    // if game_store.game.is_ranked() && result.outcome == EncounterOutcomes::Victorious {
+    //     bushido_store.progress(player_id_felt, Tasks::ENCOUNTER, 1, time);
+    //     if encounter.encounter == Encounters::Cops && encounter.level == 6 {
+    //         bushido_store.progress(player_id_felt, Tasks::BRAWLER_C, 1, time);
+    //     }
+    //     if encounter.encounter == Encounters::Gang && encounter.level == 6 {
+    //         bushido_store.progress(player_id_felt, Tasks::BRAWLER_G, 1, time);
+    //     }
+    // }
 
     if !game_store.player.is_dead() {
         // update player status
