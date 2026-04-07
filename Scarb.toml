@@ -38,6 +38,12 @@ achievement = { git = "https://github.com/cartridge-gg/arcade", rev = "fc2e81c" 
 # dope_types: dropped in PR-0a (v2 reset). v2 hustlers are native Starknet,
 # minted by the new starterpack purchase flow. See docs/V2_DESIGN.md.
 
+# PR-2: enable `scarb test`. Without these dev-deps the cairo_test plugin
+# isn't loaded and every #[test] attribute reports "Unsupported attribute".
+[dev-dependencies]
+cairo_test = "2.13.1"
+dojo_cairo_test = "1.8.0"
+
 [scripts]
 katana = "katana --config ./katana_dev.toml"
 katana_with_db = "katana --config ./katana_dev.toml --db-dir db"

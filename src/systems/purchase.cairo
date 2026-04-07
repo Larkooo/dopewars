@@ -24,6 +24,26 @@
 
 use rollyourown::models::starterpack::Starterpack;
 
+// Price formula constants. Mirrors the design doc's
+//   `price = stake * base * (100 - stake) / 100`
+// (the 1×/2×/3×/4× discount curve from nums) so a 1000-PAPER base + stake
+// of 1..4 yields {Naked: 990, Street: 1960, Dealer: 2910, Kingpin: 3840}
+// PAPER (whole tokens). Lifted to the file's top level so the unit tests
+// in PR-2 can call discount_price directly without spinning up a contract.
+//
+// PR-1d uses PAPER as the entry currency, so BASE_PRICE_PAPER is in PAPER
+// wei (1000 PAPER * 10^18). PR-1f swaps the semantics: base price becomes
+// USDC and the swap result fixes the burn-side amount.
+pub const BASE_PRICE_PAPER: u128 = 1000_u128 * 1_000_000_000_000_000_000_u128;
+
+/// price_paper = stake × BASE_PRICE_PAPER × (100 - stake) / 100
+/// Mirrors the nums discount curve. Used by both dojo_init seeding and the
+/// design doc's catalog table.
+pub fn discount_price(stake: u8) -> u128 {
+    let stake_u128: u128 = stake.into();
+    stake_u128 * BASE_PRICE_PAPER * (100_u128 - stake_u128) / 100_u128
+}
+
 #[starknet::interface]
 pub trait IPurchase<T> {
     /// Buy `pack_id` from the catalog. Pulls `Starterpack.price_paper` PAPER
@@ -58,15 +78,8 @@ pub mod purchase {
     use rollyourown::tokens::paper::{IPaperTokenDispatcher, IPaperTokenDispatcherTrait};
     use starknet::get_caller_address;
 
-    // Price formula constants. Mirrors the design doc's
-    //   `price = stake * base * (100 - stake) / 100`
-    // (the 1×/2×/3×/4× discount curve from nums) so a $2 base + multiplier
-    // of 1..4 yields {Naked: 1.98, Street: 3.92, Dealer: 5.82, Kingpin: 7.68}.
-    //
-    // PR-1d uses PAPER as the entry currency, so BASE_PRICE_PAPER is in
-    // PAPER wei (1000 PAPER * 10^18). PR-1f swaps the semantics: base price
-    // becomes USDC and the swap result fixes the burn-side amount.
-    const BASE_PRICE_PAPER: u128 = 1000_u128 * 1_000_000_000_000_000_000_u128;
+    // BASE_PRICE_PAPER + discount_price live at the file's top level —
+    // see super::discount_price.
 
     // Pack ids registered at init.
     const PACK_NAKED: u8 = 1;
@@ -84,8 +97,13 @@ pub mod purchase {
     // Errors
 
     pub mod ERRORS {
+        // Used for both "pack was never registered" and "pack is registered
+        // but disabled". Dojo's read_model returns a default-constructed
+        // Starterpack with the key populated when no row exists, so
+        // `pack.id == pack_id` always holds — we can't distinguish missing
+        // from disabled without an extra sentinel field, and there's no
+        // user-facing reason to. Either way the pack is not buyable.
         pub const PURCHASE_PACK_DISABLED: felt252 = 'Purchase: pack disabled';
-        pub const PURCHASE_PACK_MISSING: felt252 = 'Purchase: pack does not exist';
         pub const PURCHASE_NOT_OWNER: felt252 = 'Purchase: caller not owner';
     }
 
@@ -117,9 +135,11 @@ pub mod purchase {
             let mut world = self.world(@ns());
             let buyer = get_caller_address();
 
-            // [Read] pack
+            // [Read] pack. Dojo's read_model returns a default-constructed
+            // Starterpack with the key populated for missing rows, so the
+            // `enabled` flag also serves as the existence check (a missing
+            // pack reads back with enabled=false).
             let pack: Starterpack = world.read_model(pack_id);
-            assert(pack.id == pack_id, ERRORS::PURCHASE_PACK_MISSING);
             assert(pack.enabled, ERRORS::PURCHASE_PACK_DISABLED);
 
             // [Lookup] PAPER + Hustler dispatchers via the world DNS.
@@ -173,7 +193,11 @@ pub mod purchase {
             self.assert_caller_is_owner();
             let mut world = self.world(@ns());
             let mut pack: Starterpack = world.read_model(pack_id);
-            assert(pack.id == pack_id, ERRORS::PURCHASE_PACK_MISSING);
+            // No existence check — see ERRORS comment. Calling
+            // set_pack_enabled on a never-registered id quietly creates a
+            // bare row with that id and the requested enabled flag, which
+            // is harmless and lets ops pre-disable a pack id before it's
+            // formally registered.
             pack.enabled = enabled;
             world.write_model(@pack);
         }
@@ -195,7 +219,7 @@ pub mod purchase {
                 0, // gear_feet
                 0, // gear_transport
                 stake,
-                discount_price(stake),
+                super::discount_price(stake),
             )
         }
 
@@ -210,11 +234,74 @@ pub mod purchase {
         }
     }
 
-    /// price_paper = stake × BASE_PRICE_PAPER × (100 - stake) / 100
-    /// Mirrors the nums discount curve. Used by both dojo_init seeding and
-    /// the design doc's catalog table.
-    fn discount_price(stake: u8) -> u128 {
-        let stake_u128: u128 = stake.into();
-        stake_u128 * BASE_PRICE_PAPER * (100_u128 - stake_u128) / 100_u128
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::{BASE_PRICE_PAPER, discount_price};
+
+    // 1000 PAPER * 10^18, in wei.
+    const ONE_K_PAPER: u128 = 1000_u128 * 1_000_000_000_000_000_000_u128;
+
+    #[test]
+    fn test_base_constant() {
+        // Encode the base price in the test so a future "let's switch
+        // base prices" change can't silently re-anchor the catalog.
+        assert!(BASE_PRICE_PAPER == ONE_K_PAPER, "base = 1000 PAPER (wei)");
+    }
+
+    #[test]
+    fn test_discount_curve_matches_design_doc() {
+        // The four canonical packs the design doc commits to:
+        //   stake=1 (Naked):    1 * 1000 * 99 / 100 =  990 PAPER
+        //   stake=2 (Street):   2 * 1000 * 98 / 100 = 1960 PAPER
+        //   stake=3 (Dealer):   3 * 1000 * 97 / 100 = 2910 PAPER
+        //   stake=4 (Kingpin):  4 * 1000 * 96 / 100 = 3840 PAPER
+        // (the catalog table in V2_DESIGN.md shows USD prices; in PR-1d
+        // we're charging in PAPER instead of USDC, so the units are
+        // swapped but the curve shape is identical.)
+        assert!(discount_price(1) == 990_u128 * 1_000_000_000_000_000_000_u128, "naked");
+        assert!(discount_price(2) == 1960_u128 * 1_000_000_000_000_000_000_u128, "street");
+        assert!(discount_price(3) == 2910_u128 * 1_000_000_000_000_000_000_u128, "dealer");
+        assert!(discount_price(4) == 3840_u128 * 1_000_000_000_000_000_000_u128, "kingpin");
+    }
+
+    #[test]
+    fn test_discount_zero_stake() {
+        // Edge case — should be 0 PAPER. Useful as a free-pack fixture.
+        assert!(discount_price(0) == 0, "zero stake");
+    }
+
+    #[test]
+    fn test_discount_strictly_increasing_to_50() {
+        // Curve is monotonically increasing in [0, 50] (the valuable
+        // half) — verify a sample of the gradient so a future formula
+        // tweak can't silently invert the discount inside the buyable
+        // range.
+        let mut prev: u128 = 0;
+        for stake in 1_u8..=10_u8 {
+            let p = discount_price(stake);
+            assert!(p > prev, "must strictly increase in [0, 50]");
+            prev = p;
+        };
+    }
+
+    #[test]
+    fn test_discount_peaks_at_50() {
+        // The curve peaks at stake=50 (50 * base * 50 / 100 = 25*base)
+        // and decays back to 0 at stake=100. Encode the peak so the
+        // formula's shape is locked in.
+        let peak = discount_price(50);
+        let just_under = discount_price(49);
+        let just_over = discount_price(51);
+        assert!(peak > just_under, "peak > 49");
+        assert!(peak > just_over, "peak > 51");
+    }
+
+    #[test]
+    fn test_discount_stake_100_is_zero() {
+        // At stake=100 the (100 - stake) factor zeroes the price.
+        assert!(discount_price(100) == 0, "stake=100 zeros out");
     }
 }

@@ -39,3 +39,21 @@ pub impl HustlerTemplateImpl of HustlerTemplateTrait {
         HustlerTemplate { id, name, health, starting_cash, attack, defense, cargo }
     }
 }
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_field_round_trip() {
+        let t = HustlerTemplateImpl::new(2, 'Street', 100, 5_000, 25, 20, 30);
+        assert!(t.id == 2, "");
+        assert!(t.name == 'Street', "");
+        assert!(t.health == 100, "");
+        assert!(t.starting_cash == 5_000, "");
+        assert!(t.attack == 25, "");
+        assert!(t.defense == 20, "");
+        assert!(t.cargo == 30, "");
+    }
+}
