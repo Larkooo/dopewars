@@ -49,7 +49,6 @@ trait IPaperMockFaucet<TState> {
 #[dojo::contract]
 mod paper_mock {
     use dojo::event::EventStorage;
-    use dojo::world::WorldStorageTrait;
     use openzeppelin::token::erc20::ERC20Component;
     use rollyourown::constants::ns;
     use rollyourown::store::StoreImpl;
@@ -88,9 +87,8 @@ mod paper_mock {
     #[abi(embed_v0)]
     fn dojo_init(ref self: ContractState) {
         self.erc20.initializer("fPaper", "fPAPER");
-
-        let (laundromat_address, _) = self.world(@ns()).dns(@"laundromat").unwrap();
-        self.faucetTo(laundromat_address);
+        // PR-0a: laundromat seeding removed (laundromat system deleted).
+        // PR-1 will replace this mock with a proper PAPER v2 token.
     }
 
     // #[abi(embed_v0)]

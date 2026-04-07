@@ -1,8 +1,10 @@
 use dojo::world::{WorldStorage};
 
-use dope_types::dope_hustlers::{HustlerSlots};
-use dope_types::dope_hustlers::{HustlerStoreImpl, HustlerStoreTrait};
-use dope_types::dope_loot::{LootStoreImpl, LootStoreTrait};
+// PR-0a: dope_types dropped — using local stubs until PR-1 lands the v2
+// Hustler/Gear models. See docs/V2_DESIGN.md.
+use rollyourown::_stubs::dope_stubs::{
+    HustlerSlots, HustlerStoreImpl, HustlerStoreTrait, LootStoreImpl, LootStoreTrait,
+};
 
 use rollyourown::store::StoreImpl;
 use rollyourown::{utils::{bytes16::{Bytes16, Bytes16Impl}}};

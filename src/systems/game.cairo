@@ -31,7 +31,8 @@ mod game {
     use cartridge_vrf::{IVrfProviderDispatcher, IVrfProviderDispatcherTrait, Source};
     use dojo::event::EventStorage;
     use dojo::world::{IWorldDispatcherTrait, WorldStorageTrait};
-    use dope_types::dope_hustlers::{HustlerSlots, HustlerStoreImpl, HustlerStoreTrait};
+    // PR-0a: dope_types dropped — using local stubs until PR-1.
+    use rollyourown::_stubs::dope_stubs::{HustlerSlots, HustlerStoreImpl, HustlerStoreTrait};
     use rollyourown::achievements::achievements_v1::Tasks;
     use rollyourown::config::locations::Locations;
     use rollyourown::constants::ns;

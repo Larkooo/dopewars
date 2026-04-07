@@ -1,4 +1,5 @@
-use dope_types::dope_hustlers::{HustlerBody, HustlerSlot};
+// PR-0a: dope_types dropped — using local stubs until PR-1.
+use rollyourown::_stubs::dope_stubs::{HustlerBody, HustlerSlot};
 use rollyourown::models::game::{GameMode, TokenId};
 use rollyourown::systems::game::{EncounterActions};
 use rollyourown::systems::helpers::traveling::{EncounterOutcomes};

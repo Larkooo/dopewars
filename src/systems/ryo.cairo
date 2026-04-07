@@ -15,7 +15,6 @@ trait IRyo<T> {
     fn paper(self: @T) -> ContractAddress;
     fn treasury(self: @T) -> ContractAddress;
     fn vrf(self: @T) -> ContractAddress;
-    fn laundromat(self: @T) -> ContractAddress;
 
     fn paused(self: @T) -> bool;
     fn paper_fee(self: @T) -> u16;
@@ -232,11 +231,6 @@ mod ryo {
         fn vrf(self: @ContractState) -> ContractAddress {
             let mut store = StoreImpl::new(self.world(@ns()));
             store.ryo_addresses().vrf
-        }
-
-        fn laundromat(self: @ContractState) -> ContractAddress {
-            let world = self.world(@ns());
-            world.dns_address(@"laundromat").unwrap()
         }
 
         fn paused(self: @ContractState) -> bool {

@@ -52,7 +52,6 @@ pub mod packing {
 pub mod systems {
     pub mod decide;
     pub mod game;
-    pub mod laundromat;
     pub mod ryo;
 
     pub mod helpers {
@@ -74,7 +73,6 @@ pub mod utils {
     pub mod bytes16;
     pub mod introspect;
     pub mod math;
-    pub mod payout_items;
     pub mod payout_structure;
     pub mod random;
     pub mod sorted_list;
@@ -89,6 +87,12 @@ pub mod interfaces {
 pub mod _mocks {
     pub mod paper_mock;
     pub mod vrf_provider_mock;
+}
+
+// Transitional stubs replacing the dropped `dope_types` external crate.
+// PR-1 deletes this entire module — see docs/V2_DESIGN.md.
+pub mod _stubs {
+    pub mod dope_stubs;
 }
 
 

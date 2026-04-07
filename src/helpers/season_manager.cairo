@@ -1,14 +1,11 @@
 use dojo::event::EventStorage;
-use dojo::world::WorldStorageTrait;
 
 use rollyourown::{
     config::{ryo::{RyoConfigTrait}, settings::{SeasonSettingsImpl, SeasonSettingsTrait}},
     constants::{ETHER, MAX_MULTIPLIER}, events::NewHighScore,
-    interfaces::{paper::{IPaperDispatcher, IPaperDispatcherTrait}},
     models::{season::{SeasonImpl, SeasonTrait}}, packing::game_store::{GameStore},
     store::{Store, StoreImpl, StoreTrait}, utils::{math::{MathImpl, MathTrait}, random::{Random}},
 };
-use starknet::{get_caller_address};
 
 #[derive(Drop, Copy)]
 pub struct SeasonManager {
@@ -78,14 +75,11 @@ pub impl SeasonManagerImpl of SeasonManagerTrait {
         ryo_config.treasury_balance += treasury_share;
         store.save_ryo_config(@ryo_config);
 
-        // retrieve paper_address & laundromat_address
-        let ryo_addresses = store.ryo_addresses();
-        let laundromat_address = store.world.dns_address(@"laundromat").unwrap();
-
-        // transfer paper_fee_ether from user to laundromat ( user approved game contract to spend
-        // paper before)
-        IPaperDispatcher { contract_address: ryo_addresses.paper }
-            .transfer_from(get_caller_address(), laundromat_address, paper_fee_eth);
+        // PR-0a: laundromat removed. PR-1 replaces this entire function with
+        // the starterpack purchase flow (USDC → Ekubo swap → burn PAPER →
+        // mint Hustler NFT). For now, the entry-fee transfer is a no-op so
+        // that builds work — see docs/V2_DESIGN.md.
+        let _ = paper_fee_eth;
     }
 
     fn on_register_score(ref self: SeasonManager, ref game_store: GameStore) -> bool {
