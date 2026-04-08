@@ -127,6 +127,37 @@ pub mod purchase {
     // Number of paid tiers seeded by `initialize`.
     const PACK_COUNT: u32 = 4;
 
+    // PR #4: per-tier gear loadouts. Gear ids match the catalog
+    // PR-4's content::dojo_init seeds. Higher tiers pre-load
+    // higher-tier gear in every slot:
+    //   Naked  (stake 1): no gear (buyer fills slots from a future marketplace)
+    //   Street (stake 2): tier 1 — Knife / Hoodie  / Sneakers / Bicycle
+    //   Dealer (stake 3): tier 2 — Pistol / Leather / Boots    / Scooter
+    //   Kingpin(stake 4): tier 3 — Uzi    / Kevlar  / Trainers / Sports Car
+    //
+    // The constants are kept in this contract (not derived from the
+    // content catalog at init time) because:
+    //   1. content::dojo_init runs separately from purchase::initialize,
+    //      so we can't read the GearTemplate rows here without
+    //      coupling the two contracts in a fragile order.
+    //   2. The mapping is intentionally fixed at the design-doc layer
+    //      — admins shouldn't have to look up ids to know which gear a
+    //      tier ships with.
+    // A future content rebalance that renumbers the gear ids will need
+    // to update both content.cairo and these constants.
+    const GEAR_KNIFE: u8 = 1;
+    const GEAR_PISTOL: u8 = 2;
+    const GEAR_UZI: u8 = 3;
+    const GEAR_HOODIE: u8 = 4;
+    const GEAR_LEATHER: u8 = 5;
+    const GEAR_KEVLAR: u8 = 6;
+    const GEAR_SNEAKERS: u8 = 7;
+    const GEAR_BOOTS: u8 = 8;
+    const GEAR_TRAINERS: u8 = 9;
+    const GEAR_BICYCLE: u8 = 10;
+    const GEAR_SCOOTER: u8 = 11;
+    const GEAR_SPORTS_CAR: u8 = 12;
+
     // Components
     component!(path: BundleComponent, storage: bundle, event: BundleEvent);
     impl BundleInternalImpl = BundleComponent::InternalImpl<ContractState>;
@@ -466,6 +497,13 @@ pub mod purchase {
             let templates = array![
                 TEMPLATE_NAKED, TEMPLATE_STREET, TEMPLATE_DEALER, TEMPLATE_KINGPIN,
             ];
+            // PR #4: per-tier gear loadouts indexed by stake-1.
+            // Naked is the all-zeros baseline; tier-N stake gets
+            // tier-N gear in every slot.
+            let weapons = array![0, GEAR_KNIFE, GEAR_PISTOL, GEAR_UZI];
+            let clothes = array![0, GEAR_HOODIE, GEAR_LEATHER, GEAR_KEVLAR];
+            let feet = array![0, GEAR_SNEAKERS, GEAR_BOOTS, GEAR_TRAINERS];
+            let transport = array![0, GEAR_BICYCLE, GEAR_SCOOTER, GEAR_SPORTS_CAR];
 
             let mut idx: u32 = 0;
             while idx < PACK_COUNT {
@@ -487,16 +525,15 @@ pub mod purchase {
                     );
 
                 // [Effect] Write the dopewars-side catalog row keyed by
-                // the bundle id we just got back. Gear ids are 0 (no
-                // gear pre-equipped) — a future PR will overwrite
-                // per-tier loadouts.
+                // the bundle id we just got back. Gear ids match the
+                // PR #4 per-tier loadout.
                 let pack = StarterpackTrait::new(
                     bundle_id,
                     template_id,
-                    0, // gear_weapon
-                    0, // gear_clothes
-                    0, // gear_feet
-                    0, // gear_transport
+                    *weapons.at(idx),
+                    *clothes.at(idx),
+                    *feet.at(idx),
+                    *transport.at(idx),
                     stake,
                 );
                 world.write_model(@pack);
