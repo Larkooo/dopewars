@@ -56,6 +56,12 @@ achievement = { git = "https://github.com/cartridge-gg/arcade", rev = "fc2e81c" 
 # Same arcade rev as `achievement` above so deps stay consistent.
 bundle = { git = "https://github.com/cartridge-gg/arcade", rev = "fc2e81c" }
 
+# PR-1f-followup: ekubo router + clearer + types for the USDC->PAPER
+# swap-and-burn flow inside on_issue. Same rev as nums uses (cf2e95f).
+# In tests we leave PaymentConfig.ekubo_router=0 which short-circuits
+# the swap path; production deploys wire the real Ekubo addresses.
+ekubo = { git = "https://github.com/EkuboProtocol/starknet-contracts", rev = "cf2e95f" }
+
 # dope_types: dropped in PR-0a (v2 reset). v2 hustlers are native Starknet,
 # minted by the new starterpack purchase flow. See docs/V2_DESIGN.md.
 

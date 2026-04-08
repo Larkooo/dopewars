@@ -28,10 +28,11 @@ use rollyourown::constants::ns;
 use rollyourown::models::gear_template::m_GearTemplate;
 use rollyourown::models::hustler_instance::m_HustlerInstance;
 use rollyourown::models::hustler_template::m_HustlerTemplate;
+use rollyourown::models::payment_config::m_PaymentConfig;
 use rollyourown::models::starterpack::m_Starterpack;
 use rollyourown::systems::content::{IContentDispatcher, content};
 use rollyourown::systems::purchase::{
-    IPurchaseAdminDispatcher, IPurchaseAdminDispatcherTrait, purchase,
+    BASE_PRICE_PAPER, IPurchaseAdminDispatcher, IPurchaseAdminDispatcherTrait, purchase,
 };
 use rollyourown::tokens::hustler::{IHustlerDispatcher, MINTER_ROLE as HUSTLER_MINTER_ROLE, hustler};
 use rollyourown::tokens::paper::{
@@ -89,6 +90,11 @@ pub fn spawn_v2() -> (WorldStorage, V2Systems) {
             TestResource::Model(m_HustlerInstance::TEST_CLASS_HASH),
             TestResource::Model(m_HustlerTemplate::TEST_CLASS_HASH),
             TestResource::Model(m_GearTemplate::TEST_CLASS_HASH),
+            // PR-1f-followup: PaymentConfig holds USDC address +
+            // Ekubo pool params + base_price. The purchase contract's
+            // initialize() reads it; tests write it before calling
+            // initialize via set_payment_config (see below).
+            TestResource::Model(m_PaymentConfig::TEST_CLASS_HASH),
             TestResource::Contract(paper::TEST_CLASS_HASH),
             TestResource::Contract(hustler::TEST_CLASS_HASH),
             TestResource::Contract(purchase::TEST_CLASS_HASH),
@@ -138,12 +144,12 @@ pub fn spawn_v2() -> (WorldStorage, V2Systems) {
     let paper_access = IAccessControlDispatcher { contract_address: paper_address };
     paper_access.grant_role(PAPER_MINTER_ROLE, OWNER());
 
-    // [Setup] PR-1f: register the four paid bundles via the purchase
-    // contract's `initialize` admin entrypoint. This is split out of
-    // dojo_init because arcade's own bundle test pattern is to
-    // register via a public entrypoint after spawn (see
-    // packages/bundle/src/tests/contract.cairo). Production deploy
-    // scripts call the same one-time entrypoint.
+    // [Setup] PR-1f-followup: write PaymentConfig before initialize.
+    // Tests use `paper` as the USDC stand-in (it's an OZ ERC20 with
+    // the same approve / transfer_from interface), and ekubo_router=0
+    // to short-circuit the on_issue swap-and-burn path so tests stay
+    // self-contained. Production deploys wire real USDC + Ekubo
+    // addresses via this same entrypoint.
     //
     // **Critical**: bundle.register stores `get_block_timestamp()`
     // into `Bundle.created_at` and bundle.assert_does_exist later
@@ -154,6 +160,20 @@ pub fn spawn_v2() -> (WorldStorage, V2Systems) {
     set_block_timestamp(1);
     let purchase_admin = IPurchaseAdminDispatcher { contract_address: purchase_address };
     set_contract_address(OWNER());
+    let zero: ContractAddress = 0.try_into().unwrap();
+    purchase_admin
+        .set_payment_config(
+            usdc: paper_address,
+            ekubo_router: zero,
+            ekubo_positions: zero,
+            pool_fee: 0,
+            pool_tick_spacing: 0,
+            pool_extension: zero,
+            pool_sqrt: 0,
+            base_price: BASE_PRICE_PAPER.into(),
+            burn_percentage: 0,
+            treasury_percentage: 0,
+        );
     purchase_admin.initialize();
 
     let systems = V2Systems {

@@ -1,11 +1,16 @@
 // Purchase — buy a starterpack, get a Hustler NFT.
 //
-// PR-1f redesign: this contract now mirrors the nums Setup contract
-// (nums/contracts/src/systems/setup.cairo). It embeds arcade's
-// `bundle` component directly via `component!(...)`, exposes the
-// standard `IBundle::issue(...)` entrypoint to buyers, and implements
-// the `BundleTrait::on_issue` callback to mint Hustler NFT(s) plus the
-// matching `HustlerInstance` row(s) when a purchase clears.
+// PR-1f: embeds arcade's `bundle` component directly via
+// `component!(...)`, exposes `IBundle::issue/quote/get_metadata` as the
+// user-facing buy entrypoint, and implements `BundleTrait::on_issue`
+// to mint Hustler NFT(s) plus the matching `HustlerInstance` row(s)
+// when a purchase clears.
+//
+// PR-1f-followup: wires the actual USDC → PAPER swap-and-burn flow
+// inside on_issue using Ekubo. Mirrors the nums purchase component's
+// `execute()` function (nums/contracts/src/components/purchase.cairo).
+// Per-tier USDC pricing + Ekubo pool params come from PaymentConfig
+// (set by the admin via `set_payment_config` before `initialize`).
 //
 // The bundle component owns the catalog state (price, payment_token,
 // reissuable, total_issued, allower) inside its own `Bundle` model,
@@ -19,9 +24,7 @@
 //
 //     price = stake × base_price × (100 - stake) / 100
 //
-// `base_price` is currently a contract const matching the design doc's
-// 1× tier (1000 PAPER wei). PR-1f-followup will wire the real USDC
-// price + Ekubo swap-and-burn flow.
+// `base_price` is read from PaymentConfig (USDC decimals — typically 6).
 //
 // Per-tier metadata (which HustlerTemplate to mint, gear loadout, stake
 // multiplier) lives in the dopewars-side `Starterpack` model keyed by
@@ -34,17 +37,25 @@
 // entrypoint, same as PR-1d.
 
 use rollyourown::models::starterpack::Starterpack;
+use starknet::ContractAddress;
 
-// Discount curve constants — also exported for tests / clients that
-// want to derive the canonical price without spinning up a contract.
-//
-// `BASE_PRICE_PAPER` mirrors the v2 design doc's 1000-PAPER 1× tier.
-// PR-1f registers bundles with this as the payment amount; PR-1f-
-// followup will swap it to USDC + an Ekubo PAPER burn.
+// Discount curve constant kept as a fallback for tests / clients that
+// want to derive the canonical 1× price without spinning up a contract
+// or reading PaymentConfig. Mirrors the v2 design doc's 1000-PAPER 1×
+// tier (PAPER wei). Production pricing comes from PaymentConfig.
 pub const BASE_PRICE_PAPER: u128 = 1000_u128 * 1_000_000_000_000_000_000_u128;
 
-/// price_paper = stake × BASE_PRICE_PAPER × (100 - stake) / 100
-/// Mirrors the nums discount curve.
+/// price = stake × base_price × (100 - stake) / 100
+/// Mirrors the nums discount curve. Generic over the unit (u256) so
+/// callers can pass either USDC (6 decimals) or PAPER (18 decimals).
+pub fn discount_price_u256(stake: u8, base_price: u256) -> u256 {
+    let stake_u256: u256 = stake.into();
+    stake_u256 * base_price * (100_u256 - stake_u256) / 100_u256
+}
+
+/// Convenience: legacy u128 PAPER variant kept for the unit tests in
+/// `v2_unit_purchase.cairo` and any client that wants to derive the
+/// canonical PAPER price without an Ekubo round-trip.
 pub fn discount_price(stake: u8) -> u128 {
     let stake_u128: u128 = stake.into();
     stake_u128 * BASE_PRICE_PAPER * (100_u128 - stake_u128) / 100_u128
@@ -52,13 +63,31 @@ pub fn discount_price(stake: u8) -> u128 {
 
 #[starknet::interface]
 pub trait IPurchaseAdmin<T> {
+    /// Write the PaymentConfig row that drives `initialize`. Must be
+    /// called once by the admin before `initialize`. The fields wire
+    /// the USDC payment token, the Ekubo router/positions/pool params,
+    /// the base USDC price, and the burn / treasury distribution
+    /// percentages applied inside `on_issue`.
+    fn set_payment_config(
+        ref self: T,
+        usdc: ContractAddress,
+        ekubo_router: ContractAddress,
+        ekubo_positions: ContractAddress,
+        pool_fee: u128,
+        pool_tick_spacing: u128,
+        pool_extension: ContractAddress,
+        pool_sqrt: u256,
+        base_price: u256,
+        burn_percentage: u8,
+        treasury_percentage: u8,
+    );
+
     /// Register the four canonical paid tiers with the embedded
-    /// BundleComponent. Must be called once after deploy. Splitting
-    /// this from `dojo_init` matches arcade's own bundle test pattern
-    /// (see `packages/bundle/src/tests/contract.cairo`) where bundle
-    /// registration happens via a public entrypoint *after* the test
-    /// world is spawned. The deploy script is expected to call this
-    /// once on the production world too.
+    /// BundleComponent. Must be called once after `set_payment_config`.
+    /// Splitting this from `dojo_init` matches arcade's own bundle test
+    /// pattern (see `packages/bundle/src/tests/contract.cairo`) where
+    /// bundle registration happens via a public entrypoint *after*
+    /// the test world is spawned.
     fn initialize(ref self: T);
 
     /// Read a starterpack from the catalog by bundle id.
@@ -70,12 +99,25 @@ pub mod purchase {
     use bundle::component::Component as BundleComponent;
     use bundle::component::Component::{BundleQuote, BundleTrait};
     use bundle::interface::IBundle;
+    use core::num::traits::Zero;
     use dojo::model::ModelStorage;
     use dojo::world::WorldStorageTrait;
+    use ekubo::components::clear::{IClearDispatcher, IClearDispatcherTrait};
+    use ekubo::interfaces::erc20::IERC20Dispatcher as EkuboIERC20Dispatcher;
+    use ekubo::interfaces::router::{
+        IRouterDispatcher, IRouterDispatcherTrait, RouteNode, TokenAmount,
+    };
+    use ekubo::types::i129::i129;
+    use ekubo::types::keys::PoolKey;
+    use openzeppelin::interfaces::token::erc20::{IERC20Dispatcher, IERC20DispatcherTrait};
     use rollyourown::constants::ns;
     use rollyourown::models::hustler_instance::HustlerInstanceTrait;
+    use rollyourown::models::payment_config::{
+        PAYMENT_CONFIG_KEY, PaymentConfig, PaymentConfigTrait,
+    };
     use rollyourown::models::starterpack::{Starterpack, StarterpackTrait};
     use rollyourown::tokens::hustler::{IHustlerDispatcher, IHustlerDispatcherTrait};
+    use rollyourown::tokens::paper::{IPaperTokenDispatcher, IPaperTokenDispatcherTrait};
     use starknet::ContractAddress;
     use super::IPurchaseAdmin;
 
@@ -87,7 +129,7 @@ pub mod purchase {
     const TEMPLATE_DEALER: u8 = 3;
     const TEMPLATE_KINGPIN: u8 = 4;
 
-    // Number of paid tiers seeded by dojo_init.
+    // Number of paid tiers seeded by `initialize`.
     const PACK_COUNT: u32 = 4;
 
     // Components
@@ -103,8 +145,7 @@ pub mod purchase {
     /// distributed referral / protocol fees. The bundle id is the one
     /// the buyer specified, the recipient is the address that should
     /// receive the minted NFT(s), and `quantity` is how many copies of
-    /// the bundle to issue (the bundle component already enforced
-    /// `assert_quantity_allowed`).
+    /// the bundle to issue.
     impl BundleImpl of BundleTrait<ContractState> {
         fn on_issue(
             ref self: BundleComponent::ComponentState<ContractState>,
@@ -125,7 +166,8 @@ pub mod purchase {
             let hustler = IHustlerDispatcher { contract_address: hustler_address };
 
             // [Effect] Mint `quantity` hustlers + write per-token state.
-            while quantity > 0 {
+            let mut remaining = quantity;
+            while remaining > 0 {
                 let token_id = hustler.mint(recipient, false);
                 let instance = HustlerInstanceTrait::new_from_pack(
                     token_id,
@@ -137,8 +179,98 @@ pub mod purchase {
                     pack.gear_transport,
                 );
                 world.write_model(@instance);
-                quantity -= 1;
+                remaining -= 1;
             };
+
+            // [Interaction] Buy-and-burn via Ekubo. Skipped when the
+            // PaymentConfig isn't fully wired (ekubo_router == 0,
+            // burn_percentage == 0, etc) — that's the test path. The
+            // production deploy script writes a real PaymentConfig
+            // before calling initialize.
+            //
+            // Mirrors nums components/purchase.cairo execute(). The
+            // burn share is computed against the bundle's stake
+            // multiplier and the configured base_price + burn_percentage.
+            // The contract just received `quantity * bundle.price` USDC
+            // from the bundle component's transfer_from; we forward the
+            // burn share to the Ekubo router, swap to PAPER, clear it
+            // back to the contract, and burn it.
+            let config: PaymentConfig = world.read_model(PAYMENT_CONFIG_KEY);
+            if config.ekubo_router.is_non_zero()
+                && config.burn_percentage > 0
+                && pack.stake_multiplier > 0 {
+                let stake: u256 = pack.stake_multiplier.into();
+                let burn_amount = quantity.into()
+                    * stake
+                    * config.base_price
+                    * config.burn_percentage.into()
+                    / 100_u256;
+
+                if burn_amount > 0 {
+                    let paper_address = world
+                        .dns_address(@"paper")
+                        .expect('paper not found');
+                    let usdc = IERC20Dispatcher { contract_address: config.usdc };
+                    let router = IRouterDispatcher {
+                        contract_address: config.ekubo_router,
+                    };
+
+                    // [Interaction] Forward the burn share to Ekubo.
+                    usdc.transfer(router.contract_address, burn_amount);
+
+                    // [Interaction] Swap USDC -> PAPER. token0 must be
+                    // the lower address per Ekubo's PoolKey ordering.
+                    let (token0, token1) = if config.usdc < paper_address {
+                        (config.usdc, paper_address)
+                    } else {
+                        (paper_address, config.usdc)
+                    };
+                    let pool_key = PoolKey {
+                        token0: token0,
+                        token1: token1,
+                        fee: config.pool_fee,
+                        tick_spacing: config.pool_tick_spacing,
+                        extension: config.pool_extension,
+                    };
+                    let route_node = RouteNode {
+                        pool_key: pool_key,
+                        sqrt_ratio_limit: config.pool_sqrt,
+                        skip_ahead: 0,
+                    };
+                    let token_amount = TokenAmount {
+                        token: config.usdc,
+                        amount: i129 { mag: burn_amount.low, sign: false },
+                    };
+                    router.swap(route_node, token_amount);
+
+                    // [Interaction] Clear the swapped PAPER + any
+                    // leftover USDC back to this contract. Same address
+                    // hosts both router + clearer in Ekubo.
+                    let clearer = IClearDispatcher {
+                        contract_address: config.ekubo_router,
+                    };
+                    clearer
+                        .clear_minimum(
+                            EkuboIERC20Dispatcher { contract_address: paper_address },
+                            0,
+                        );
+                    clearer
+                        .clear(EkuboIERC20Dispatcher { contract_address: config.usdc });
+
+                    // [Interaction] Burn all PAPER we got from the
+                    // swap. paper.burn() burns from the caller (this
+                    // contract).
+                    let paper_erc20 = IERC20Dispatcher { contract_address: paper_address };
+                    let paper_received = paper_erc20.balance_of(
+                        starknet::get_contract_address(),
+                    );
+                    if paper_received > 0 {
+                        let paper = IPaperTokenDispatcher { contract_address: paper_address };
+                        paper.burn(paper_received);
+                    }
+                }
+            }
+            let _ = quantity;
         }
 
         fn supply(
@@ -164,11 +296,9 @@ pub mod purchase {
         BundleEvent: BundleComponent::Event,
     }
 
-    /// `dojo_init` registers the four canonical paid tiers with the
-    /// embedded BundleComponent and writes a Starterpack row for each
-    /// `dojo_init` is intentionally a no-op. Bundle registration must
-    /// happen via the `initialize` admin entrypoint below — see the
-    /// IPurchaseAdmin doc for why.
+    /// `dojo_init` is intentionally a no-op. PaymentConfig + bundle
+    /// registration both happen via the IPurchaseAdmin entrypoints
+    /// below — see those doc comments for why.
     fn dojo_init(ref self: ContractState, admin: ContractAddress) {
         let _ = admin;
     }
@@ -224,22 +354,52 @@ pub mod purchase {
         }
     }
 
-    // dopewars-specific catalog admin. Kept separate from IBundle so
-    // we don't pollute the bundle interface with our own model shape.
     #[abi(embed_v0)]
     impl PurchaseAdminImpl of IPurchaseAdmin<ContractState> {
+        fn set_payment_config(
+            ref self: ContractState,
+            usdc: ContractAddress,
+            ekubo_router: ContractAddress,
+            ekubo_positions: ContractAddress,
+            pool_fee: u128,
+            pool_tick_spacing: u128,
+            pool_extension: ContractAddress,
+            pool_sqrt: u256,
+            base_price: u256,
+            burn_percentage: u8,
+            treasury_percentage: u8,
+        ) {
+            let mut world = self.world(@ns());
+            let config = PaymentConfigTrait::new(
+                usdc,
+                ekubo_router,
+                ekubo_positions,
+                pool_fee,
+                pool_tick_spacing,
+                pool_extension,
+                pool_sqrt,
+                base_price,
+                burn_percentage,
+                treasury_percentage,
+            );
+            world.write_model(@config);
+        }
+
         fn initialize(ref self: ContractState) {
             // [Effect] Register the four paid tiers with the embedded
-            // bundle component. payment_receiver = this contract so a
-            // followup PR can swap-and-burn the accumulated USDC.
+            // bundle component. payment_receiver = this contract so
+            // on_issue can swap-and-burn the accumulated USDC.
             // allower = 0 means no SRC6 voucher (anyone can buy).
-            // payment_token is the dopewars paper contract for now —
-            // PR-1f-followup will swap to USDC.
+            //
+            // base_price + payment_token come from PaymentConfig. The
+            // admin must call set_payment_config before initialize.
             let mut world = self.world(@ns());
+            let config: PaymentConfig = world.read_model(PAYMENT_CONFIG_KEY);
 
             let payment_receiver = starknet::get_contract_address();
             let allower: ContractAddress = 0.try_into().unwrap();
-            let payment_token = world.dns_address(@"paper").expect('paper not found');
+            let payment_token = config.usdc;
+            let base_price = config.base_price;
 
             let templates = array![
                 TEMPLATE_NAKED, TEMPLATE_STREET, TEMPLATE_DEALER, TEMPLATE_KINGPIN,
@@ -248,8 +408,7 @@ pub mod purchase {
             let mut idx: u32 = 0;
             while idx < PACK_COUNT {
                 let stake: u8 = (idx + 1).try_into().unwrap();
-                let price_u128 = super::discount_price(stake);
-                let price: u256 = price_u128.into();
+                let price = super::discount_price_u256(stake, base_price);
                 let template_id = *templates.at(idx);
 
                 let bundle_id = self
@@ -268,7 +427,11 @@ pub mod purchase {
                 // [Effect] Write the dopewars-side catalog row keyed by
                 // the bundle id we just got back. Gear ids are 0 (no
                 // gear pre-equipped) — PR-4 / a future admin entrypoint
-                // will overwrite per-tier loadouts.
+                // will overwrite per-tier loadouts. `price_paper` is a
+                // stopgap rewarder burn estimate consumed by
+                // season_manager until per-instance burn tracking is
+                // wired up.
+                let price_paper_estimate = super::discount_price(stake);
                 let pack = StarterpackTrait::new(
                     bundle_id,
                     template_id,
@@ -277,7 +440,7 @@ pub mod purchase {
                     0, // gear_feet
                     0, // gear_transport
                     stake,
-                    price_u128,
+                    price_paper_estimate,
                 );
                 world.write_model(@pack);
 

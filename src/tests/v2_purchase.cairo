@@ -6,8 +6,16 @@
 // payment + fee distribution + on_issue callback dispatch in-process —
 // no external registry contract is deployed.
 //
+// PR-1f-followup adds:
+//   - PaymentConfig round-trip via set_payment_config
+//   - on_issue's Ekubo swap-and-burn path is gated on
+//     PaymentConfig.ekubo_router != 0; tests leave it 0 to skip the
+//     swap, so the existing issue() integration tests still verify
+//     mint + HustlerInstance write semantics
+//
 // What these tests cover:
-//   - dojo_init seeds 4 paid bundles and writes a Starterpack catalog
+//   - PaymentConfig round-trip from set_payment_config (PR-1f-followup)
+//   - initialize seeds 4 paid bundles and writes a Starterpack catalog
 //     row keyed by each bundle id (after the post-spawn initialize)
 //   - the issue flow pulls the buyer's payment token (paper, in
 //     tests), dispatches into on_issue, mints a Hustler NFT, and
@@ -22,7 +30,9 @@ use dojo::model::ModelStorage;
 use openzeppelin::interfaces::token::erc20::IERC20DispatcherTrait;
 use openzeppelin::interfaces::token::erc721::{IERC721Dispatcher, IERC721DispatcherTrait};
 use rollyourown::models::hustler_instance::HustlerInstance;
+use rollyourown::models::payment_config::{PAYMENT_CONFIG_KEY, PaymentConfig};
 use rollyourown::models::starterpack::Starterpack;
+use rollyourown::systems::purchase::{BASE_PRICE_PAPER, discount_price_u256};
 use rollyourown::tests::v2_helper::{BUYER, fund_buyer, spawn_v2};
 use starknet::testing::set_contract_address;
 
@@ -42,6 +52,43 @@ fn find_bundle_id_by_stake(world: dojo::world::WorldStorage, stake: u8) -> Optio
         id += 1;
     };
     found
+}
+
+#[test]
+fn test_payment_config_round_trips() {
+    // PR-1f-followup: spawn_v2 calls set_payment_config with `paper`
+    // as the USDC stand-in, ekubo_router=0 (swap path skipped), and
+    // BASE_PRICE_PAPER as the discount-curve base. Verify the row was
+    // actually written + reads back with the expected fields.
+    let (world, systems) = spawn_v2();
+    let cfg: PaymentConfig = world.read_model(PAYMENT_CONFIG_KEY);
+    assert!(cfg.usdc == systems.paper_erc20.contract_address, "usdc = paper");
+    assert!(cfg.ekubo_router == 0.try_into().unwrap(), "ekubo router skipped");
+    assert!(cfg.base_price > 0, "base price set");
+    assert!(cfg.burn_percentage == 0, "burn skipped in tests");
+    assert!(cfg.treasury_percentage == 0, "treasury skipped in tests");
+}
+
+#[test]
+fn test_initialize_uses_payment_config_base_price() {
+    // initialize() should compute each bundle's price via the discount
+    // curve against PaymentConfig.base_price. With base_price set to
+    // BASE_PRICE_PAPER (the test fixture default), bundle prices
+    // should match discount_price_u256(stake, BASE_PRICE_PAPER).
+    let (world, systems) = spawn_v2();
+
+    let base: u256 = BASE_PRICE_PAPER.into();
+
+    let naked_bundle_id = find_bundle_id_by_stake(world, 1).expect('Naked bundle');
+    let quote = systems.purchase.quote(naked_bundle_id, 1, false, 0);
+    // total_cost == base_price for 1× quantity, no fees, no referrer.
+    let expected = discount_price_u256(1, base);
+    assert!(quote.total_cost == expected, "naked price = stake-1 curve");
+
+    let kingpin_bundle_id = find_bundle_id_by_stake(world, 4).expect('Kingpin bundle');
+    let kingpin_quote = systems.purchase.quote(kingpin_bundle_id, 1, false, 0);
+    let kingpin_expected = discount_price_u256(4, base);
+    assert!(kingpin_quote.total_cost == kingpin_expected, "kingpin = stake-4 curve");
 }
 
 #[test]
