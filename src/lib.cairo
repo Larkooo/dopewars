@@ -59,6 +59,7 @@ pub mod packing {
 }
 
 pub mod systems {
+    pub mod content;
     pub mod decide;
     pub mod game;
     pub mod purchase;

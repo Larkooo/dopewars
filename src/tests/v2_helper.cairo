@@ -20,8 +20,11 @@ use openzeppelin::interfaces::access::accesscontrol::{
 };
 use openzeppelin::interfaces::token::erc20::IERC20Dispatcher;
 use rollyourown::constants::ns;
+use rollyourown::models::gear_template::m_GearTemplate;
 use rollyourown::models::hustler_instance::m_HustlerInstance;
+use rollyourown::models::hustler_template::m_HustlerTemplate;
 use rollyourown::models::starterpack::m_Starterpack;
+use rollyourown::systems::content::{IContentDispatcher, content};
 use rollyourown::systems::purchase::{IPurchaseDispatcher, purchase};
 use rollyourown::tokens::hustler::{IHustlerDispatcher, MINTER_ROLE as HUSTLER_MINTER_ROLE, hustler};
 use rollyourown::tokens::paper::{
@@ -50,6 +53,7 @@ pub struct V2Systems {
     pub hustler: IHustlerDispatcher,
     pub hustler_access: IAccessControlDispatcher,
     pub purchase: IPurchaseDispatcher,
+    pub content: IContentDispatcher,
 }
 
 pub fn spawn_v2() -> (WorldStorage, V2Systems) {
@@ -60,9 +64,12 @@ pub fn spawn_v2() -> (WorldStorage, V2Systems) {
         resources: [
             TestResource::Model(m_Starterpack::TEST_CLASS_HASH),
             TestResource::Model(m_HustlerInstance::TEST_CLASS_HASH),
+            TestResource::Model(m_HustlerTemplate::TEST_CLASS_HASH),
+            TestResource::Model(m_GearTemplate::TEST_CLASS_HASH),
             TestResource::Contract(paper::TEST_CLASS_HASH),
             TestResource::Contract(hustler::TEST_CLASS_HASH),
             TestResource::Contract(purchase::TEST_CLASS_HASH),
+            TestResource::Contract(content::TEST_CLASS_HASH),
         ]
             .span(),
     };
@@ -78,6 +85,13 @@ pub fn spawn_v2() -> (WorldStorage, V2Systems) {
         ContractDefTrait::new(@ns(), @"purchase")
             .with_init_calldata([].span())
             .with_writer_of([ns_hash].span()),
+        // Content seeds the HustlerTemplate + GearTemplate catalog in
+        // its dojo_init. Needs writer access on the namespace's catalog
+        // models — easiest to grant the whole namespace, same as
+        // purchase.
+        ContractDefTrait::new(@ns(), @"content")
+            .with_init_calldata([].span())
+            .with_writer_of([ns_hash].span()),
     ]
         .span();
 
@@ -87,6 +101,7 @@ pub fn spawn_v2() -> (WorldStorage, V2Systems) {
     let paper_address = world.dns_address(@"paper").expect('paper not found');
     let hustler_address = world.dns_address(@"hustler").expect('hustler not found');
     let purchase_address = world.dns_address(@"purchase").expect('purchase not found');
+    let content_address = world.dns_address(@"content").expect('content not found');
 
     // [Setup] Grant MINTER_ROLE to the purchase contract on Hustler so it
     // can mint NFTs to buyers. Caller must be the admin (OWNER) which
@@ -107,6 +122,7 @@ pub fn spawn_v2() -> (WorldStorage, V2Systems) {
         hustler: IHustlerDispatcher { contract_address: hustler_address },
         hustler_access,
         purchase: IPurchaseDispatcher { contract_address: purchase_address },
+        content: IContentDispatcher { contract_address: content_address },
     };
 
     (world, systems)
