@@ -39,10 +39,12 @@
 use rollyourown::models::starterpack::Starterpack;
 use starknet::ContractAddress;
 
-// Discount curve constant kept as a fallback for tests / clients that
-// want to derive the canonical 1× price without spinning up a contract
-// or reading PaymentConfig. Mirrors the v2 design doc's 1000-PAPER 1×
-// tier (PAPER wei). Production pricing comes from PaymentConfig.
+// Convenience constant exported for the test fixture, which still
+// passes BASE_PRICE_PAPER as the PaymentConfig.base_price stand-in
+// since tests use `paper` as the USDC token. Production deploys pass
+// the real USDC base price (e.g. 2_000_000 = 2 USDC) via
+// set_payment_config. Mirrors the v2 design doc's 1000-PAPER 1× tier
+// (PAPER wei).
 pub const BASE_PRICE_PAPER: u128 = 1000_u128 * 1_000_000_000_000_000_000_u128;
 
 /// price = stake × base_price × (100 - stake) / 100
@@ -51,14 +53,6 @@ pub const BASE_PRICE_PAPER: u128 = 1000_u128 * 1_000_000_000_000_000_000_u128;
 pub fn discount_price_u256(stake: u8, base_price: u256) -> u256 {
     let stake_u256: u256 = stake.into();
     stake_u256 * base_price * (100_u256 - stake_u256) / 100_u256
-}
-
-/// Convenience: legacy u128 PAPER variant kept for the unit tests in
-/// `v2_unit_purchase.cairo` and any client that wants to derive the
-/// canonical PAPER price without an Ekubo round-trip.
-pub fn discount_price(stake: u8) -> u128 {
-    let stake_u128: u128 = stake.into();
-    stake_u128 * BASE_PRICE_PAPER * (100_u128 - stake_u128) / 100_u128
 }
 
 #[starknet::interface]
@@ -146,6 +140,20 @@ pub mod purchase {
     /// the buyer specified, the recipient is the address that should
     /// receive the minted NFT(s), and `quantity` is how many copies of
     /// the bundle to issue.
+    ///
+    /// Order of operations:
+    ///   1. Run the Ekubo USDC->PAPER swap-and-burn (when configured)
+    ///      and capture `paper_burned` — the actual PAPER amount
+    ///      pulled out of the supply by this purchase.
+    ///   2. Mint `quantity` Hustler NFTs and write per-token
+    ///      HustlerInstance rows, distributing `paper_burned / quantity`
+    ///      onto each instance so the rewarder can read on-chain
+    ///      data instead of an estimate.
+    ///
+    /// Doing the burn first means we know the per-instance burn share
+    /// before writing the HustlerInstance rows. The order also matches
+    /// nums execute() which computes its rewarder multiplier from the
+    /// post-swap balance.
     impl BundleImpl of BundleTrait<ContractState> {
         fn on_issue(
             ref self: BundleComponent::ComponentState<ContractState>,
@@ -161,27 +169,6 @@ pub mod purchase {
             // [Read] Pack metadata for this bundle id (template, gear).
             let pack: Starterpack = world.read_model(bundle_id);
 
-            // [Lookup] Hustler ERC721 dispatcher.
-            let hustler_address = world.dns_address(@"hustler").expect('hustler not found');
-            let hustler = IHustlerDispatcher { contract_address: hustler_address };
-
-            // [Effect] Mint `quantity` hustlers + write per-token state.
-            let mut remaining = quantity;
-            while remaining > 0 {
-                let token_id = hustler.mint(recipient, false);
-                let instance = HustlerInstanceTrait::new_from_pack(
-                    token_id,
-                    bundle_id,
-                    pack.hustler_template_id,
-                    pack.gear_weapon,
-                    pack.gear_clothes,
-                    pack.gear_feet,
-                    pack.gear_transport,
-                );
-                world.write_model(@instance);
-                remaining -= 1;
-            };
-
             // [Interaction] Buy-and-burn via Ekubo. Skipped when the
             // PaymentConfig isn't fully wired (ekubo_router == 0,
             // burn_percentage == 0, etc) — that's the test path. The
@@ -195,7 +182,14 @@ pub mod purchase {
             // from the bundle component's transfer_from; we forward the
             // burn share to the Ekubo router, swap to PAPER, clear it
             // back to the contract, and burn it.
+            //
+            // The total `paper_burned` is captured here and then split
+            // evenly across the minted hustlers (`paper_burned /
+            // quantity` per instance) so season_manager's rewarder can
+            // read on-chain data per game instead of using a static
+            // estimate.
             let config: PaymentConfig = world.read_model(PAYMENT_CONFIG_KEY);
+            let mut paper_burned: u128 = 0;
             if config.ekubo_router.is_non_zero()
                 && config.burn_percentage > 0
                 && pack.stake_multiplier > 0 {
@@ -259,17 +253,55 @@ pub mod purchase {
 
                     // [Interaction] Burn all PAPER we got from the
                     // swap. paper.burn() burns from the caller (this
-                    // contract).
+                    // contract). Capture the burned amount as a u128
+                    // (PAPER wei fits) so we can distribute it across
+                    // the minted hustlers below.
                     let paper_erc20 = IERC20Dispatcher { contract_address: paper_address };
-                    let paper_received = paper_erc20.balance_of(
-                        starknet::get_contract_address(),
-                    );
+                    let paper_received = paper_erc20
+                        .balance_of(starknet::get_contract_address());
                     if paper_received > 0 {
-                        let paper = IPaperTokenDispatcher { contract_address: paper_address };
+                        let paper = IPaperTokenDispatcher {
+                            contract_address: paper_address,
+                        };
                         paper.burn(paper_received);
+                        paper_burned = paper_received.try_into().unwrap_or(0);
                     }
                 }
             }
+
+            // [Compute] Per-instance burn share. Integer division means
+            // a remainder of up to (quantity - 1) PAPER wei may be lost
+            // if the total isn't evenly divisible — negligible at PAPER
+            // wei precision but worth noting if we ever switch to a
+            // 0-decimal token.
+            let burn_per_instance: u128 = if quantity > 0 {
+                paper_burned / quantity.into()
+            } else {
+                0
+            };
+
+            // [Lookup] Hustler ERC721 dispatcher.
+            let hustler_address = world.dns_address(@"hustler").expect('hustler not found');
+            let hustler = IHustlerDispatcher { contract_address: hustler_address };
+
+            // [Effect] Mint `quantity` hustlers + write per-token state
+            // including the per-instance burn share.
+            let mut remaining = quantity;
+            while remaining > 0 {
+                let token_id = hustler.mint(recipient, false);
+                let instance = HustlerInstanceTrait::new_from_pack(
+                    token_id,
+                    bundle_id,
+                    pack.hustler_template_id,
+                    pack.gear_weapon,
+                    pack.gear_clothes,
+                    pack.gear_feet,
+                    pack.gear_transport,
+                    burn_per_instance,
+                );
+                world.write_model(@instance);
+                remaining -= 1;
+            };
             let _ = quantity;
         }
 
@@ -426,12 +458,8 @@ pub mod purchase {
 
                 // [Effect] Write the dopewars-side catalog row keyed by
                 // the bundle id we just got back. Gear ids are 0 (no
-                // gear pre-equipped) — PR-4 / a future admin entrypoint
-                // will overwrite per-tier loadouts. `price_paper` is a
-                // stopgap rewarder burn estimate consumed by
-                // season_manager until per-instance burn tracking is
-                // wired up.
-                let price_paper_estimate = super::discount_price(stake);
+                // gear pre-equipped) — a future PR will overwrite
+                // per-tier loadouts.
                 let pack = StarterpackTrait::new(
                     bundle_id,
                     template_id,
@@ -440,7 +468,6 @@ pub mod purchase {
                     0, // gear_feet
                     0, // gear_transport
                     stake,
-                    price_paper_estimate,
                 );
                 world.write_model(@pack);
 

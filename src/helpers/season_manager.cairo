@@ -8,7 +8,6 @@ use rollyourown::constants::TEN_POW_18;
 use rollyourown::events::NewHighScore;
 use rollyourown::helpers::rewarder::Rewarder;
 use rollyourown::models::hustler_instance::HustlerInstance;
-use rollyourown::models::starterpack::Starterpack;
 use rollyourown::packing::game_store::GameStore;
 use rollyourown::store::{Store, StoreImpl, StoreTrait};
 use rollyourown::tokens::paper::{IPaperTokenDispatcher, IPaperTokenDispatcherTrait};
@@ -75,21 +74,22 @@ pub impl SeasonManagerImpl of SeasonManagerTrait {
         let paper_erc20 = IERC20Dispatcher { contract_address: paper_address };
         let mut ryo_config = store.ryo_config();
 
-        // [Read] Pack the hustler was minted from — gives us the burn input
-        // for the rewarder. Falls back to 0 if the hustler is missing
-        // (e.g. devtools fake games), which collapses the multiplier to 0
-        // and skips the mint.
+        // [Read] HustlerInstance — written by purchase::on_issue at
+        // mint time and stamped with the per-instance burn share from
+        // the Ekubo USDC->PAPER swap. PR #1 (per-instance burn) made
+        // this the canonical rewarder burn input, replacing the
+        // Starterpack.price_paper static estimate that PR-1f used as a
+        // stopgap. Falls back to 0 paper_burned if the hustler is
+        // missing (e.g. devtools fake games), which collapses the
+        // multiplier to 0 and skips the reward mint.
         let hustler_instance: HustlerInstance = world.read_model(game_store.game.hustler_token_id);
-        // PR-1f: Starterpack catalog is now keyed by bundle_id (u32),
-        // matching what HustlerInstance stores.
-        let pack: Starterpack = world.read_model(hustler_instance.bundle_id);
 
         // [Compute] rewarder inputs. supply / target / burn are all in
         // PAPER wei (18 decimals). target_supply on RyoConfig is whole
         // tokens, so multiply up.
         let supply: u256 = paper_erc20.total_supply();
         let target: u256 = ryo_config.target_supply.into() * TEN_POW_18.into();
-        let burn: u256 = pack.price_paper.into();
+        let burn: u256 = hustler_instance.paper_burned.into();
         let (avg_num, avg_den) = ryo_config.get_average_score();
         let max_score: u256 = ryo_config.max_score.into();
 

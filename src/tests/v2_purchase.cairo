@@ -188,6 +188,10 @@ fn test_issue_happy_path_naked() {
     assert!(!instance.used, "fresh hustler is unused");
     assert!(instance.game_id == 0, "no bound game yet");
     assert!(instance.final_score == 0, "no score yet");
+    // PR #1: paper_burned is 0 in the test fixture path because
+    // PaymentConfig.ekubo_router=0 short-circuits the swap. The new
+    // PR #2 mock-router test will exercise the non-zero case.
+    assert!(instance.paper_burned == 0, "no swap means no burn");
 }
 
 #[test]
