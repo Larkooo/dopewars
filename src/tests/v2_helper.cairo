@@ -175,6 +175,12 @@ pub fn spawn_v2() -> (WorldStorage, V2Systems) {
             base_price: BASE_PRICE_PAPER.into(),
             burn_percentage: 0,
             treasury_percentage: 0,
+            // PR #3: spawn_v2 leaves treasury_address at zero AND
+            // treasury_percentage at 0, so the treasury transfer
+            // path in on_issue is gated off in the default fixture.
+            // Tests that want to exercise the treasury path call
+            // enable_ekubo_swap_mock with non-zero values.
+            treasury_address: zero,
         );
     purchase_admin.initialize();
 
@@ -213,8 +219,17 @@ pub fn fund_buyer(systems: V2Systems, recipient: ContractAddress, amount: u256) 
 /// contract's burn-share calculation produces a non-zero amount —
 /// the mock doesn't care about the deposited USDC amount, but the
 /// gating in on_issue requires `burn_percentage > 0` to even run.
+///
+/// `treasury_percentage` and `treasury_address` are wired through to
+/// PaymentConfig so the on_issue treasury-transfer block (PR #3) can
+/// be exercised. Pass `0` and `zero` to skip the treasury path
+/// (the PR #2 swap-only tests do this).
 pub fn enable_ekubo_swap_mock(
-    systems: V2Systems, swap_payout_paper: u256, burn_percentage: u8,
+    systems: V2Systems,
+    swap_payout_paper: u256,
+    burn_percentage: u8,
+    treasury_percentage: u8,
+    treasury_address: ContractAddress,
 ) -> ContractAddress {
     // [Deploy] mock router. No constructor args.
     let (mock_address, _) = starknet::syscalls::deploy_syscall(
@@ -247,7 +262,8 @@ pub fn enable_ekubo_swap_mock(
             pool_sqrt: 0,
             base_price: BASE_PRICE_PAPER.into(),
             burn_percentage: burn_percentage,
-            treasury_percentage: 0,
+            treasury_percentage: treasury_percentage,
+            treasury_address: treasury_address,
         );
 
     mock_address

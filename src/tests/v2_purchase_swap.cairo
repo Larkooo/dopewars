@@ -25,8 +25,11 @@ use dojo::model::ModelStorage;
 use openzeppelin::interfaces::token::erc20::IERC20DispatcherTrait;
 use rollyourown::models::hustler_instance::HustlerInstance;
 use rollyourown::models::starterpack::Starterpack;
-use rollyourown::systems::purchase::BASE_PRICE_PAPER;
-use rollyourown::tests::v2_helper::{BUYER, enable_ekubo_swap_mock, fund_buyer, spawn_v2};
+use rollyourown::systems::purchase::{BASE_PRICE_PAPER, IPurchaseAdminDispatcherTrait};
+use rollyourown::tests::v2_helper::{
+    BUYER, OTHER, OWNER, enable_ekubo_swap_mock, fund_buyer, spawn_v2,
+};
+use starknet::ContractAddress;
 use starknet::testing::set_contract_address;
 
 // Convenience: 1 PAPER in wei.
@@ -89,7 +92,8 @@ fn test_swap_burns_paper_supply() {
 
     let pre_funded: u256 = 100_u256 * ONE_PAPER;
     let burn_pct: u8 = 10;
-    let _mock_address = enable_ekubo_swap_mock(systems, pre_funded, burn_pct);
+    let zero: starknet::ContractAddress = 0.try_into().unwrap();
+    let _mock_address = enable_ekubo_swap_mock(systems, pre_funded, burn_pct, 0, zero);
 
     let naked_bundle_id = find_bundle_id_by_stake(world, 1).expect('Naked bundle');
     let quote = systems.purchase.quote(naked_bundle_id, 1, false, 0);
@@ -131,7 +135,8 @@ fn test_swap_records_paper_burned_on_instance() {
 
     let pre_funded: u256 = 100_u256 * ONE_PAPER;
     let burn_pct: u8 = 10;
-    let _ = enable_ekubo_swap_mock(systems, pre_funded, burn_pct);
+    let zero: starknet::ContractAddress = 0.try_into().unwrap();
+    let _ = enable_ekubo_swap_mock(systems, pre_funded, burn_pct, 0, zero);
 
     let naked_bundle_id = find_bundle_id_by_stake(world, 1).expect('Naked bundle');
     let quote = systems.purchase.quote(naked_bundle_id, 1, false, 0);
@@ -173,7 +178,8 @@ fn test_swap_splits_paper_burned_across_quantity() {
 
     let pre_funded: u256 = 100_u256 * ONE_PAPER;
     let burn_pct: u8 = 10;
-    let _ = enable_ekubo_swap_mock(systems, pre_funded, burn_pct);
+    let zero: starknet::ContractAddress = 0.try_into().unwrap();
+    let _ = enable_ekubo_swap_mock(systems, pre_funded, burn_pct, 0, zero);
 
     let dealer_bundle_id = find_bundle_id_by_stake(world, 3).expect('Dealer bundle');
     let quote = systems.purchase.quote(dealer_bundle_id, 2, false, 0);
@@ -245,4 +251,155 @@ fn test_swap_skipped_when_router_unset() {
 
     let instance: HustlerInstance = world.read_model(1_u64);
     assert!(instance.paper_burned == 0, "no burn => no paper_burned");
+}
+
+// PR #3: treasury distribution share tests.
+//
+// We test the treasury path with `burn_percentage = 0` so the swap-
+// and-burn block in on_issue is gated off, leaving the buyer's full
+// `owed` payment in the contract for the treasury block to slice.
+// In production with burn_percentage > 0 the contract would receive
+// `(owed - burn_share)` USDC and the treasury would get a slice of
+// that — but in tests where USDC == PAPER the burn block also
+// drains the buyer's payment, so we exercise the cleaner gated
+// scenario instead.
+
+/// Reconfigure PaymentConfig with the given treasury split, no swap.
+/// Burn-pct = 0 so the swap path is gated off; ekubo_router stays at
+/// 0; only the treasury block in on_issue runs.
+fn enable_treasury_only(
+    systems: rollyourown::tests::v2_helper::V2Systems,
+    treasury_percentage: u8,
+    treasury_address: ContractAddress,
+) {
+    let zero: ContractAddress = 0.try_into().unwrap();
+    set_contract_address(OWNER());
+    systems
+        .purchase_admin
+        .set_payment_config(
+            usdc: systems.paper_erc20.contract_address,
+            ekubo_router: zero,
+            ekubo_positions: zero,
+            pool_fee: 0,
+            pool_tick_spacing: 0,
+            pool_extension: zero,
+            pool_sqrt: 0,
+            base_price: BASE_PRICE_PAPER.into(),
+            burn_percentage: 0,
+            treasury_percentage: treasury_percentage,
+            treasury_address: treasury_address,
+        );
+}
+
+#[test]
+fn test_treasury_share_routes_to_address() {
+    // Treasury gets `owed * treasury_pct / 100` (the swap path is
+    // gated off so the contract holds the buyer's full payment when
+    // the treasury block runs).
+    let (world, systems) = spawn_v2();
+    let treasury_pct: u8 = 20;
+    enable_treasury_only(systems, treasury_pct, OTHER());
+
+    let naked_bundle_id = find_bundle_id_by_stake(world, 1).expect('Naked bundle');
+    let quote = systems.purchase.quote(naked_bundle_id, 1, false, 0);
+    let owed = quote.total_cost;
+
+    fund_buyer(systems, BUYER(), owed);
+    let treasury_balance_before = systems.paper_erc20.balance_of(OTHER());
+
+    set_contract_address(BUYER());
+    systems.paper_erc20.approve(systems.purchase.contract_address, owed);
+    systems
+        .purchase
+        .issue(
+            recipient: BUYER(),
+            bundle_id: naked_bundle_id,
+            quantity: 1,
+            referrer: Option::None,
+            referrer_group: Option::None,
+            client: Option::None,
+            client_percentage: 0,
+            voucher_key: Option::None,
+            signature: Option::None,
+        );
+
+    let expected_treasury_share = owed * treasury_pct.into() / 100_u256;
+    let treasury_balance_after = systems.paper_erc20.balance_of(OTHER());
+    assert!(
+        treasury_balance_after == treasury_balance_before + expected_treasury_share,
+        "treasury got slice",
+    );
+}
+
+#[test]
+fn test_treasury_share_skipped_when_percentage_zero() {
+    // Regression: with treasury_percentage=0, the treasury block
+    // in on_issue must skip the transfer entirely, even if a
+    // non-zero treasury_address is set. This pins the
+    // `treasury_percentage > 0` half of the gating check.
+    let (world, systems) = spawn_v2();
+    enable_treasury_only(systems, 0, OTHER());
+
+    let naked_bundle_id = find_bundle_id_by_stake(world, 1).expect('Naked bundle');
+    let quote = systems.purchase.quote(naked_bundle_id, 1, false, 0);
+    let owed = quote.total_cost;
+
+    fund_buyer(systems, BUYER(), owed);
+    let treasury_balance_before = systems.paper_erc20.balance_of(OTHER());
+
+    set_contract_address(BUYER());
+    systems.paper_erc20.approve(systems.purchase.contract_address, owed);
+    systems
+        .purchase
+        .issue(
+            recipient: BUYER(),
+            bundle_id: naked_bundle_id,
+            quantity: 1,
+            referrer: Option::None,
+            referrer_group: Option::None,
+            client: Option::None,
+            client_percentage: 0,
+            voucher_key: Option::None,
+            signature: Option::None,
+        );
+
+    let treasury_balance_after = systems.paper_erc20.balance_of(OTHER());
+    assert!(treasury_balance_after == treasury_balance_before, "no treasury when pct=0");
+}
+
+#[test]
+fn test_treasury_share_skipped_when_address_zero() {
+    // Regression: with treasury_address=0, the treasury block must
+    // skip the transfer even if treasury_percentage is non-zero.
+    // This pins the `treasury_address.is_non_zero()` half of the
+    // gating check — the missing-address case is the safety net for
+    // a deploy-time misconfig where the admin sets the percentage
+    // but forgets the address.
+    let (world, systems) = spawn_v2();
+    let zero: ContractAddress = 0.try_into().unwrap();
+    enable_treasury_only(systems, 20, zero);
+
+    let naked_bundle_id = find_bundle_id_by_stake(world, 1).expect('Naked bundle');
+    let quote = systems.purchase.quote(naked_bundle_id, 1, false, 0);
+    let owed = quote.total_cost;
+
+    // Verify the issue() doesn't panic from a transfer-to-zero call
+    // (which is what would happen if the gating were missing —
+    // ERC20.transfer reverts on zero recipient).
+    fund_buyer(systems, BUYER(), owed);
+    set_contract_address(BUYER());
+    systems.paper_erc20.approve(systems.purchase.contract_address, owed);
+    systems
+        .purchase
+        .issue(
+            recipient: BUYER(),
+            bundle_id: naked_bundle_id,
+            quantity: 1,
+            referrer: Option::None,
+            referrer_group: Option::None,
+            client: Option::None,
+            client_percentage: 0,
+            voucher_key: Option::None,
+            signature: Option::None,
+        );
 }

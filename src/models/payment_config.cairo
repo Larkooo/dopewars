@@ -9,10 +9,10 @@
 // - Ekubo router/positions plus pool parameters for the USDC↔PAPER swap
 // - base_price (USD per 1× stake) used by the catalog price formula
 // - burn / treasury distribution percentages applied to the swapped PAPER
+// - treasury_address that receives the treasury share post-burn
 //
-// PR-1d will read this model in the purchase contract; PR-1d's setup script
-// will be the first thing to write it. Until then there are no readers, so
-// this PR just adds the type and constructor.
+// PR-1d reads this model in the purchase contract; PR-1d's setup script
+// is the first thing to write it.
 
 use starknet::ContractAddress;
 
@@ -34,10 +34,15 @@ pub struct PaymentConfig {
     // base USD price for a 1× stake starterpack (USDC decimals — typically 6).
     pub base_price: u256,
     // distribution of swapped PAPER on purchase.
-    // burn_percentage + treasury_percentage <= 100; remainder stays in the
-    // purchase contract or routes to the vault depending on PR-1d's design.
+    // burn_percentage + treasury_percentage <= 100; remainder stays in
+    // the purchase contract for future use (or admin sweep).
     pub burn_percentage: u8,
     pub treasury_percentage: u8,
+    // PR #3: receiver of the treasury share. The on_issue callback
+    // computes `treasury_percentage * usdc.balance_of(this) / 100`
+    // **after** the burn step and transfers it here. Production
+    // wires this to the dopewars team multisig; tests use OWNER.
+    pub treasury_address: ContractAddress,
 }
 
 pub const PAYMENT_CONFIG_KEY: u8 = 0;
@@ -55,6 +60,7 @@ pub impl PaymentConfigImpl of PaymentConfigTrait {
         base_price: u256,
         burn_percentage: u8,
         treasury_percentage: u8,
+        treasury_address: ContractAddress,
     ) -> PaymentConfig {
         assert!(
             burn_percentage.into() + treasury_percentage.into() <= 100_u16,
@@ -72,6 +78,7 @@ pub impl PaymentConfigImpl of PaymentConfigTrait {
             base_price,
             burn_percentage,
             treasury_percentage,
+            treasury_address,
         }
     }
 }

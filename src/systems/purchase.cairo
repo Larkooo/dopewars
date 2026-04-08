@@ -74,6 +74,7 @@ pub trait IPurchaseAdmin<T> {
         base_price: u256,
         burn_percentage: u8,
         treasury_percentage: u8,
+        treasury_address: ContractAddress,
     );
 
     /// Register the four canonical paid tiers with the embedded
@@ -269,6 +270,33 @@ pub mod purchase {
                 }
             }
 
+            // [Interaction] PR #3: pay the treasury share. Mirrors
+            // nums execute() lines 178-193 (vault dividend + team
+            // transfer collapsed into a single hop). Computed against
+            // the contract's USDC balance **after** the burn step, so
+            // production gets `(payment - burn_share) * treasury_pct
+            // / 100` USDC routed to the treasury_address. The
+            // remainder stays in the contract for future use or
+            // admin sweep.
+            //
+            // Skipped when treasury_percentage == 0 OR
+            // treasury_address is zero. Tests can opt out by leaving
+            // either field unset; the default v2_helper fixture sets
+            // treasury_percentage = 0 so existing tests stay green.
+            if config.treasury_percentage > 0 && config.treasury_address.is_non_zero() {
+                let usdc_for_treasury = IERC20Dispatcher {
+                    contract_address: config.usdc,
+                };
+                let usdc_balance = usdc_for_treasury
+                    .balance_of(starknet::get_contract_address());
+                let treasury_amount = usdc_balance
+                    * config.treasury_percentage.into()
+                    / 100_u256;
+                if treasury_amount > 0 {
+                    usdc_for_treasury.transfer(config.treasury_address, treasury_amount);
+                }
+            }
+
             // [Compute] Per-instance burn share. Integer division means
             // a remainder of up to (quantity - 1) PAPER wei may be lost
             // if the total isn't evenly divisible — negligible at PAPER
@@ -400,6 +428,7 @@ pub mod purchase {
             base_price: u256,
             burn_percentage: u8,
             treasury_percentage: u8,
+            treasury_address: ContractAddress,
         ) {
             let mut world = self.world(@ns());
             let config = PaymentConfigTrait::new(
@@ -413,6 +442,7 @@ pub mod purchase {
                 base_price,
                 burn_percentage,
                 treasury_percentage,
+                treasury_address,
             );
             world.write_model(@config);
         }

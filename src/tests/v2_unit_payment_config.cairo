@@ -11,7 +11,9 @@ fn zero() -> ContractAddress {
 }
 
 fn build(burn: u8, treasury: u8) -> PaymentConfig {
-    PaymentConfigImpl::new(zero(), zero(), zero(), 0, 0, zero(), 0, 1_000_000, burn, treasury)
+    PaymentConfigImpl::new(
+        zero(), zero(), zero(), 0, 0, zero(), 0, 1_000_000, burn, treasury, zero(),
+    )
 }
 
 #[test]
@@ -54,4 +56,16 @@ fn test_max_u8_panics() {
     // Catch the obvious wraparound footgun: 255 + 0 must still be
     // rejected, not interpreted modulo something.
     let _ = build(255, 0);
+}
+
+#[test]
+fn test_treasury_address_round_trips() {
+    // PR #3: treasury_address is the new last positional arg.
+    // Pin it through the constructor so a future param-order swap
+    // can't silently route the treasury share to the wrong account.
+    let treasury: ContractAddress = 'TREASURY'.try_into().unwrap();
+    let cfg = PaymentConfigImpl::new(
+        zero(), zero(), zero(), 0, 0, zero(), 0, 1_000_000, 10, 20, treasury,
+    );
+    assert!(cfg.treasury_address == treasury, "treasury_address round-tripped");
 }
