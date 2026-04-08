@@ -42,6 +42,7 @@ mod game {
     use rollyourown::helpers::season_manager::SeasonManagerTrait;
     use rollyourown::models::game::{GameImpl, GameMode};
     use rollyourown::models::hustler_instance::HustlerInstance;
+    use rollyourown::models::hustler_template::{HustlerTemplate, HustlerTemplateTrait};
     use rollyourown::packing::game_store::{GameStore, GameStoreImpl};
     use rollyourown::packing::player::PlayerImpl;
     use rollyourown::store::{StoreImpl, StoreTrait};
@@ -119,6 +120,19 @@ mod game {
 
             // create game
             let mut game_config = store.game_config(season_version);
+
+            // [PR-4b] Apply the hustler template's stat bonuses on top of
+            // the season's GameConfig before constructing Player. The
+            // template id was written into HustlerInstance by the purchase
+            // contract; the four canonical PR-4 templates set health
+            // explicitly and add varying starting_cash bonuses (Naked +0,
+            // Street +500, Dealer +1500, Kingpin +3000). The mutation is
+            // local — game_config isn't persisted back to the world from
+            // here, so the season-wide row stays untouched.
+            let template: HustlerTemplate = world
+                .read_model(hustler_instance.hustler_template_id);
+            template.apply_to(ref game_config);
+
             let mut game = GameImpl::new(
                 game_id,
                 player_id,
