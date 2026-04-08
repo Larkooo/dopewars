@@ -17,9 +17,11 @@
 pub struct HustlerInstance {
     #[key]
     pub token_id: u64,
-    // The starterpack the hustler was minted from. Lets the UI render the
-    // pack-of-origin badge without re-deriving it from the gear loadout.
-    pub starterpack_id: u8,
+    // The bundle (starterpack) the hustler was minted from. PR-1f keys
+    // the Starterpack catalog by bundle_id (the u32 returned by
+    // BundleComponent::register), so this stores the same id for fast
+    // round-trip lookup from a hustler back to its pack metadata.
+    pub bundle_id: u32,
     // Template id (denormalized for fast read).
     pub hustler_template_id: u8,
     // Gear loadout — same convention as Starterpack.gear_*.
@@ -41,7 +43,7 @@ pub struct HustlerInstance {
 pub impl HustlerInstanceImpl of HustlerInstanceTrait {
     fn new_from_pack(
         token_id: u64,
-        starterpack_id: u8,
+        bundle_id: u32,
         hustler_template_id: u8,
         gear_weapon: u8,
         gear_clothes: u8,
@@ -50,7 +52,7 @@ pub impl HustlerInstanceImpl of HustlerInstanceTrait {
     ) -> HustlerInstance {
         HustlerInstance {
             token_id,
-            starterpack_id,
+            bundle_id,
             hustler_template_id,
             gear_weapon,
             gear_clothes,

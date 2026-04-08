@@ -11,6 +11,11 @@
 // reward mint) need the encounters/season/game_loop machinery and a VRF
 // mock; that's a larger fixture and lands in a follow-up.
 
+use bundle::events::index::{e_BundleIssued, e_BundleRegistered, e_BundleUpdated};
+use bundle::interface::IBundleDispatcher;
+use bundle::models::index::{
+    m_Bundle, m_BundleGroup, m_BundleIssuance, m_BundleReferral, m_BundleVoucher,
+};
 use dojo::world::{WorldStorage, WorldStorageTrait, world};
 use dojo_cairo_test::{
     ContractDefTrait, NamespaceDef, TestResource, WorldStorageTestTrait, spawn_test_world,
@@ -25,13 +30,15 @@ use rollyourown::models::hustler_instance::m_HustlerInstance;
 use rollyourown::models::hustler_template::m_HustlerTemplate;
 use rollyourown::models::starterpack::m_Starterpack;
 use rollyourown::systems::content::{IContentDispatcher, content};
-use rollyourown::systems::purchase::{IPurchaseDispatcher, purchase};
+use rollyourown::systems::purchase::{
+    IPurchaseAdminDispatcher, IPurchaseAdminDispatcherTrait, purchase,
+};
 use rollyourown::tokens::hustler::{IHustlerDispatcher, MINTER_ROLE as HUSTLER_MINTER_ROLE, hustler};
 use rollyourown::tokens::paper::{
     IPaperTokenDispatcher, IPaperTokenDispatcherTrait, MINTER_ROLE as PAPER_MINTER_ROLE, paper,
 };
 use starknet::ContractAddress;
-use starknet::testing::set_contract_address;
+use starknet::testing::{set_block_timestamp, set_contract_address};
 
 pub fn OWNER() -> ContractAddress {
     'OWNER'.try_into().unwrap()
@@ -52,7 +59,11 @@ pub struct V2Systems {
     pub paper_access: IAccessControlDispatcher,
     pub hustler: IHustlerDispatcher,
     pub hustler_access: IAccessControlDispatcher,
-    pub purchase: IPurchaseDispatcher,
+    // PR-1f: the purchase contract now exposes IBundle (issue / quote
+    // / get_metadata) for the buy flow, plus IPurchaseAdmin for the
+    // dopewars-side catalog reads. Both are kept on the same address.
+    pub purchase: IBundleDispatcher,
+    pub purchase_admin: IPurchaseAdminDispatcher,
     pub content: IContentDispatcher,
 }
 
@@ -62,6 +73,18 @@ pub fn spawn_v2() -> (WorldStorage, V2Systems) {
     let namespace_def = NamespaceDef {
         namespace: ns(),
         resources: [
+            // PR-1f: bundle component models + events. The bundle
+            // component reads/writes models and emits events via the
+            // same WorldStorage as the contract that embeds it, so
+            // both have to be registered in the dopewars namespace.
+            TestResource::Model(m_Bundle::TEST_CLASS_HASH),
+            TestResource::Model(m_BundleIssuance::TEST_CLASS_HASH),
+            TestResource::Model(m_BundleReferral::TEST_CLASS_HASH),
+            TestResource::Model(m_BundleGroup::TEST_CLASS_HASH),
+            TestResource::Model(m_BundleVoucher::TEST_CLASS_HASH),
+            TestResource::Event(e_BundleRegistered::TEST_CLASS_HASH),
+            TestResource::Event(e_BundleUpdated::TEST_CLASS_HASH),
+            TestResource::Event(e_BundleIssued::TEST_CLASS_HASH),
             TestResource::Model(m_Starterpack::TEST_CLASS_HASH),
             TestResource::Model(m_HustlerInstance::TEST_CLASS_HASH),
             TestResource::Model(m_HustlerTemplate::TEST_CLASS_HASH),
@@ -83,7 +106,7 @@ pub fn spawn_v2() -> (WorldStorage, V2Systems) {
         ContractDefTrait::new(@ns(), @"paper").with_init_calldata([OWNER().into()].span()),
         ContractDefTrait::new(@ns(), @"hustler").with_init_calldata([OWNER().into()].span()),
         ContractDefTrait::new(@ns(), @"purchase")
-            .with_init_calldata([].span())
+            .with_init_calldata([OWNER().into()].span())
             .with_writer_of([ns_hash].span()),
         // Content seeds the HustlerTemplate + GearTemplate catalog in
         // its dojo_init. Needs writer access on the namespace's catalog
@@ -115,13 +138,32 @@ pub fn spawn_v2() -> (WorldStorage, V2Systems) {
     let paper_access = IAccessControlDispatcher { contract_address: paper_address };
     paper_access.grant_role(PAPER_MINTER_ROLE, OWNER());
 
+    // [Setup] PR-1f: register the four paid bundles via the purchase
+    // contract's `initialize` admin entrypoint. This is split out of
+    // dojo_init because arcade's own bundle test pattern is to
+    // register via a public entrypoint after spawn (see
+    // packages/bundle/src/tests/contract.cairo). Production deploy
+    // scripts call the same one-time entrypoint.
+    //
+    // **Critical**: bundle.register stores `get_block_timestamp()`
+    // into `Bundle.created_at` and bundle.assert_does_exist later
+    // checks `created_at != 0` (NOT the row's existence). The cairo
+    // test runtime returns 0 for the block timestamp by default, so
+    // we have to advance it before initialize() — otherwise every
+    // bundle.issue call panics with "Bundle: not found".
+    set_block_timestamp(1);
+    let purchase_admin = IPurchaseAdminDispatcher { contract_address: purchase_address };
+    set_contract_address(OWNER());
+    purchase_admin.initialize();
+
     let systems = V2Systems {
         paper: IPaperTokenDispatcher { contract_address: paper_address },
         paper_erc20: IERC20Dispatcher { contract_address: paper_address },
         paper_access,
         hustler: IHustlerDispatcher { contract_address: hustler_address },
         hustler_access,
-        purchase: IPurchaseDispatcher { contract_address: purchase_address },
+        purchase: IBundleDispatcher { contract_address: purchase_address },
+        purchase_admin,
         content: IContentDispatcher { contract_address: content_address },
     };
 

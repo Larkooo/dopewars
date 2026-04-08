@@ -11,6 +11,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "bundle"
+version = "0.0.0"
+source = "git+https://github.com/cartridge-gg/arcade?rev=fc2e81c#fc2e81c8d4cee706bb26cb2396d941fd0657c277"
+dependencies = [
+ "dojo",
+ "graffiti",
+ "openzeppelin",
+]
+
+[[package]]
 name = "dojo"
 version = "1.8.0"
 source = "registry+https://scarbs.xyz/"
@@ -182,6 +192,7 @@ name = "rollyourown"
 version = "0.1.0"
 dependencies = [
  "achievement",
+ "bundle",
  "dojo",
  "dojo_cairo_test",
  "openzeppelin",

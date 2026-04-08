@@ -20,10 +20,10 @@ fn test_new_instance_is_unused() {
 #[test]
 fn test_new_instance_round_trips_loadout() {
     // Positional layout sanity — same reasoning as the Starterpack
-    // round-trip test.
-    let instance = HustlerInstanceImpl::new_from_pack(42, 3, 4, 11, 12, 13, 14);
+    // round-trip test. PR-1f: starterpack_id renamed to bundle_id (u32).
+    let instance = HustlerInstanceImpl::new_from_pack(42, 3_u32, 4, 11, 12, 13, 14);
     assert!(instance.token_id == 42, "");
-    assert!(instance.starterpack_id == 3, "");
+    assert!(instance.bundle_id == 3, "");
     assert!(instance.hustler_template_id == 4, "");
     assert!(instance.gear_weapon == 11, "");
     assert!(instance.gear_clothes == 12, "");

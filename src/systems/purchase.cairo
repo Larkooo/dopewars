@@ -1,237 +1,293 @@
 // Purchase — buy a starterpack, get a Hustler NFT.
 //
-// First call site for the v2 economy plumbing. Wires together everything
-// PR-1a..1c laid down:
+// PR-1f redesign: this contract now mirrors the nums Setup contract
+// (nums/contracts/src/systems/setup.cairo). It embeds arcade's
+// `bundle` component directly via `component!(...)`, exposes the
+// standard `IBundle::issue(...)` entrypoint to buyers, and implements
+// the `BundleTrait::on_issue` callback to mint Hustler NFT(s) plus the
+// matching `HustlerInstance` row(s) when a purchase clears.
 //
-//   - Reads a Starterpack from the catalog (PR-1c)
-//   - Pulls PAPER from the buyer via ERC20::transfer_from (PR-1b)
-//   - Burns the PAPER, applying real supply pressure that the rewarder reads
-//     in PR-1e's register_score (PR-1a math)
-//   - Mints a Hustler NFT to the buyer via the Hustler ERC721 (PR-1c)
-//   - Writes a HustlerInstance with the pack's loadout so the game contract
-//     in PR-1e can seed run-time state from it
+// The bundle component owns the catalog state (price, payment_token,
+// reissuable, total_issued, allower) inside its own `Bundle` model,
+// runs the ERC20 `transfer_from` payment + referral / protocol fee
+// distribution, then dispatches into the on_issue hook below — all
+// in-process within this single contract. There is **no** external
+// registry to deploy.
 //
-// Deferred to PR-1f: Ekubo USDC↔PAPER swap so buyers can pay in stable USDC
-// instead of holding PAPER directly. This contract's interface stays the
-// same; the burn step just gets sourced from a swap result instead of a
-// direct transfer_from.
+// Pricing: USDC. Each tier's price is computed once at registration
+// time using the same discount curve as nums:
 //
-// MINTER_ROLE on PAPER and Hustler must be granted to this contract by the
-// admin after deploy via the standard IAccessControl::grant_role
-// entrypoint. Burning PAPER does not require MINTER_ROLE — only the
-// hustler.mint call does — but the symmetric grant is documented here so
-// the deploy script doesn't have to guess.
+//     price = stake × base_price × (100 - stake) / 100
+//
+// `base_price` is currently a contract const matching the design doc's
+// 1× tier (1000 PAPER wei). PR-1f-followup will wire the real USDC
+// price + Ekubo swap-and-burn flow.
+//
+// Per-tier metadata (which HustlerTemplate to mint, gear loadout, stake
+// multiplier) lives in the dopewars-side `Starterpack` model keyed by
+// the bundle id the bundle component returns from `register(...)`. The
+// on_issue callback reads it back to learn how to fill the
+// HustlerInstance row.
+//
+// MINTER_ROLE on the Hustler ERC721 must be granted to this contract by
+// the admin after deploy via the standard IAccessControl::grant_role
+// entrypoint, same as PR-1d.
 
 use rollyourown::models::starterpack::Starterpack;
 
-// Price formula constants. Mirrors the design doc's
-//   `price = stake * base * (100 - stake) / 100`
-// (the 1×/2×/3×/4× discount curve from nums) so a 1000-PAPER base + stake
-// of 1..4 yields {Naked: 990, Street: 1960, Dealer: 2910, Kingpin: 3840}
-// PAPER (whole tokens). Lifted to the file's top level so the unit tests
-// in PR-2 can call discount_price directly without spinning up a contract.
+// Discount curve constants — also exported for tests / clients that
+// want to derive the canonical price without spinning up a contract.
 //
-// PR-1d uses PAPER as the entry currency, so BASE_PRICE_PAPER is in PAPER
-// wei (1000 PAPER * 10^18). PR-1f swaps the semantics: base price becomes
-// USDC and the swap result fixes the burn-side amount.
+// `BASE_PRICE_PAPER` mirrors the v2 design doc's 1000-PAPER 1× tier.
+// PR-1f registers bundles with this as the payment amount; PR-1f-
+// followup will swap it to USDC + an Ekubo PAPER burn.
 pub const BASE_PRICE_PAPER: u128 = 1000_u128 * 1_000_000_000_000_000_000_u128;
 
 /// price_paper = stake × BASE_PRICE_PAPER × (100 - stake) / 100
-/// Mirrors the nums discount curve. Used by both dojo_init seeding and the
-/// design doc's catalog table.
+/// Mirrors the nums discount curve.
 pub fn discount_price(stake: u8) -> u128 {
     let stake_u128: u128 = stake.into();
     stake_u128 * BASE_PRICE_PAPER * (100_u128 - stake_u128) / 100_u128
 }
 
 #[starknet::interface]
-pub trait IPurchase<T> {
-    /// Buy `pack_id` from the catalog. Pulls `Starterpack.price_paper` PAPER
-    /// from the caller (which must have been pre-approved), burns it, and
-    /// mints one fresh Hustler NFT to the caller. Returns the new
-    /// hustler token id.
-    fn buy(ref self: T, pack_id: u8) -> u64;
+pub trait IPurchaseAdmin<T> {
+    /// Register the four canonical paid tiers with the embedded
+    /// BundleComponent. Must be called once after deploy. Splitting
+    /// this from `dojo_init` matches arcade's own bundle test pattern
+    /// (see `packages/bundle/src/tests/contract.cairo`) where bundle
+    /// registration happens via a public entrypoint *after* the test
+    /// world is spawned. The deploy script is expected to call this
+    /// once on the production world too.
+    fn initialize(ref self: T);
 
-    /// Read a starterpack from the catalog. Convenience wrapper for clients
-    /// that don't want to talk to dojo directly.
-    fn get_starterpack(self: @T, pack_id: u8) -> Starterpack;
-
-    /// Admin: register or replace a starterpack. The dojo_init below seeds
-    /// the four packs the design doc commits to; this entrypoint lets the
-    /// admin add seasonal / promotional packs without redeploying.
-    fn register_starterpack(ref self: T, pack: Starterpack);
-
-    /// Admin: enable / disable a pack without rewriting it.
-    fn set_pack_enabled(ref self: T, pack_id: u8, enabled: bool);
+    /// Read a starterpack from the catalog by bundle id.
+    fn get_starterpack(self: @T, bundle_id: u32) -> Starterpack;
 }
 
 #[dojo::contract]
 pub mod purchase {
+    use bundle::component::Component as BundleComponent;
+    use bundle::component::Component::{BundleQuote, BundleTrait};
+    use bundle::interface::IBundle;
     use dojo::model::ModelStorage;
-    use dojo::utils::selector_from_names;
-    use dojo::world::{IWorldDispatcherTrait, WorldStorageTrait};
-    use openzeppelin::interfaces::token::erc20::{IERC20Dispatcher, IERC20DispatcherTrait};
+    use dojo::world::WorldStorageTrait;
     use rollyourown::constants::ns;
     use rollyourown::models::hustler_instance::HustlerInstanceTrait;
     use rollyourown::models::starterpack::{Starterpack, StarterpackTrait};
     use rollyourown::tokens::hustler::{IHustlerDispatcher, IHustlerDispatcherTrait};
-    use rollyourown::tokens::paper::{IPaperTokenDispatcher, IPaperTokenDispatcherTrait};
-    use starknet::get_caller_address;
+    use starknet::ContractAddress;
+    use super::IPurchaseAdmin;
 
-    // BASE_PRICE_PAPER + discount_price live at the file's top level —
-    // see super::discount_price.
-
-    // Pack ids registered at init.
-    const PACK_NAKED: u8 = 1;
-    const PACK_STREET: u8 = 2;
-    const PACK_DEALER: u8 = 3;
-    const PACK_KINGPIN: u8 = 4;
-
-    // Hustler template ids referenced by the seeded packs. Content PR seeds
-    // the actual HustlerTemplate rows; this contract only stores the ids.
+    // Hustler template ids referenced by the seeded packs. Content PR
+    // (PR-4) seeds the actual HustlerTemplate rows; this contract only
+    // stores the ids.
     const TEMPLATE_NAKED: u8 = 1;
     const TEMPLATE_STREET: u8 = 2;
     const TEMPLATE_DEALER: u8 = 3;
     const TEMPLATE_KINGPIN: u8 = 4;
 
-    // Errors
+    // Number of paid tiers seeded by dojo_init.
+    const PACK_COUNT: u32 = 4;
 
-    pub mod ERRORS {
-        // Used for both "pack was never registered" and "pack is registered
-        // but disabled". Dojo's read_model returns a default-constructed
-        // Starterpack with the key populated when no row exists, so
-        // `pack.id == pack_id` always holds — we can't distinguish missing
-        // from disabled without an extra sentinel field, and there's no
-        // user-facing reason to. Either way the pack is not buyable.
-        pub const PURCHASE_PACK_DISABLED: felt252 = 'Purchase: pack disabled';
-        pub const PURCHASE_NOT_OWNER: felt252 = 'Purchase: caller not owner';
-    }
+    // Components
+    component!(path: BundleComponent, storage: bundle, event: BundleEvent);
+    impl BundleInternalImpl = BundleComponent::InternalImpl<ContractState>;
+    // Default no-op fee impl — protocol fee left at zero. A future
+    // admin entrypoint can wire a real fee receiver if/when the
+    // cartridge protocol fee gets activated.
+    impl BundleFeeImpl of BundleComponent::BundleFeeTrait<ContractState> {}
 
-    fn dojo_init(ref self: ContractState) {
-        // Seed the four packs the design doc commits to. Gear ids are 0
-        // (no gear) so PR-1d ships a buyable catalog without depending on
-        // PR-4's content. Admin can re-register any pack later via
-        // register_starterpack.
-        //
-        // The Naked pack ships with no gear at all — buyers fill the slots
-        // from a future marketplace. Higher-tier packs would normally
-        // pre-load gear; for PR-1d we keep them empty too and let PR-4
-        // overwrite with real loadouts.
-        let mut world = self.world(@ns());
-        let mut packs = array![
-            self.build_pack(PACK_NAKED, 'Naked', TEMPLATE_NAKED, 1),
-            self.build_pack(PACK_STREET, 'Street', TEMPLATE_STREET, 2),
-            self.build_pack(PACK_DEALER, 'Dealer', TEMPLATE_DEALER, 3),
-            self.build_pack(PACK_KINGPIN, 'Kingpin', TEMPLATE_KINGPIN, 4),
-        ];
-        while let Option::Some(pack) = packs.pop_front() {
-            world.write_model(@pack);
-        };
-    }
+    /// `BundleTrait::on_issue` — called by the embedded BundleComponent
+    /// after `IBundle::issue` has pulled the buyer's payment token and
+    /// distributed referral / protocol fees. The bundle id is the one
+    /// the buyer specified, the recipient is the address that should
+    /// receive the minted NFT(s), and `quantity` is how many copies of
+    /// the bundle to issue (the bundle component already enforced
+    /// `assert_quantity_allowed`).
+    impl BundleImpl of BundleTrait<ContractState> {
+        fn on_issue(
+            ref self: BundleComponent::ComponentState<ContractState>,
+            recipient: ContractAddress,
+            bundle_id: u32,
+            mut quantity: u32,
+        ) {
+            // [Setup] Lift back to the contract's WorldStorage so we
+            // can read/write the dopewars-side models.
+            let mut contract_state = self.get_contract_mut();
+            let mut world = contract_state.world(@ns());
 
-    #[abi(embed_v0)]
-    impl PurchaseImpl of super::IPurchase<ContractState> {
-        fn buy(ref self: ContractState, pack_id: u8) -> u64 {
-            let mut world = self.world(@ns());
-            let buyer = get_caller_address();
+            // [Read] Pack metadata for this bundle id (template, gear).
+            let pack: Starterpack = world.read_model(bundle_id);
 
-            // [Read] pack. Dojo's read_model returns a default-constructed
-            // Starterpack with the key populated for missing rows, so the
-            // `enabled` flag also serves as the existence check (a missing
-            // pack reads back with enabled=false).
-            let pack: Starterpack = world.read_model(pack_id);
-            assert(pack.enabled, ERRORS::PURCHASE_PACK_DISABLED);
-
-            // [Lookup] PAPER + Hustler dispatchers via the world DNS.
-            let paper_address = world.dns_address(@"paper").expect('paper not found');
+            // [Lookup] Hustler ERC721 dispatcher.
             let hustler_address = world.dns_address(@"hustler").expect('hustler not found');
-            let paper_erc20 = IERC20Dispatcher { contract_address: paper_address };
-            let paper = IPaperTokenDispatcher { contract_address: paper_address };
             let hustler = IHustlerDispatcher { contract_address: hustler_address };
 
-            // [Effect] Pull PAPER from the buyer to this contract. The
-            // buyer must have called paper.approve(this, price_paper) first.
-            let price: u256 = pack.price_paper.into();
-            let this = starknet::get_contract_address();
-            paper_erc20.transfer_from(buyer, this, price);
-
-            // [Effect] Burn the PAPER. paper.burn() burns from the caller,
-            // which is now this contract.
-            paper.burn(price);
-
-            // [Effect] Mint a Hustler NFT to the buyer.
-            let token_id = hustler.mint(buyer, false);
-
-            // [Effect] Record the per-token state so PR-1e's game loop can
-            // seed runs from it.
-            let instance = HustlerInstanceTrait::new_from_pack(
-                token_id,
-                pack.id,
-                pack.hustler_template_id,
-                pack.gear_weapon,
-                pack.gear_clothes,
-                pack.gear_feet,
-                pack.gear_transport,
-            );
-            world.write_model(@instance);
-
-            token_id
+            // [Effect] Mint `quantity` hustlers + write per-token state.
+            while quantity > 0 {
+                let token_id = hustler.mint(recipient, false);
+                let instance = HustlerInstanceTrait::new_from_pack(
+                    token_id,
+                    bundle_id,
+                    pack.hustler_template_id,
+                    pack.gear_weapon,
+                    pack.gear_clothes,
+                    pack.gear_feet,
+                    pack.gear_transport,
+                );
+                world.write_model(@instance);
+                quantity -= 1;
+            };
         }
 
-        fn get_starterpack(self: @ContractState, pack_id: u8) -> Starterpack {
+        fn supply(
+            self: @BundleComponent::ComponentState<ContractState>, bundle_id: u32,
+        ) -> Option<u32> {
+            // Unlimited supply. The bundle component skips its supply
+            // assertion when None is returned.
+            let _ = bundle_id;
+            Option::None
+        }
+    }
+
+    #[storage]
+    struct Storage {
+        #[substorage(v0)]
+        bundle: BundleComponent::Storage,
+    }
+
+    #[event]
+    #[derive(Drop, starknet::Event)]
+    enum Event {
+        #[flat]
+        BundleEvent: BundleComponent::Event,
+    }
+
+    /// `dojo_init` registers the four canonical paid tiers with the
+    /// embedded BundleComponent and writes a Starterpack row for each
+    /// `dojo_init` is intentionally a no-op. Bundle registration must
+    /// happen via the `initialize` admin entrypoint below — see the
+    /// IPurchaseAdmin doc for why.
+    fn dojo_init(ref self: ContractState, admin: ContractAddress) {
+        let _ = admin;
+    }
+
+    // Expose the bundle component's IBundle entrypoints as the
+    // user-facing API. Buyers call `purchase.issue(...)` directly with
+    // the payment token pre-approved.
+    #[abi(embed_v0)]
+    impl IBundleImpl of IBundle<ContractState> {
+        fn get_metadata(self: @ContractState, bundle_id: u32) -> ByteArray {
             let world = self.world(@ns());
-            world.read_model(pack_id)
+            self.bundle.get_metadata(world, bundle_id)
         }
 
-        fn register_starterpack(ref self: ContractState, pack: Starterpack) {
-            self.assert_caller_is_owner();
-            let mut world = self.world(@ns());
-            world.write_model(@pack);
+        fn quote(
+            self: @ContractState,
+            bundle_id: u32,
+            quantity: u32,
+            has_referrer: bool,
+            client_percentage: u8,
+        ) -> BundleQuote {
+            let world = self.world(@ns());
+            self.bundle.quote(world, bundle_id, quantity, has_referrer, client_percentage)
         }
 
-        fn set_pack_enabled(ref self: ContractState, pack_id: u8, enabled: bool) {
-            self.assert_caller_is_owner();
+        fn issue(
+            ref self: ContractState,
+            recipient: ContractAddress,
+            bundle_id: u32,
+            quantity: u32,
+            referrer: Option<ContractAddress>,
+            referrer_group: Option<felt252>,
+            client: Option<ContractAddress>,
+            client_percentage: u8,
+            voucher_key: Option<felt252>,
+            signature: Option<Span<felt252>>,
+        ) {
             let mut world = self.world(@ns());
-            let mut pack: Starterpack = world.read_model(pack_id);
-            // No existence check — see ERRORS comment. Calling
-            // set_pack_enabled on a never-registered id quietly creates a
-            // bare row with that id and the requested enabled flag, which
-            // is harmless and lets ops pre-disable a pack id before it's
-            // formally registered.
-            pack.enabled = enabled;
-            world.write_model(@pack);
+            self
+                .bundle
+                .issue(
+                    world,
+                    recipient,
+                    bundle_id,
+                    quantity,
+                    referrer,
+                    referrer_group,
+                    client,
+                    client_percentage,
+                    voucher_key,
+                    signature,
+                )
         }
     }
 
-    #[generate_trait]
-    impl InternalImpl of InternalTrait {
-        /// Build a pack with the formula price already applied. Gear ids are
-        /// 0 (no gear pre-equipped); PR-4 will overwrite with real loadouts.
-        fn build_pack(
-            self: @ContractState, id: u8, name: felt252, template_id: u8, stake: u8,
-        ) -> Starterpack {
-            StarterpackTrait::new(
-                id,
-                name,
-                template_id,
-                0, // gear_weapon
-                0, // gear_clothes
-                0, // gear_feet
-                0, // gear_transport
-                stake,
-                super::discount_price(stake),
-            )
+    // dopewars-specific catalog admin. Kept separate from IBundle so
+    // we don't pollute the bundle interface with our own model shape.
+    #[abi(embed_v0)]
+    impl PurchaseAdminImpl of IPurchaseAdmin<ContractState> {
+        fn initialize(ref self: ContractState) {
+            // [Effect] Register the four paid tiers with the embedded
+            // bundle component. payment_receiver = this contract so a
+            // followup PR can swap-and-burn the accumulated USDC.
+            // allower = 0 means no SRC6 voucher (anyone can buy).
+            // payment_token is the dopewars paper contract for now —
+            // PR-1f-followup will swap to USDC.
+            let mut world = self.world(@ns());
+
+            let payment_receiver = starknet::get_contract_address();
+            let allower: ContractAddress = 0.try_into().unwrap();
+            let payment_token = world.dns_address(@"paper").expect('paper not found');
+
+            let templates = array![
+                TEMPLATE_NAKED, TEMPLATE_STREET, TEMPLATE_DEALER, TEMPLATE_KINGPIN,
+            ];
+
+            let mut idx: u32 = 0;
+            while idx < PACK_COUNT {
+                let stake: u8 = (idx + 1).try_into().unwrap();
+                let price_u128 = super::discount_price(stake);
+                let price: u256 = price_u128.into();
+                let template_id = *templates.at(idx);
+
+                let bundle_id = self
+                    .bundle
+                    .register(
+                        world,
+                        referral_percentage: 0,
+                        reissuable: true,
+                        price: price,
+                        payment_token: payment_token,
+                        payment_receiver: payment_receiver,
+                        metadata: "starterpack",
+                        allower: allower,
+                    );
+
+                // [Effect] Write the dopewars-side catalog row keyed by
+                // the bundle id we just got back. Gear ids are 0 (no
+                // gear pre-equipped) — PR-4 / a future admin entrypoint
+                // will overwrite per-tier loadouts.
+                let pack = StarterpackTrait::new(
+                    bundle_id,
+                    template_id,
+                    0, // gear_weapon
+                    0, // gear_clothes
+                    0, // gear_feet
+                    0, // gear_transport
+                    stake,
+                    price_u128,
+                );
+                world.write_model(@pack);
+
+                idx += 1;
+            };
         }
 
-        #[inline(always)]
-        fn assert_caller_is_owner(self: @ContractState) {
-            let caller = get_caller_address();
-            let selector = selector_from_names(@ns(), @"purchase");
-            assert(
-                self.world(@ns()).dispatcher.is_owner(selector, caller),
-                ERRORS::PURCHASE_NOT_OWNER,
-            );
+        fn get_starterpack(self: @ContractState, bundle_id: u32) -> Starterpack {
+            let world = self.world(@ns());
+            world.read_model(bundle_id)
         }
     }
-
 }

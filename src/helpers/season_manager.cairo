@@ -80,7 +80,9 @@ pub impl SeasonManagerImpl of SeasonManagerTrait {
         // (e.g. devtools fake games), which collapses the multiplier to 0
         // and skips the mint.
         let hustler_instance: HustlerInstance = world.read_model(game_store.game.hustler_token_id);
-        let pack: Starterpack = world.read_model(hustler_instance.starterpack_id);
+        // PR-1f: Starterpack catalog is now keyed by bundle_id (u32),
+        // matching what HustlerInstance stores.
+        let pack: Starterpack = world.read_model(hustler_instance.bundle_id);
 
         // [Compute] rewarder inputs. supply / target / burn are all in
         // PAPER wei (18 decimals). target_supply on RyoConfig is whole

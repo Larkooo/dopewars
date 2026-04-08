@@ -19,6 +19,20 @@ build-external-contracts = [
     "dojo::world::world_contract::world",
     "achievement::events::index::e_TrophyCreation",
     "achievement::events::index::e_TrophyProgression",
+    # PR-1f: bundle component models + events. cairo_test needs every
+    # external Cairo class declared here so spawn_test_world can find
+    # the class hash at register time. The bundle package ships its
+    # own Bundle / BundleIssuance / BundleReferral / BundleGroup /
+    # BundleVoucher models that the embedded BundleComponent reads
+    # and writes via the dopewars purchase contract's WorldStorage.
+    "bundle::models::index::m_Bundle",
+    "bundle::models::index::m_BundleIssuance",
+    "bundle::models::index::m_BundleReferral",
+    "bundle::models::index::m_BundleGroup",
+    "bundle::models::index::m_BundleVoucher",
+    "bundle::events::index::e_BundleRegistered",
+    "bundle::events::index::e_BundleUpdated",
+    "bundle::events::index::e_BundleIssued",
 ]
 
 
@@ -34,6 +48,13 @@ openzeppelin = "3.0.0"
 
 achievement = { git = "https://github.com/cartridge-gg/arcade", rev = "fc2e81c" }
 # achievement = { git = "https://github.com/cartridge-gg/arcade" }
+
+# PR-1f: bundle component for the v2 starterpack purchase flow. Mirrors
+# nums' Setup contract — we embed BundleComponent directly into the
+# purchase contract to get USDC payment + fee distribution + on_issue
+# callback for free, without deploying a separate registry contract.
+# Same arcade rev as `achievement` above so deps stay consistent.
+bundle = { git = "https://github.com/cartridge-gg/arcade", rev = "fc2e81c" }
 
 # dope_types: dropped in PR-0a (v2 reset). v2 hustlers are native Starknet,
 # minted by the new starterpack purchase flow. See docs/V2_DESIGN.md.
