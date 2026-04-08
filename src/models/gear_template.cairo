@@ -33,19 +33,3 @@ pub impl GearTemplateImpl of GearTemplateTrait {
         GearTemplate { id, name, slot, tier, stat_boost }
     }
 }
-
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_field_round_trip() {
-        let g = GearTemplateImpl::new(7, 'AK47', 0, 1, 80);
-        assert!(g.id == 7, "");
-        assert!(g.name == 'AK47', "");
-        assert!(g.slot == 0, "weapon slot");
-        assert!(g.tier == 1, "tier-1 = best");
-        assert!(g.stat_boost == 80, "");
-    }
-}

@@ -38,6 +38,10 @@ pub fn BUYER() -> ContractAddress {
     'BUYER'.try_into().unwrap()
 }
 
+pub fn OTHER() -> ContractAddress {
+    'OTHER'.try_into().unwrap()
+}
+
 #[derive(Copy, Drop)]
 pub struct V2Systems {
     pub paper: IPaperTokenDispatcher,
@@ -69,10 +73,8 @@ pub fn spawn_v2() -> (WorldStorage, V2Systems) {
     let ns_hash = dojo::utils::bytearray_hash(@ns());
 
     let contract_defs = [
-        ContractDefTrait::new(@ns(), @"paper")
-            .with_init_calldata([OWNER().into()].span()),
-        ContractDefTrait::new(@ns(), @"hustler")
-            .with_init_calldata([OWNER().into()].span()),
+        ContractDefTrait::new(@ns(), @"paper").with_init_calldata([OWNER().into()].span()),
+        ContractDefTrait::new(@ns(), @"hustler").with_init_calldata([OWNER().into()].span()),
         ContractDefTrait::new(@ns(), @"purchase")
             .with_init_calldata([].span())
             .with_writer_of([ns_hash].span()),
