@@ -1,3 +1,8 @@
+// PR-1g: dropped the v0 jackpot fields (paper_fee, treasury_fee_pct,
+// paper_balance). Season survives v2 as a leaderboard-only wrapper —
+// per-pack pricing + burn/treasury split moved to PaymentConfig, and
+// per-game rewards come from the supply-aware rewarder curve, not from
+// distributing a season-wide PAPER pot.
 #[derive(IntrospectPacked, Copy, Drop, Serde)]
 #[dojo::model]
 pub struct Season {
@@ -6,13 +11,9 @@ pub struct Season {
     // season config copied from RyoConfig
     pub season_duration: u32,
     pub season_time_limit: u16,
-    pub paper_fee: u16,
-    pub treasury_fee_pct: u8,
     // season datas
     pub next_version_timestamp: u64, // updated on new highscore
-    pub paper_balance: u32,
     pub high_score: u32,
-    //
 }
 
 

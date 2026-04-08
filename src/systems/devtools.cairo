@@ -9,7 +9,7 @@ trait IDevtools<T> {
 
 #[dojo::contract]
 mod devtools {
-    use core::traits::{Into, TryInto};
+    use core::traits::Into;
     use dojo::world::IWorldDispatcherTrait;
     use rollyourown::constants::ns;
     use rollyourown::helpers::season_manager::SeasonManagerTrait;
@@ -18,7 +18,6 @@ mod devtools {
     use rollyourown::store::{StoreImpl, StoreTrait};
     use rollyourown::utils::bytes16::Bytes16Impl;
     use rollyourown::utils::random::RandomImpl;
-    use rollyourown::utils::sorted_list::{SortedListImpl, SortedListTrait};
     use starknet::get_caller_address;
     use super::IDevtools;
 
@@ -26,12 +25,15 @@ mod devtools {
     #[abi(embed_v0)]
     impl DevtoolsImpl of IDevtools<ContractState> {
         fn create_fake_game(self: @ContractState, final_score: u32) {
+            // PR-1g: dropped the v0 sorted_list jackpot wiring. The fake
+            // game still gets written + marked registered so the UI can
+            // see it on the leaderboard, but there's no longer a per-
+            // season sorted list to push it into.
             let world = self.world(@ns());
             let game_id = world.dispatcher.uuid();
             let player_id = get_caller_address();
 
             let mut store = StoreImpl::new(world);
-            // get season version & pay paper_fee
             let mut season_manager = SeasonManagerTrait::new(store);
             let season_version = season_manager.get_current_version();
 
@@ -57,9 +59,6 @@ mod devtools {
                 game_over: true,
                 final_score: 0,
                 registered: false,
-                claimed: false,
-                claimable: 0,
-                position: 0,
                 // PR-1e: 0 = no real hustler. on_register_score will read
                 // the missing HustlerInstance, fall through with burn=0,
                 // and skip the mint.
@@ -82,13 +81,6 @@ mod devtools {
             game.final_score = game_store.player.cash;
             game.registered = true;
             store.set_game(@game);
-
-            // retrieve Season Sorted List   TODO: check season_version / status
-            let list_id = game.season_version.into();
-            let mut sorted_list = SortedListImpl::get(@store, list_id);
-
-            // add to Game to sorted_list
-            sorted_list.add(ref store, game, (0, 0.try_into().unwrap()));
         }
 
         fn create_new_season(self: @ContractState) {

@@ -8,7 +8,7 @@ use rollyourown::{
         settings::{DrugsMode, EncountersMode, SeasonSettings},
     },
     models::{game::{Game}, game_store_packed::GameStorePacked, season::Season},
-    packing::{game_store::GameStorePackerImpl}, utils::sorted_list::{SortedList, SortedListItem},
+    packing::{game_store::GameStorePackerImpl},
 };
 use starknet::ContractAddress;
 
@@ -69,17 +69,6 @@ pub impl StoreImpl of StoreTrait {
         self.world.read_model((game_id, player_id))
     }
 
-
-    fn sorted_list(self: @Store, list_id: felt252) -> SortedList {
-        self.world.read_model(list_id)
-    }
-
-    fn sorted_list_item(
-        self: @Store, list_id: felt252, item_k0: u32, item_k1: ContractAddress,
-    ) -> SortedListItem {
-        self.world.read_model((list_id, item_k0, item_k1))
-    }
-
     //
     // setter
     //
@@ -122,14 +111,6 @@ pub impl StoreImpl of StoreTrait {
 
     fn set_game_store_packed(ref self: Store, game_store_packed: @GameStorePacked) {
         self.world.write_model(game_store_packed)
-    }
-
-    fn set_sorted_list(ref self: Store, list: @SortedList) {
-        self.world.write_model(list)
-    }
-
-    fn set_sorted_list_item(ref self: Store, item: @SortedListItem) {
-        self.world.write_model(item)
     }
 }
 

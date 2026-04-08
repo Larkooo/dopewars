@@ -12,6 +12,13 @@ pub enum GameMode {
     Warrior,
 }
 
+// PR-1g: dropped `claimed`, `claimable`, `position` — those modeled the v0
+// season-jackpot leaderboard payout (sorted_list assigned a position to
+// each game and tracked claimable PAPER from the season pot). v2's
+// per-game reward is minted directly in season_manager::on_register_score
+// via the supply-aware curve and lives in `reward` below; there is no
+// post-game claim step and no leaderboard-position bookkeeping.
+//
 // IntrospectPacked : doesnt supports array
 #[derive(Introspect, Copy, Drop, Serde, DojoStore)]
 #[dojo::model]
@@ -30,9 +37,6 @@ pub struct Game {
     pub game_over: bool,
     pub final_score: u32,
     pub registered: bool,
-    pub claimed: bool,
-    pub claimable: u32,
-    pub position: u16,
     //
     // PR-1e: replaces the v0 TokenId enum (GuestLootId/LootId/HustlerId).
     // The hustler is the v2 native ERC721 token id minted by the purchase
@@ -72,9 +76,6 @@ pub impl GameImpl of GameTrait {
             game_over: false,
             final_score: 0,
             registered: false,
-            claimed: false,
-            claimable: 0,
-            position: 0,
             //
             hustler_token_id,
             reward: 0,

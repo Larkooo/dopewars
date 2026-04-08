@@ -14,6 +14,13 @@ const ONE_WEEK: u32 = 604_800;
 
 const TEMP_VALUE: u32 = 1200;
 
+// PR-1g: dropped the v0 jackpot/treasury fields:
+//   paper_fee, paper_reward_launderer, treasury_fee_pct, treasury_balance.
+// They modeled the laundromat/season-jackpot economy that v2 replaced with
+// the supply-aware rewarder curve in PR-1a..1e. Per-pack price + burn/
+// treasury split now live on `models::payment_config::PaymentConfig`;
+// per-game reward is computed by `helpers::rewarder` against the live
+// PAPER total_supply at register_score time.
 #[derive(IntrospectPacked, Copy, Drop, Serde)]
 #[dojo::model]
 pub struct RyoConfig {
@@ -26,16 +33,11 @@ pub struct RyoConfig {
     pub season_duration: u32,
     pub season_time_limit: u16,
     //
-    pub paper_fee: u16,
-    pub paper_reward_launderer: u16,
-    pub treasury_fee_pct: u8,
-    pub treasury_balance: u32,
-    //
     pub f2p_hustlers: bool,
     pub play_with_loot: bool,
     pub play_with_hustlers: bool,
     //
-    // Reward curve parameters (nums-style). Call sites land in PR-1d/1e.
+    // Reward curve parameters (nums-style). Call sites in season_manager.
     pub target_supply: u64, // Target Paper supply (whole tokens)
     pub max_score: u32, // Max possible cash score (curve ceiling)
     pub average_score: u64, // EMA weighted score numerator
@@ -53,10 +55,6 @@ pub impl RyoConfigImpl of RyoConfigTrait {
             season_version: 1,
             season_duration,
             season_time_limit,
-            paper_fee: 1000, // in ether
-            paper_reward_launderer: 100, // in ether
-            treasury_fee_pct: 10,
-            treasury_balance: 0,
             f2p_hustlers: true,
             play_with_loot: true,
             play_with_hustlers: false,
@@ -77,11 +75,8 @@ pub impl RyoConfigImpl of RyoConfigTrait {
             // season config copied from RyoConfig
             season_duration: self.season_duration,
             season_time_limit: self.season_time_limit,
-            paper_fee: self.paper_fee,
-            treasury_fee_pct: self.treasury_fee_pct,
             // season datas
             next_version_timestamp: get_block_timestamp() + self.season_duration.into(),
-            paper_balance: 0,
             high_score: 0,
         }
     }

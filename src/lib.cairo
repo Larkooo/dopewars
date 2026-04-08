@@ -85,9 +85,7 @@ pub mod utils {
     pub mod bytes16;
     pub mod introspect;
     pub mod math;
-    pub mod payout_structure;
     pub mod random;
-    pub mod sorted_list;
 }
 
 pub mod interfaces {

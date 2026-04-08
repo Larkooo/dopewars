@@ -17,7 +17,6 @@ trait IRyo<T> {
     fn vrf(self: @T) -> ContractAddress;
 
     fn paused(self: @T) -> bool;
-    fn paper_fee(self: @T) -> u16;
     fn season_duration(self: @T) -> u32;
 
     fn toggle_f2p_hustlers(ref self: T);
@@ -135,11 +134,12 @@ mod ryo {
             let mut store = StoreImpl::new(self.world(@ns()));
             let mut new_ryo_config = store.ryo_config();
 
+            // PR-1g: only the v2-relevant config knobs survive. The v0
+            // jackpot fields (paper_fee / paper_reward_launderer /
+            // treasury_fee_pct) are gone — pricing lives on PaymentConfig
+            // and rewards come from the supply-aware curve.
             new_ryo_config.season_duration = ryo_config.season_duration;
             new_ryo_config.season_time_limit = ryo_config.season_time_limit;
-            new_ryo_config.paper_fee = ryo_config.paper_fee;
-            new_ryo_config.paper_reward_launderer = ryo_config.paper_reward_launderer;
-            new_ryo_config.treasury_fee_pct = ryo_config.treasury_fee_pct;
 
             store.save_ryo_config(@new_ryo_config);
         }
@@ -224,11 +224,6 @@ mod ryo {
         fn paused(self: @ContractState) -> bool {
             let mut store = StoreImpl::new(self.world(@ns()));
             store.ryo_config().paused
-        }
-
-        fn paper_fee(self: @ContractState) -> u16 {
-            let mut store = StoreImpl::new(self.world(@ns()));
-            store.ryo_config().paper_fee
         }
 
         fn season_duration(self: @ContractState) -> u32 {
