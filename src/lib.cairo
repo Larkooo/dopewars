@@ -97,6 +97,7 @@ pub mod interfaces {
 }
 
 pub mod _mocks {
+    pub mod ekubo_router_mock;
     pub mod paper_mock;
     pub mod vrf_provider_mock;
 }

@@ -31,6 +31,7 @@ use rollyourown::models::hustler_template::m_HustlerTemplate;
 use rollyourown::models::payment_config::m_PaymentConfig;
 use rollyourown::models::starterpack::m_Starterpack;
 use rollyourown::systems::content::{IContentDispatcher, content};
+use rollyourown::_mocks::ekubo_router_mock::ekubo_router_mock;
 use rollyourown::systems::purchase::{
     BASE_PRICE_PAPER, IPurchaseAdminDispatcher, IPurchaseAdminDispatcherTrait, purchase,
 };
@@ -39,6 +40,7 @@ use rollyourown::tokens::paper::{
     IPaperTokenDispatcher, IPaperTokenDispatcherTrait, MINTER_ROLE as PAPER_MINTER_ROLE, paper,
 };
 use starknet::ContractAddress;
+use starknet::SyscallResultTrait;
 use starknet::testing::{set_block_timestamp, set_contract_address};
 
 pub fn OWNER() -> ContractAddress {
@@ -197,4 +199,56 @@ pub fn spawn_v2() -> (WorldStorage, V2Systems) {
 pub fn fund_buyer(systems: V2Systems, recipient: ContractAddress, amount: u256) {
     set_contract_address(OWNER());
     systems.paper.reward(recipient, amount);
+}
+
+/// Deploy the Ekubo router mock and reconfigure PaymentConfig to use
+/// it. The mock is a regular starknet contract (no dojo namespace,
+/// no init args). Tests that want to exercise the swap-and-burn path
+/// in `purchase::on_issue` call this after `spawn_v2()`. The mock is
+/// pre-funded with `swap_payout_paper` PAPER so that each call to
+/// `clear()` from inside on_issue transfers exactly that much PAPER
+/// back to the purchase contract for burning.
+///
+/// `burn_percentage` is wired into PaymentConfig so the purchase
+/// contract's burn-share calculation produces a non-zero amount —
+/// the mock doesn't care about the deposited USDC amount, but the
+/// gating in on_issue requires `burn_percentage > 0` to even run.
+pub fn enable_ekubo_swap_mock(
+    systems: V2Systems, swap_payout_paper: u256, burn_percentage: u8,
+) -> ContractAddress {
+    // [Deploy] mock router. No constructor args.
+    let (mock_address, _) = starknet::syscalls::deploy_syscall(
+        ekubo_router_mock::TEST_CLASS_HASH.try_into().unwrap(),
+        'ekubo_mock',
+        [].span(),
+        false,
+    )
+        .unwrap_syscall();
+
+    // [Fund] Pre-fund the mock with PAPER. The mock will return this
+    // PAPER to the purchase contract on each clear() call. Caller is
+    // OWNER (set above) which has MINTER_ROLE on paper.
+    set_contract_address(OWNER());
+    systems.paper.reward(mock_address, swap_payout_paper);
+
+    // [Reconfig] Rewrite PaymentConfig with the mock as the router
+    // address. We re-pass paper as the USDC stand-in and re-use the
+    // same base_price as spawn_v2.
+    let zero: ContractAddress = 0.try_into().unwrap();
+    systems
+        .purchase_admin
+        .set_payment_config(
+            usdc: systems.paper_erc20.contract_address,
+            ekubo_router: mock_address,
+            ekubo_positions: zero,
+            pool_fee: 0,
+            pool_tick_spacing: 0,
+            pool_extension: zero,
+            pool_sqrt: 0,
+            base_price: BASE_PRICE_PAPER.into(),
+            burn_percentage: burn_percentage,
+            treasury_percentage: 0,
+        );
+
+    mock_address
 }

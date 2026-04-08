@@ -15,6 +15,9 @@
 // - v2_purchase     — integration tests for the purchase contract:
 //                     dojo_init seeding, buy() happy path, disabled
 //                     pack rejection.
+// - v2_purchase_swap — integration tests for the on_issue
+//                     swap-and-burn path. Uses the Ekubo router mock
+//                     from src/_mocks/ekubo_router_mock.cairo.
 // - v2_content      — integration tests for the content seeding
 //                     contract: dojo_init writes the 16 catalog rows,
 //                     dispatcher getters round-trip, admin register
@@ -33,6 +36,7 @@ mod v2_content;
 mod v2_hustler;
 mod v2_paper;
 mod v2_purchase;
+mod v2_purchase_swap;
 
 mod v2_unit_gear_template;
 mod v2_unit_hustler_instance;
