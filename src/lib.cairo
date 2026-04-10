@@ -30,16 +30,20 @@ pub mod config {
 }
 
 pub mod helpers {
+    pub mod daily_shop;
     pub mod rewarder;
     pub mod season_manager;
 }
 
 pub mod models {
+    pub mod daily_purchase;
     pub mod game;
     pub mod game_store_packed;
+    pub mod gear_instance;
     pub mod gear_template;
     pub mod hustler_instance;
     pub mod hustler_template;
+    pub mod market_config;
     pub mod payment_config;
 
     pub mod season;
@@ -62,6 +66,7 @@ pub mod systems {
     pub mod content;
     pub mod decide;
     pub mod game;
+    pub mod marketplace;
     pub mod purchase;
     pub mod ryo;
 
