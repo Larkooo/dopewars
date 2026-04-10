@@ -83,7 +83,7 @@ fn find_bundle_id_by_stake(world: dojo::world::WorldStorage, stake: u8) -> Optio
 #[test]
 fn test_swap_burns_paper_supply() {
     // End-to-end: enable the Ekubo mock with 100 PAPER pre-funded
-    // and 10% burn percentage, then issue a Naked bundle. Verify the
+    // and 10% burn percentage, then issue a Junkie bundle. Verify the
     // total PAPER supply dropped by exactly `pre_funded + burn_amount`
     // — proving that on_issue's burn step actually fired and pulled
     // both the mock's pre-funded paper AND the burn share the
@@ -95,8 +95,8 @@ fn test_swap_burns_paper_supply() {
     let zero: starknet::ContractAddress = 0.try_into().unwrap();
     let _mock_address = enable_ekubo_swap_mock(systems, pre_funded, burn_pct, 0, zero);
 
-    let naked_bundle_id = find_bundle_id_by_stake(world, 1).expect('Naked bundle');
-    let quote = systems.purchase.quote(naked_bundle_id, 1, false, 0);
+    let junkie_bundle_id = find_bundle_id_by_stake(world, 1).expect('Junkie bundle');
+    let quote = systems.purchase.quote(junkie_bundle_id, 1, false, 0);
     let owed = quote.total_cost;
 
     fund_buyer(systems, BUYER(), owed);
@@ -108,7 +108,7 @@ fn test_swap_burns_paper_supply() {
         .purchase
         .issue(
             recipient: BUYER(),
-            bundle_id: naked_bundle_id,
+            bundle_id: junkie_bundle_id,
             quantity: 1,
             referrer: Option::None,
             referrer_group: Option::None,
@@ -138,8 +138,8 @@ fn test_swap_records_paper_burned_on_instance() {
     let zero: starknet::ContractAddress = 0.try_into().unwrap();
     let _ = enable_ekubo_swap_mock(systems, pre_funded, burn_pct, 0, zero);
 
-    let naked_bundle_id = find_bundle_id_by_stake(world, 1).expect('Naked bundle');
-    let quote = systems.purchase.quote(naked_bundle_id, 1, false, 0);
+    let junkie_bundle_id = find_bundle_id_by_stake(world, 1).expect('Junkie bundle');
+    let quote = systems.purchase.quote(junkie_bundle_id, 1, false, 0);
     let owed = quote.total_cost;
     fund_buyer(systems, BUYER(), owed);
 
@@ -149,7 +149,7 @@ fn test_swap_records_paper_burned_on_instance() {
         .purchase
         .issue(
             recipient: BUYER(),
-            bundle_id: naked_bundle_id,
+            bundle_id: junkie_bundle_id,
             quantity: 1,
             referrer: Option::None,
             referrer_group: Option::None,
@@ -221,8 +221,8 @@ fn test_swap_skipped_when_router_unset() {
     // chain when the router isn't configured.
     let (world, systems) = spawn_v2();
 
-    let naked_bundle_id = find_bundle_id_by_stake(world, 1).expect('Naked bundle');
-    let quote = systems.purchase.quote(naked_bundle_id, 1, false, 0);
+    let junkie_bundle_id = find_bundle_id_by_stake(world, 1).expect('Junkie bundle');
+    let quote = systems.purchase.quote(junkie_bundle_id, 1, false, 0);
     let owed = quote.total_cost;
     fund_buyer(systems, BUYER(), owed);
 
@@ -234,7 +234,7 @@ fn test_swap_skipped_when_router_unset() {
         .purchase
         .issue(
             recipient: BUYER(),
-            bundle_id: naked_bundle_id,
+            bundle_id: junkie_bundle_id,
             quantity: 1,
             referrer: Option::None,
             referrer_group: Option::None,
@@ -300,8 +300,8 @@ fn test_treasury_share_routes_to_address() {
     let treasury_pct: u8 = 20;
     enable_treasury_only(systems, treasury_pct, OTHER());
 
-    let naked_bundle_id = find_bundle_id_by_stake(world, 1).expect('Naked bundle');
-    let quote = systems.purchase.quote(naked_bundle_id, 1, false, 0);
+    let junkie_bundle_id = find_bundle_id_by_stake(world, 1).expect('Junkie bundle');
+    let quote = systems.purchase.quote(junkie_bundle_id, 1, false, 0);
     let owed = quote.total_cost;
 
     fund_buyer(systems, BUYER(), owed);
@@ -313,7 +313,7 @@ fn test_treasury_share_routes_to_address() {
         .purchase
         .issue(
             recipient: BUYER(),
-            bundle_id: naked_bundle_id,
+            bundle_id: junkie_bundle_id,
             quantity: 1,
             referrer: Option::None,
             referrer_group: Option::None,
@@ -340,8 +340,8 @@ fn test_treasury_share_skipped_when_percentage_zero() {
     let (world, systems) = spawn_v2();
     enable_treasury_only(systems, 0, OTHER());
 
-    let naked_bundle_id = find_bundle_id_by_stake(world, 1).expect('Naked bundle');
-    let quote = systems.purchase.quote(naked_bundle_id, 1, false, 0);
+    let junkie_bundle_id = find_bundle_id_by_stake(world, 1).expect('Junkie bundle');
+    let quote = systems.purchase.quote(junkie_bundle_id, 1, false, 0);
     let owed = quote.total_cost;
 
     fund_buyer(systems, BUYER(), owed);
@@ -353,7 +353,7 @@ fn test_treasury_share_skipped_when_percentage_zero() {
         .purchase
         .issue(
             recipient: BUYER(),
-            bundle_id: naked_bundle_id,
+            bundle_id: junkie_bundle_id,
             quantity: 1,
             referrer: Option::None,
             referrer_group: Option::None,
@@ -379,8 +379,8 @@ fn test_treasury_share_skipped_when_address_zero() {
     let zero: ContractAddress = 0.try_into().unwrap();
     enable_treasury_only(systems, 20, zero);
 
-    let naked_bundle_id = find_bundle_id_by_stake(world, 1).expect('Naked bundle');
-    let quote = systems.purchase.quote(naked_bundle_id, 1, false, 0);
+    let junkie_bundle_id = find_bundle_id_by_stake(world, 1).expect('Junkie bundle');
+    let quote = systems.purchase.quote(junkie_bundle_id, 1, false, 0);
     let owed = quote.total_cost;
 
     // Verify the issue() doesn't panic from a transfer-to-zero call
@@ -393,7 +393,7 @@ fn test_treasury_share_skipped_when_address_zero() {
         .purchase
         .issue(
             recipient: BUYER(),
-            bundle_id: naked_bundle_id,
+            bundle_id: junkie_bundle_id,
             quantity: 1,
             referrer: Option::None,
             referrer_group: Option::None,

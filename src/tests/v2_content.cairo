@@ -18,15 +18,15 @@ fn test_dojo_init_seeds_four_hustler_templates() {
     // the names + stat shape match.
     let (world, _systems) = spawn_v2();
 
-    let naked: HustlerTemplate = world.read_model(1_u8);
+    let junkie: HustlerTemplate = world.read_model(1_u8);
     let street: HustlerTemplate = world.read_model(2_u8);
     let dealer: HustlerTemplate = world.read_model(3_u8);
     let kingpin: HustlerTemplate = world.read_model(4_u8);
 
-    assert!(naked.id == 1, "naked id");
-    assert!(naked.name == 'Naked', "naked name");
-    assert!(naked.health == 90, "naked health");
-    assert!(naked.starting_cash == 0, "naked cash");
+    assert!(junkie.id == 1, "junkie id");
+    assert!(junkie.name == 'Junkie', "junkie name");
+    assert!(junkie.health == 90, "junkie health");
+    assert!(junkie.starting_cash == 0, "junkie cash");
 
     assert!(street.id == 2, "street id");
     assert!(street.name == 'Street', "street name");
@@ -44,9 +44,9 @@ fn test_dojo_init_seeds_four_hustler_templates() {
     assert!(kingpin.starting_cash == 3000, "kingpin cash");
     // Kingpin is the top of the curve — verify the combat stats step
     // up monotonically from naked.
-    assert!(kingpin.attack > naked.attack, "kingpin attack > naked");
-    assert!(kingpin.defense > naked.defense, "kingpin defense > naked");
-    assert!(kingpin.cargo > naked.cargo, "kingpin cargo > naked");
+    assert!(kingpin.attack > junkie.attack, "kingpin attack > junkie");
+    assert!(kingpin.defense > junkie.defense, "kingpin defense > junkie");
+    assert!(kingpin.cargo > junkie.cargo, "kingpin cargo > junkie");
 }
 
 #[test]
@@ -118,13 +118,13 @@ fn test_get_gear_template_dispatch() {
 
 #[test]
 fn test_register_hustler_template_admin_overwrites_existing() {
-    // Admin re-registers Naked with rebalanced stats. Verify the
+    // Admin re-registers Junkie with rebalanced stats. Verify the
     // catalog row reflects the new values without leaving the old
     // state behind.
     let (world, systems) = spawn_v2();
 
     set_contract_address(OWNER());
-    let rebalanced = HustlerTemplateTrait::new(1, 'Naked', 80, 250, 12, 11, 11);
+    let rebalanced = HustlerTemplateTrait::new(1, 'Junkie', 80, 250, 12, 11, 11);
     systems.content.register_hustler_template(rebalanced);
 
     let updated: HustlerTemplate = world.read_model(1_u8);

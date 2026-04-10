@@ -79,11 +79,11 @@ fn test_initialize_uses_payment_config_base_price() {
 
     let base: u256 = BASE_PRICE_PAPER.into();
 
-    let naked_bundle_id = find_bundle_id_by_stake(world, 1).expect('Naked bundle');
-    let quote = systems.purchase.quote(naked_bundle_id, 1, false, 0);
+    let junkie_bundle_id = find_bundle_id_by_stake(world, 1).expect('Junkie bundle');
+    let quote = systems.purchase.quote(junkie_bundle_id, 1, false, 0);
     // total_cost == base_price for 1× quantity, no fees, no referrer.
     let expected = discount_price_u256(1, base);
-    assert!(quote.total_cost == expected, "naked price = stake-1 curve");
+    assert!(quote.total_cost == expected, "junkie price = stake-1 curve");
 
     let kingpin_bundle_id = find_bundle_id_by_stake(world, 4).expect('Kingpin bundle');
     let kingpin_quote = systems.purchase.quote(kingpin_bundle_id, 1, false, 0);
@@ -112,11 +112,11 @@ fn test_initialize_seeds_four_packs() {
     };
 
     assert!(found_stakes.len() == 4, "exactly 4 packs seeded");
-    assert!(*found_stakes.at(0) == 1, "first = stake 1 (Naked)");
+    assert!(*found_stakes.at(0) == 1, "first = stake 1 (Junkie)");
     assert!(*found_stakes.at(1) == 2, "second = stake 2 (Street)");
     assert!(*found_stakes.at(2) == 3, "third = stake 3 (Dealer)");
     assert!(*found_stakes.at(3) == 4, "fourth = stake 4 (Kingpin)");
-    assert!(*found_templates.at(0) == 1, "Naked template");
+    assert!(*found_templates.at(0) == 1, "Junkie template");
     assert!(*found_templates.at(1) == 2, "Street template");
     assert!(*found_templates.at(2) == 3, "Dealer template");
     assert!(*found_templates.at(3) == 4, "Kingpin template");
@@ -132,12 +132,13 @@ fn test_initialize_seeds_per_tier_gear_loadouts() {
     // IDs match content::dojo_init's full catalog.
     let (world, _systems) = spawn_v2();
 
-    let naked_id = find_bundle_id_by_stake(world, 1).expect('Naked bundle');
-    let naked: Starterpack = world.read_model(naked_id);
-    assert!(naked.gear_weapon == 0, "Naked weapon = none");
-    assert!(naked.gear_clothes == 0, "Naked clothes = none");
-    assert!(naked.gear_feet == 0, "Naked feet = none");
-    assert!(naked.gear_transport == 0, "Naked transport = none");
+    // Junkie: tier-3 junk gear (scrappiest items).
+    let junkie_id = find_bundle_id_by_stake(world, 1).expect('Junkie bundle');
+    let junkie: Starterpack = world.read_model(junkie_id);
+    assert!(junkie.gear_weapon == 12, "Junkie weapon = Razor Blade (12)");
+    assert!(junkie.gear_clothes == 37, "Junkie clothes = Shirtless (37)");
+    assert!(junkie.gear_feet == 55, "Junkie feet = Barefoot (55)");
+    assert!(junkie.gear_transport == 65, "Junkie transport = Rollerblades (65)");
 
     // Street: tier-3 items (worst starter gear).
     let street_id = find_bundle_id_by_stake(world, 2).expect('Street bundle');
@@ -165,7 +166,7 @@ fn test_initialize_seeds_per_tier_gear_loadouts() {
 }
 
 #[test]
-fn test_issue_happy_path_naked() {
+fn test_issue_happy_path_junkie() {
     // End-to-end: fund the buyer with payment token (paper, in
     // tests), approve the purchase contract, call issue(...) with
     // quantity=1, verify
@@ -175,12 +176,12 @@ fn test_issue_happy_path_naked() {
     //     template + (empty) gear loadout
     let (world, systems) = spawn_v2();
 
-    let naked_bundle_id = find_bundle_id_by_stake(world, 1).expect('Naked bundle');
+    let junkie_bundle_id = find_bundle_id_by_stake(world, 1).expect('Junkie bundle');
 
     // Quote the bundle to learn the buyer's owed amount. With a 0%
     // protocol fee and no referrer this collapses to the bundle's
     // base_price.
-    let quote = systems.purchase.quote(naked_bundle_id, 1, false, 0);
+    let quote = systems.purchase.quote(junkie_bundle_id, 1, false, 0);
     let owed = quote.total_cost;
 
     // [Setup] Fund buyer with 2x the owed amount so we can verify the
@@ -196,7 +197,7 @@ fn test_issue_happy_path_naked() {
         .purchase
         .issue(
             recipient: BUYER(),
-            bundle_id: naked_bundle_id,
+            bundle_id: junkie_bundle_id,
             quantity: 1,
             referrer: Option::None,
             referrer_group: Option::None,
@@ -221,12 +222,12 @@ fn test_issue_happy_path_naked() {
     // [Verify] HustlerInstance written with the pack's loadout.
     let instance: HustlerInstance = world.read_model(1_u64);
     assert!(instance.token_id == 1, "instance token id");
-    assert!(instance.bundle_id == naked_bundle_id, "from naked bundle");
-    assert!(instance.hustler_template_id == 1, "Naked template");
-    assert!(instance.gear_weapon == 0, "naked = empty weapon");
-    assert!(instance.gear_clothes == 0, "naked = empty clothes");
-    assert!(instance.gear_feet == 0, "naked = empty feet");
-    assert!(instance.gear_transport == 0, "naked = empty transport");
+    assert!(instance.bundle_id == junkie_bundle_id, "from junkie bundle");
+    assert!(instance.hustler_template_id == 1, "Junkie template");
+    assert!(instance.gear_weapon == 12, "junkie weapon = Razor Blade");
+    assert!(instance.gear_clothes == 37, "junkie clothes = Shirtless");
+    assert!(instance.gear_feet == 55, "junkie feet = Barefoot");
+    assert!(instance.gear_transport == 65, "junkie transport = Rollerblades");
     assert!(!instance.used, "fresh hustler is unused");
     assert!(instance.game_id == 0, "no bound game yet");
     assert!(instance.final_score == 0, "no score yet");
@@ -244,8 +245,8 @@ fn test_issue_increments_token_ids() {
     // between calls.
     let (world, systems) = spawn_v2();
 
-    let naked_bundle_id = find_bundle_id_by_stake(world, 1).expect('Naked bundle');
-    let quote = systems.purchase.quote(naked_bundle_id, 1, false, 0);
+    let junkie_bundle_id = find_bundle_id_by_stake(world, 1).expect('Junkie bundle');
+    let quote = systems.purchase.quote(junkie_bundle_id, 1, false, 0);
     let owed = quote.total_cost;
 
     fund_buyer(systems, BUYER(), owed * 2);
@@ -257,7 +258,7 @@ fn test_issue_increments_token_ids() {
         .purchase
         .issue(
             recipient: BUYER(),
-            bundle_id: naked_bundle_id,
+            bundle_id: junkie_bundle_id,
             quantity: 1,
             referrer: Option::None,
             referrer_group: Option::None,
@@ -270,7 +271,7 @@ fn test_issue_increments_token_ids() {
         .purchase
         .issue(
             recipient: BUYER(),
-            bundle_id: naked_bundle_id,
+            bundle_id: junkie_bundle_id,
             quantity: 1,
             referrer: Option::None,
             referrer_group: Option::None,

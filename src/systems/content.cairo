@@ -69,7 +69,7 @@ pub mod content {
 
         // === HustlerTemplates 1..4 (unchanged from PR-4) ===
         let mut hustlers = array![
-            HustlerTemplateTrait::new(1, 'Naked', 90, 0, 10, 10, 10),
+            HustlerTemplateTrait::new(1, 'Junkie', 90, 0, 10, 10, 10),
             HustlerTemplateTrait::new(2, 'Street', 95, 500, 15, 12, 12),
             HustlerTemplateTrait::new(3, 'Dealer', 100, 1500, 20, 18, 18),
             HustlerTemplateTrait::new(4, 'Kingpin', 100, 3000, 30, 25, 25),

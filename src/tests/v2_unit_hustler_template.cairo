@@ -40,14 +40,14 @@ fn baseline_config() -> GameConfig {
 
 #[test]
 fn test_apply_to_naked_uses_season_defaults() {
-    // Naked has starting_cash=0 and health=90. Cash stays at the season
+    // Junkie has starting_cash=0 and health=90. Cash stays at the season
     // baseline; health gets explicitly written even though it matches.
-    // This is the canonical PR-4 Naked template.
+    // This is the canonical PR-4 Junkie template.
     let mut cfg = baseline_config();
-    let naked = HustlerTemplateImpl::new(1, 'Naked', 90, 0, 10, 10, 10);
-    naked.apply_to(ref cfg);
-    assert!(cfg.cash == 1000, "naked = season cash baseline");
-    assert!(cfg.health == 90, "naked health override matches default");
+    let junkie = HustlerTemplateImpl::new(1, 'Junkie', 90, 0, 10, 10, 10);
+    junkie.apply_to(ref cfg);
+    assert!(cfg.cash == 1000, "junkie = season cash baseline");
+    assert!(cfg.health == 90, "junkie health override matches default");
 }
 
 #[test]

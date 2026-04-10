@@ -26,7 +26,7 @@ fn test_field_round_trip() {
 
 #[test]
 fn test_naked_pack_uses_zero_gear() {
-    // The Naked pack ships with all four slots empty so the buyer can
+    // The Junkie pack ships with all four slots empty so the buyer can
     // fill them later from a marketplace. Encode that contract here so
     // a future refactor doesn't quietly slip a default item in.
     let pack = StarterpackImpl::new(1_u32, 1, 0, 0, 0, 0, 1);

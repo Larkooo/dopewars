@@ -23,7 +23,7 @@ fn test_base_constant() {
 fn test_paper_discount_curve_matches_design_doc() {
     // The four canonical packs the design doc commits to, in PAPER
     // wei (the test fixture's USDC stand-in unit):
-    //   stake=1 (Naked):    1 * 1000 * 99 / 100 =  990 PAPER
+    //   stake=1 (Junkie):    1 * 1000 * 99 / 100 =  990 PAPER
     //   stake=2 (Street):   2 * 1000 * 98 / 100 = 1960 PAPER
     //   stake=3 (Dealer):   3 * 1000 * 97 / 100 = 2910 PAPER
     //   stake=4 (Kingpin):  4 * 1000 * 96 / 100 = 3840 PAPER
@@ -39,7 +39,7 @@ fn test_paper_discount_curve_matches_design_doc() {
 fn test_usdc_discount_curve_matches_design_doc() {
     // 1× tier base = 2 USDC = 2_000_000 (6 decimals). The catalog
     // table in V2_DESIGN.md uses these exact USDC values.
-    //   stake=1 (Naked):    1 * 2_000_000 * 99 / 100 = 1_980_000
+    //   stake=1 (Junkie):    1 * 2_000_000 * 99 / 100 = 1_980_000
     //   stake=2 (Street):   2 * 2_000_000 * 98 / 100 = 3_920_000
     //   stake=3 (Dealer):   3 * 2_000_000 * 97 / 100 = 5_820_000
     //   stake=4 (Kingpin):  4 * 2_000_000 * 96 / 100 = 7_680_000

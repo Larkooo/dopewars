@@ -119,7 +119,7 @@ pub mod purchase {
     // Hustler template ids referenced by the seeded packs. Content PR
     // (PR-4) seeds the actual HustlerTemplate rows; this contract only
     // stores the ids.
-    const TEMPLATE_NAKED: u8 = 1;
+    const TEMPLATE_JUNKIE: u8 = 1;
     const TEMPLATE_STREET: u8 = 2;
     const TEMPLATE_DEALER: u8 = 3;
     const TEMPLATE_KINGPIN: u8 = 4;
@@ -132,28 +132,33 @@ pub mod purchase {
     // items. Tier numbering follows the original dopewars convention:
     // tier 1 = best, tier 3 = worst.
     //
-    //   Naked  (stake 1): no gear
-    //   Street (stake 2): tier-3 items (worst) — starter gear
+    //   Junkie (stake 1): tier-3 junk gear — scrappy starting kit
+    //   Street (stake 2): tier-3 items — slightly better picks
     //   Dealer (stake 3): tier-2 items (mid)
     //   Kingpin(stake 4): tier-1 items (best)
     //
-    // One representative item per slot per pack tier. Picked from the
-    // full catalog by name recognition (iconic dopewars items).
-    // Weapon picks:
+    // Junkie and Street both get tier-3 items but different ones so
+    // each pack feels distinct.
+    //
+    // Junkie picks (the scrappiest tier-3 items):
+    const GEAR_RAZOR_BLADE: u8 = 12;   // tier 3 (Junkie)
+    const GEAR_SHIRTLESS: u8 = 37;     // tier 3 (Junkie)
+    const GEAR_BAREFOOT: u8 = 55;      // tier 3 (Junkie)
+    const GEAR_ROLLERBLADES: u8 = 65;  // tier 3 (Junkie)
+    // Street picks (slightly more presentable tier-3):
     const GEAR_POCKET_KNIFE: u8 = 1;   // tier 3 (Street)
-    const GEAR_CHAIN: u8 = 2;          // tier 2 (Dealer)
-    const GEAR_AK47: u8 = 6;           // tier 1 (Kingpin)
-    // Clothes picks:
     const GEAR_WHITE_TEE: u8 = 19;     // tier 3 (Street)
-    const GEAR_BLACK_HOODIE: u8 = 22;  // tier 2 (Dealer)
-    const GEAR_BULLETPROOF: u8 = 23;   // tier 1 (Kingpin)
-    // Feet picks:
     const GEAR_FLIP_FLOPS: u8 = 46;    // tier 3 (Street)
-    const GEAR_TIMBERLANDS: u8 = 44;   // tier 2 (Dealer)
-    const GEAR_AIR_FORCE: u8 = 39;     // tier 1 (Kingpin)
-    // Transport picks:
     const GEAR_TRICYCLE: u8 = 58;      // tier 3 (Street)
+    // Dealer picks (tier-2):
+    const GEAR_CHAIN: u8 = 2;          // tier 2 (Dealer)
+    const GEAR_BLACK_HOODIE: u8 = 22;  // tier 2 (Dealer)
+    const GEAR_TIMBERLANDS: u8 = 44;   // tier 2 (Dealer)
     const GEAR_ATV: u8 = 60;           // tier 2 (Dealer)
+    // Kingpin picks (tier-1 best):
+    const GEAR_AK47: u8 = 6;           // tier 1 (Kingpin)
+    const GEAR_BULLETPROOF: u8 = 23;   // tier 1 (Kingpin)
+    const GEAR_AIR_FORCE: u8 = 39;     // tier 1 (Kingpin)
     const GEAR_ROLLS_ROYCE: u8 = 68;   // tier 1 (Kingpin)
 
     // Components
@@ -493,16 +498,23 @@ pub mod purchase {
             let base_price = config.base_price;
 
             let templates = array![
-                TEMPLATE_NAKED, TEMPLATE_STREET, TEMPLATE_DEALER, TEMPLATE_KINGPIN,
+                TEMPLATE_JUNKIE, TEMPLATE_STREET, TEMPLATE_DEALER, TEMPLATE_KINGPIN,
             ];
             // Per-tier gear loadouts indexed by stake-1.
-            // Naked = no gear; Street = tier-3 (worst); Dealer = tier-2;
-            // Kingpin = tier-1 (best). Tier numbering matches the
-            // original dopewars convention (tier 1 = best).
-            let weapons = array![0, GEAR_POCKET_KNIFE, GEAR_CHAIN, GEAR_AK47];
-            let clothes = array![0, GEAR_WHITE_TEE, GEAR_BLACK_HOODIE, GEAR_BULLETPROOF];
-            let feet = array![0, GEAR_FLIP_FLOPS, GEAR_TIMBERLANDS, GEAR_AIR_FORCE];
-            let transport = array![0, GEAR_TRICYCLE, GEAR_ATV, GEAR_ROLLS_ROYCE];
+            // All 4 tiers get gear. Junkie/Street both get tier-3 but
+            // different items; Dealer = tier-2; Kingpin = tier-1 (best).
+            let weapons = array![
+                GEAR_RAZOR_BLADE, GEAR_POCKET_KNIFE, GEAR_CHAIN, GEAR_AK47,
+            ];
+            let clothes = array![
+                GEAR_SHIRTLESS, GEAR_WHITE_TEE, GEAR_BLACK_HOODIE, GEAR_BULLETPROOF,
+            ];
+            let feet = array![
+                GEAR_BAREFOOT, GEAR_FLIP_FLOPS, GEAR_TIMBERLANDS, GEAR_AIR_FORCE,
+            ];
+            let transport = array![
+                GEAR_ROLLERBLADES, GEAR_TRICYCLE, GEAR_ATV, GEAR_ROLLS_ROYCE,
+            ];
 
             let mut idx: u32 = 0;
             while idx < PACK_COUNT {
