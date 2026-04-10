@@ -127,39 +127,15 @@ pub mod purchase {
     // Number of paid tiers seeded by `initialize`.
     const PACK_COUNT: u32 = 4;
 
-    // Per-tier gear loadouts. Gear ids match the full 72-item catalog
-    // in content::dojo_init. Higher starterpack tiers pre-load better
-    // items. Tier numbering follows the original dopewars convention:
-    // tier 1 = best, tier 3 = worst.
-    //
-    //   Junkie (stake 1): tier-3 junk gear — scrappy starting kit
-    //   Street (stake 2): tier-3 items — slightly better picks
-    //   Dealer (stake 3): tier-2 items (mid)
-    //   Kingpin(stake 4): tier-1 items (best)
-    //
-    // Junkie and Street both get tier-3 items but different ones so
-    // each pack feels distinct.
-    //
-    // Junkie picks (the scrappiest tier-3 items):
-    const GEAR_RAZOR_BLADE: u8 = 12;   // tier 3 (Junkie)
-    const GEAR_SHIRTLESS: u8 = 37;     // tier 3 (Junkie)
-    const GEAR_BAREFOOT: u8 = 55;      // tier 3 (Junkie)
-    const GEAR_ROLLERBLADES: u8 = 65;  // tier 3 (Junkie)
-    // Street picks (slightly more presentable tier-3):
-    const GEAR_POCKET_KNIFE: u8 = 1;   // tier 3 (Street)
-    const GEAR_WHITE_TEE: u8 = 19;     // tier 3 (Street)
-    const GEAR_FLIP_FLOPS: u8 = 46;    // tier 3 (Street)
-    const GEAR_TRICYCLE: u8 = 58;      // tier 3 (Street)
-    // Dealer picks (tier-2):
-    const GEAR_CHAIN: u8 = 2;          // tier 2 (Dealer)
-    const GEAR_BLACK_HOODIE: u8 = 22;  // tier 2 (Dealer)
-    const GEAR_TIMBERLANDS: u8 = 44;   // tier 2 (Dealer)
-    const GEAR_ATV: u8 = 60;           // tier 2 (Dealer)
-    // Kingpin picks (tier-1 best):
-    const GEAR_AK47: u8 = 6;           // tier 1 (Kingpin)
-    const GEAR_BULLETPROOF: u8 = 23;   // tier 1 (Kingpin)
-    const GEAR_AIR_FORCE: u8 = 39;     // tier 1 (Kingpin)
-    const GEAR_ROLLS_ROYCE: u8 = 68;   // tier 1 (Kingpin)
+    // Starter gear — same across all pack tiers. Everyone starts with
+    // the same scrappy tier-3 junk. The only thing that differs across
+    // tiers is the stake multiplier. Gear progression is 100% earned
+    // via the marketplace (between runs) and the in-game shop (during
+    // runs).
+    const GEAR_RAZOR_BLADE: u8 = 12;   // tier 3 weapon
+    const GEAR_SHIRTLESS: u8 = 37;     // tier 3 clothes
+    const GEAR_BAREFOOT: u8 = 55;      // tier 3 feet
+    const GEAR_ROLLERBLADES: u8 = 65;  // tier 3 transport
 
     // Components
     component!(path: BundleComponent, storage: bundle, event: BundleEvent);
@@ -500,20 +476,19 @@ pub mod purchase {
             let templates = array![
                 TEMPLATE_JUNKIE, TEMPLATE_STREET, TEMPLATE_DEALER, TEMPLATE_KINGPIN,
             ];
-            // Per-tier gear loadouts indexed by stake-1.
-            // All 4 tiers get gear. Junkie/Street both get tier-3 but
-            // different items; Dealer = tier-2; Kingpin = tier-1 (best).
+            // All tiers get the same starter junk gear. The multiplier
+            // is the only differentiator.
             let weapons = array![
-                GEAR_RAZOR_BLADE, GEAR_POCKET_KNIFE, GEAR_CHAIN, GEAR_AK47,
+                GEAR_RAZOR_BLADE, GEAR_RAZOR_BLADE, GEAR_RAZOR_BLADE, GEAR_RAZOR_BLADE,
             ];
             let clothes = array![
-                GEAR_SHIRTLESS, GEAR_WHITE_TEE, GEAR_BLACK_HOODIE, GEAR_BULLETPROOF,
+                GEAR_SHIRTLESS, GEAR_SHIRTLESS, GEAR_SHIRTLESS, GEAR_SHIRTLESS,
             ];
             let feet = array![
-                GEAR_BAREFOOT, GEAR_FLIP_FLOPS, GEAR_TIMBERLANDS, GEAR_AIR_FORCE,
+                GEAR_BAREFOOT, GEAR_BAREFOOT, GEAR_BAREFOOT, GEAR_BAREFOOT,
             ];
             let transport = array![
-                GEAR_ROLLERBLADES, GEAR_TRICYCLE, GEAR_ATV, GEAR_ROLLS_ROYCE,
+                GEAR_ROLLERBLADES, GEAR_ROLLERBLADES, GEAR_ROLLERBLADES, GEAR_ROLLERBLADES,
             ];
 
             let mut idx: u32 = 0;

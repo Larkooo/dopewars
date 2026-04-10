@@ -13,9 +13,9 @@ use starknet::testing::set_contract_address;
 
 #[test]
 fn test_dojo_init_seeds_four_hustler_templates() {
-    // content::dojo_init writes hustler templates 1..4 with the
-    // documented stat curve. Read them back from the world and verify
-    // the names + stat shape match.
+    // All four templates share identical stats. Only the name differs
+    // — the multiplier (which is what differentiates tiers) lives on
+    // the Starterpack, not the template.
     let (world, _systems) = spawn_v2();
 
     let junkie: HustlerTemplate = world.read_model(1_u8);
@@ -23,30 +23,18 @@ fn test_dojo_init_seeds_four_hustler_templates() {
     let dealer: HustlerTemplate = world.read_model(3_u8);
     let kingpin: HustlerTemplate = world.read_model(4_u8);
 
-    assert!(junkie.id == 1, "junkie id");
     assert!(junkie.name == 'Junkie', "junkie name");
-    assert!(junkie.health == 90, "junkie health");
-    assert!(junkie.starting_cash == 0, "junkie cash");
-
-    assert!(street.id == 2, "street id");
     assert!(street.name == 'Street', "street name");
-    assert!(street.health == 95, "street health");
-    assert!(street.starting_cash == 500, "street cash");
-
-    assert!(dealer.id == 3, "dealer id");
     assert!(dealer.name == 'Dealer', "dealer name");
-    assert!(dealer.health == 100, "dealer health");
-    assert!(dealer.starting_cash == 1500, "dealer cash");
-
-    assert!(kingpin.id == 4, "kingpin id");
     assert!(kingpin.name == 'Kingpin', "kingpin name");
-    assert!(kingpin.health == 100, "kingpin health");
-    assert!(kingpin.starting_cash == 3000, "kingpin cash");
-    // Kingpin is the top of the curve — verify the combat stats step
-    // up monotonically from naked.
-    assert!(kingpin.attack > junkie.attack, "kingpin attack > junkie");
-    assert!(kingpin.defense > junkie.defense, "kingpin defense > junkie");
-    assert!(kingpin.cargo > junkie.cargo, "kingpin cargo > junkie");
+
+    // All four share the same baseline stats.
+    assert!(junkie.health == 90 && street.health == 90, "same health");
+    assert!(dealer.health == 90 && kingpin.health == 90, "same health");
+    assert!(junkie.starting_cash == 0 && kingpin.starting_cash == 0, "same cash");
+    assert!(junkie.attack == 10 && kingpin.attack == 10, "same attack");
+    assert!(junkie.defense == 10 && kingpin.defense == 10, "same defense");
+    assert!(junkie.cargo == 10 && kingpin.cargo == 10, "same cargo");
 }
 
 #[test]
@@ -103,7 +91,7 @@ fn test_get_hustler_template_dispatch() {
     let (_world, systems) = spawn_v2();
     let dealer = systems.content.get_hustler_template(3_u8);
     assert!(dealer.name == 'Dealer', "dealer via dispatcher");
-    assert!(dealer.starting_cash == 1500, "stats round-trip");
+    assert!(dealer.starting_cash == 0, "stats round-trip");
 }
 
 #[test]

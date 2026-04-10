@@ -67,12 +67,19 @@ pub mod content {
     fn dojo_init(ref self: ContractState) {
         let mut world = self.world(@ns());
 
-        // === HustlerTemplates 1..4 (unchanged from PR-4) ===
+        // === HustlerTemplates 1..4 ===
+        // All four share identical stats — the only thing that differs
+        // across tiers is the stake multiplier (set on the Starterpack,
+        // not on the template). This means a Junkie and a Kingpin start
+        // every run with the same health / cash / combat — the Kingpin
+        // just gets a bigger reward payout at game end. No pay-to-win;
+        // gear progression is 100% earned via the marketplace + in-game
+        // shop.
         let mut hustlers = array![
             HustlerTemplateTrait::new(1, 'Junkie', 90, 0, 10, 10, 10),
-            HustlerTemplateTrait::new(2, 'Street', 95, 500, 15, 12, 12),
-            HustlerTemplateTrait::new(3, 'Dealer', 100, 1500, 20, 18, 18),
-            HustlerTemplateTrait::new(4, 'Kingpin', 100, 3000, 30, 25, 25),
+            HustlerTemplateTrait::new(2, 'Street', 90, 0, 10, 10, 10),
+            HustlerTemplateTrait::new(3, 'Dealer', 90, 0, 10, 10, 10),
+            HustlerTemplateTrait::new(4, 'Kingpin', 90, 0, 10, 10, 10),
         ];
         while let Option::Some(t) = hustlers.pop_front() {
             world.write_model(@t);
