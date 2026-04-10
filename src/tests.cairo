@@ -33,6 +33,7 @@
 pub mod v2_helper;
 
 mod v2_content;
+mod v2_equip;
 mod v2_hustler;
 mod v2_marketplace;
 mod v2_paper;

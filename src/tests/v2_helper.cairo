@@ -25,12 +25,16 @@ use openzeppelin::interfaces::access::accesscontrol::{
 };
 use openzeppelin::interfaces::token::erc20::IERC20Dispatcher;
 use rollyourown::constants::ns;
+use rollyourown::models::daily_purchase::m_DailyPurchase;
+use rollyourown::models::gear_instance::m_GearInstance;
 use rollyourown::models::gear_template::m_GearTemplate;
 use rollyourown::models::hustler_instance::m_HustlerInstance;
 use rollyourown::models::hustler_template::m_HustlerTemplate;
+use rollyourown::models::market_config::m_MarketConfig;
 use rollyourown::models::payment_config::m_PaymentConfig;
 use rollyourown::models::starterpack::m_Starterpack;
 use rollyourown::systems::content::{IContentDispatcher, content};
+use rollyourown::systems::marketplace::marketplace;
 use rollyourown::_mocks::ekubo_router_mock::ekubo_router_mock;
 use rollyourown::systems::purchase::{
     BASE_PRICE_PAPER, IPurchaseAdminDispatcher, IPurchaseAdminDispatcherTrait, purchase,
@@ -97,10 +101,15 @@ pub fn spawn_v2() -> (WorldStorage, V2Systems) {
             // initialize() reads it; tests write it before calling
             // initialize via set_payment_config (see below).
             TestResource::Model(m_PaymentConfig::TEST_CLASS_HASH),
+            // Marketplace models.
+            TestResource::Model(m_MarketConfig::TEST_CLASS_HASH),
+            TestResource::Model(m_GearInstance::TEST_CLASS_HASH),
+            TestResource::Model(m_DailyPurchase::TEST_CLASS_HASH),
             TestResource::Contract(paper::TEST_CLASS_HASH),
             TestResource::Contract(hustler::TEST_CLASS_HASH),
             TestResource::Contract(purchase::TEST_CLASS_HASH),
             TestResource::Contract(content::TEST_CLASS_HASH),
+            TestResource::Contract(marketplace::TEST_CLASS_HASH),
         ]
             .span(),
     };
@@ -121,6 +130,9 @@ pub fn spawn_v2() -> (WorldStorage, V2Systems) {
         // models — easiest to grant the whole namespace, same as
         // purchase.
         ContractDefTrait::new(@ns(), @"content")
+            .with_init_calldata([].span())
+            .with_writer_of([ns_hash].span()),
+        ContractDefTrait::new(@ns(), @"marketplace")
             .with_init_calldata([].span())
             .with_writer_of([ns_hash].span()),
     ]

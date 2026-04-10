@@ -33,6 +33,16 @@ pub trait IMarketplace<T> {
 }
 
 #[starknet::interface]
+pub trait IEquip<T> {
+    /// Equip a GearInstance onto a HustlerInstance. Single-use: the
+    /// gear is consumed (can't be equipped elsewhere or unequipped).
+    /// Validates: caller owns both the hustler NFT and the GearInstance,
+    /// hustler not yet used, GearInstance not already consumed, gear
+    /// slot matches.
+    fn equip(ref self: T, hustler_token_id: u64, gear_instance_id: u32);
+}
+
+#[starknet::interface]
 pub trait IMarketplaceAdmin<T> {
     /// Set the per-tier PAPER prices and the burn split.
     fn set_config(
@@ -53,17 +63,23 @@ pub mod marketplace {
     use rollyourown::constants::ns;
     use rollyourown::helpers::daily_shop;
     use rollyourown::models::daily_purchase::DailyPurchase;
-    use rollyourown::models::gear_instance::GearInstanceTrait;
+    use openzeppelin::interfaces::token::erc721::{IERC721Dispatcher, IERC721DispatcherTrait};
+    use rollyourown::models::gear_instance::{GearInstance, GearInstanceTrait};
     use rollyourown::models::gear_template::GearTemplate;
+    use rollyourown::models::hustler_instance::HustlerInstance;
     use rollyourown::models::market_config::{MARKET_CONFIG_KEY, MarketConfig, MarketConfigTrait};
     use rollyourown::models::payment_config::{PAYMENT_CONFIG_KEY, PaymentConfig};
     use rollyourown::tokens::paper::{IPaperTokenDispatcher, IPaperTokenDispatcherTrait};
-    use super::{IMarketplace, IMarketplaceAdmin};
+    use super::{IEquip, IMarketplace, IMarketplaceAdmin};
 
     pub mod ERRORS {
         pub const INVALID_SLOT: felt252 = 'Market: invalid slot';
         pub const ALREADY_BOUGHT: felt252 = 'Market: already bought today';
         pub const PRICE_ZERO: felt252 = 'Market: price not configured';
+        pub const NOT_HUSTLER_OWNER: felt252 = 'Equip: not hustler owner';
+        pub const HUSTLER_USED: felt252 = 'Equip: hustler already used';
+        pub const NOT_GEAR_OWNER: felt252 = 'Equip: not gear owner';
+        pub const GEAR_CONSUMED: felt252 = 'Equip: gear already consumed';
     }
 
     fn dojo_init(ref self: ContractState) {
@@ -170,6 +186,58 @@ pub mod marketplace {
                 tier1_price, tier2_price, tier3_price, burn_percentage,
             );
             world.write_model(@config);
+        }
+    }
+
+    #[abi(embed_v0)]
+    impl EquipImpl of IEquip<ContractState> {
+        fn equip(
+            ref self: ContractState, hustler_token_id: u64, gear_instance_id: u32,
+        ) {
+            let mut world = self.world(@ns());
+            let caller = starknet::get_caller_address();
+
+            // [Check] Caller owns the hustler NFT.
+            let hustler_address = world
+                .dns_address(@"hustler")
+                .expect('hustler not found');
+            let hustler_erc721 = IERC721Dispatcher { contract_address: hustler_address };
+            assert(
+                hustler_erc721.owner_of(hustler_token_id.into()) == caller,
+                ERRORS::NOT_HUSTLER_OWNER,
+            );
+
+            // [Check] Hustler not yet used in a game.
+            let mut hustler: HustlerInstance = world.read_model(hustler_token_id);
+            assert(!hustler.used, ERRORS::HUSTLER_USED);
+
+            // [Check] Caller owns the GearInstance.
+            let mut gear: GearInstance = world.read_model(gear_instance_id);
+            assert(gear.owner == caller, ERRORS::NOT_GEAR_OWNER);
+
+            // [Check] GearInstance not already consumed.
+            assert(gear.equipped_to == 0, ERRORS::GEAR_CONSUMED);
+
+            // [Read] GearTemplate to determine which slot this gear
+            // belongs to.
+            let template: GearTemplate = world.read_model(gear.template_id);
+
+            // [Effect] Write the template_id into the correct
+            // HustlerInstance.gear_* slot.
+            if template.slot == 0 {
+                hustler.gear_weapon = gear.template_id;
+            } else if template.slot == 1 {
+                hustler.gear_clothes = gear.template_id;
+            } else if template.slot == 2 {
+                hustler.gear_feet = gear.template_id;
+            } else if template.slot == 3 {
+                hustler.gear_transport = gear.template_id;
+            }
+            world.write_model(@hustler);
+
+            // [Effect] Mark the GearInstance as consumed.
+            gear.equipped_to = hustler_token_id;
+            world.write_model(@gear);
         }
     }
 }
