@@ -127,36 +127,34 @@ pub mod purchase {
     // Number of paid tiers seeded by `initialize`.
     const PACK_COUNT: u32 = 4;
 
-    // PR #4: per-tier gear loadouts. Gear ids match the catalog
-    // PR-4's content::dojo_init seeds. Higher tiers pre-load
-    // higher-tier gear in every slot:
-    //   Naked  (stake 1): no gear (buyer fills slots from a future marketplace)
-    //   Street (stake 2): tier 1 — Knife / Hoodie  / Sneakers / Bicycle
-    //   Dealer (stake 3): tier 2 — Pistol / Leather / Boots    / Scooter
-    //   Kingpin(stake 4): tier 3 — Uzi    / Kevlar  / Trainers / Sports Car
+    // Per-tier gear loadouts. Gear ids match the full 72-item catalog
+    // in content::dojo_init. Higher starterpack tiers pre-load better
+    // items. Tier numbering follows the original dopewars convention:
+    // tier 1 = best, tier 3 = worst.
     //
-    // The constants are kept in this contract (not derived from the
-    // content catalog at init time) because:
-    //   1. content::dojo_init runs separately from purchase::initialize,
-    //      so we can't read the GearTemplate rows here without
-    //      coupling the two contracts in a fragile order.
-    //   2. The mapping is intentionally fixed at the design-doc layer
-    //      — admins shouldn't have to look up ids to know which gear a
-    //      tier ships with.
-    // A future content rebalance that renumbers the gear ids will need
-    // to update both content.cairo and these constants.
-    const GEAR_KNIFE: u8 = 1;
-    const GEAR_PISTOL: u8 = 2;
-    const GEAR_UZI: u8 = 3;
-    const GEAR_HOODIE: u8 = 4;
-    const GEAR_LEATHER: u8 = 5;
-    const GEAR_KEVLAR: u8 = 6;
-    const GEAR_SNEAKERS: u8 = 7;
-    const GEAR_BOOTS: u8 = 8;
-    const GEAR_TRAINERS: u8 = 9;
-    const GEAR_BICYCLE: u8 = 10;
-    const GEAR_SCOOTER: u8 = 11;
-    const GEAR_SPORTS_CAR: u8 = 12;
+    //   Naked  (stake 1): no gear
+    //   Street (stake 2): tier-3 items (worst) — starter gear
+    //   Dealer (stake 3): tier-2 items (mid)
+    //   Kingpin(stake 4): tier-1 items (best)
+    //
+    // One representative item per slot per pack tier. Picked from the
+    // full catalog by name recognition (iconic dopewars items).
+    // Weapon picks:
+    const GEAR_POCKET_KNIFE: u8 = 1;   // tier 3 (Street)
+    const GEAR_CHAIN: u8 = 2;          // tier 2 (Dealer)
+    const GEAR_AK47: u8 = 6;           // tier 1 (Kingpin)
+    // Clothes picks:
+    const GEAR_WHITE_TEE: u8 = 19;     // tier 3 (Street)
+    const GEAR_BLACK_HOODIE: u8 = 22;  // tier 2 (Dealer)
+    const GEAR_BULLETPROOF: u8 = 23;   // tier 1 (Kingpin)
+    // Feet picks:
+    const GEAR_FLIP_FLOPS: u8 = 46;    // tier 3 (Street)
+    const GEAR_TIMBERLANDS: u8 = 44;   // tier 2 (Dealer)
+    const GEAR_AIR_FORCE: u8 = 39;     // tier 1 (Kingpin)
+    // Transport picks:
+    const GEAR_TRICYCLE: u8 = 58;      // tier 3 (Street)
+    const GEAR_ATV: u8 = 60;           // tier 2 (Dealer)
+    const GEAR_ROLLS_ROYCE: u8 = 68;   // tier 1 (Kingpin)
 
     // Components
     component!(path: BundleComponent, storage: bundle, event: BundleEvent);
@@ -497,13 +495,14 @@ pub mod purchase {
             let templates = array![
                 TEMPLATE_NAKED, TEMPLATE_STREET, TEMPLATE_DEALER, TEMPLATE_KINGPIN,
             ];
-            // PR #4: per-tier gear loadouts indexed by stake-1.
-            // Naked is the all-zeros baseline; tier-N stake gets
-            // tier-N gear in every slot.
-            let weapons = array![0, GEAR_KNIFE, GEAR_PISTOL, GEAR_UZI];
-            let clothes = array![0, GEAR_HOODIE, GEAR_LEATHER, GEAR_KEVLAR];
-            let feet = array![0, GEAR_SNEAKERS, GEAR_BOOTS, GEAR_TRAINERS];
-            let transport = array![0, GEAR_BICYCLE, GEAR_SCOOTER, GEAR_SPORTS_CAR];
+            // Per-tier gear loadouts indexed by stake-1.
+            // Naked = no gear; Street = tier-3 (worst); Dealer = tier-2;
+            // Kingpin = tier-1 (best). Tier numbering matches the
+            // original dopewars convention (tier 1 = best).
+            let weapons = array![0, GEAR_POCKET_KNIFE, GEAR_CHAIN, GEAR_AK47];
+            let clothes = array![0, GEAR_WHITE_TEE, GEAR_BLACK_HOODIE, GEAR_BULLETPROOF];
+            let feet = array![0, GEAR_FLIP_FLOPS, GEAR_TIMBERLANDS, GEAR_AIR_FORCE];
+            let transport = array![0, GEAR_TRICYCLE, GEAR_ATV, GEAR_ROLLS_ROYCE];
 
             let mut idx: u32 = 0;
             while idx < PACK_COUNT {

@@ -1,40 +1,38 @@
 // Content — seeds the canonical hustler + gear catalog at deploy time.
 //
-// PR-1c committed to the schema for `HustlerTemplate` and `GearTemplate`;
-// PR-1d's purchase contract references hustler template ids 1..4 from its
-// own dojo_init seed but leaves the actual template + gear rows for "PR-4
-// content". This contract is that PR-4: a single dojo_init that writes the
-// 16 catalog rows the design doc commits to.
+// Ported from the original dopewars `libraries/dopewars_items.cairo`
+// which defines 72 gear items across 4 slots (18 weapons, 20 clothes,
+// 17 feet, 17 transport), each assigned a tier 1-3. Tier numbering
+// matches the original: **tier 1 = best, tier 3 = worst**.
 //
-// Why a separate contract instead of folding the seeding into purchase or
-// ryo:
-//   - separation of concerns: purchase deals with the buy flow, ryo holds
-//     game-wide config, content holds catalog content
-//   - lets ops re-seed content (via the admin entrypoints below) without
-//     touching the purchase flow or risking double-init on a re-deploy
-//   - the production deploy script can grant content the writer role on
-//     just the catalog models, not the full namespace
+// Base stat_boost values are the level-0 stats from the original
+// `get_tier_config`. The upgrade system (levels 1-3 with escalating
+// cost) is a followup — this PR ports the catalog, not the progression.
 //
-// Stat consumers (Player::new reading template stats, gear stat_boost
-// flowing into trading/encounters/combat) are NOT wired in this PR. The
-// dopewars game loop still pulls initial cash + health from
-// SeasonSettings → GameConfig, and gear effects use the legacy item-tier
-// path. PR-4 plants the data; a follow-up wires it through.
+// ID scheme: sequential 1..72, grouped by v2 slot:
+//   Weapon  (slot 0): ids  1..18
+//   Clothes (slot 1): ids 19..38
+//   Feet    (slot 2): ids 39..55
+//   Transport(slot 3): ids 56..72
 
 use rollyourown::models::gear_template::GearTemplate;
 use rollyourown::models::hustler_template::HustlerTemplate;
 
+// Catalog counts exported for the daily shop + marketplace.
+pub const WEAPON_COUNT: u8 = 18;
+pub const CLOTHES_COUNT: u8 = 20;
+pub const FEET_COUNT: u8 = 17;
+pub const TRANSPORT_COUNT: u8 = 17;
+pub const WEAPON_FIRST_ID: u8 = 1;
+pub const CLOTHES_FIRST_ID: u8 = 19;
+pub const FEET_FIRST_ID: u8 = 39;
+pub const TRANSPORT_FIRST_ID: u8 = 56;
+
 #[starknet::interface]
 pub trait IContent<T> {
-    /// Read a hustler template from the catalog.
     fn get_hustler_template(self: @T, template_id: u8) -> HustlerTemplate;
-    /// Read a gear template from the catalog.
     fn get_gear_template(self: @T, gear_id: u8) -> GearTemplate;
-    /// Admin: register or replace a hustler template. Lets the admin add
-    /// seasonal hustlers or rebalance stats without redeploying the
-    /// contract.
     fn register_hustler_template(ref self: T, template: HustlerTemplate);
-    /// Admin: register or replace a gear template.
     fn register_gear_template(ref self: T, gear: GearTemplate);
 }
 
@@ -52,26 +50,24 @@ pub mod content {
         pub const CONTENT_NOT_OWNER: felt252 = 'Content: caller not owner';
     }
 
-    // Slot ids — mirror config::hustlers::ItemSlot but stored as u8 since
-    // GearTemplate.slot is u8 (IntrospectPacked-friendly).
     const SLOT_WEAPON: u8 = 0;
     const SLOT_CLOTHES: u8 = 1;
     const SLOT_FEET: u8 = 2;
     const SLOT_TRANSPORT: u8 = 3;
 
+    // Base stats from the original get_tier_config level 0.
+    // Tier 1 = best, tier 3 = worst (original convention).
+    //
+    // Weapon/Clothes: tier1=10, tier2=12, tier3=14
+    //   (paradoxically tier-3 has higher BASE but lower MAX —
+    //   cheap items start ok but don't scale. We port the base.)
+    // Transport: tier1=900, tier2=1000, tier3=1100
+    // Feet: tier1=6, tier2=8, tier3=10
+
     fn dojo_init(ref self: ContractState) {
         let mut world = self.world(@ns());
 
-        // [Seed] HustlerTemplates 1..4. Stats step up by tier — Naked is
-        // the entry-point template (cheapest pack, weakest stats), Kingpin
-        // is top of the curve. Numbers are deliberately conservative so a
-        // future balancing pass can revise without breaking the schema.
-        //
-        // Health is bounded above 100 (the legacy SeasonSettings::Healthy
-        // ceiling) so a Kingpin hustler isn't auto-capped by the existing
-        // game loop. Starting cash is layered on top of the season's
-        // initial cash — these template values are intended as additive
-        // bonuses once a future PR wires them into Player::new.
+        // === HustlerTemplates 1..4 (unchanged from PR-4) ===
         let mut hustlers = array![
             HustlerTemplateTrait::new(1, 'Naked', 90, 0, 10, 10, 10),
             HustlerTemplateTrait::new(2, 'Street', 95, 500, 15, 12, 12),
@@ -82,30 +78,107 @@ pub mod content {
             world.write_model(@t);
         };
 
-        // [Seed] GearTemplates 1..12 — three items per slot, tiers 1..3.
-        // tier=1 is the entry item with a small stat boost, tier=3 is the
-        // best in slot. stat_boost values are illustrative; the consumer
-        // (a future PR that translates gear ids into trading/combat
-        // modifiers) will likely scale them.
-        let mut gear = array![
-            // Weapons (slot 0)
-            GearTemplateTrait::new(1, 'Knife', SLOT_WEAPON, 1, 5),
-            GearTemplateTrait::new(2, 'Pistol', SLOT_WEAPON, 2, 15),
-            GearTemplateTrait::new(3, 'Uzi', SLOT_WEAPON, 3, 30),
-            // Clothes (slot 1)
-            GearTemplateTrait::new(4, 'Hoodie', SLOT_CLOTHES, 1, 5),
-            GearTemplateTrait::new(5, 'Leather', SLOT_CLOTHES, 2, 15),
-            GearTemplateTrait::new(6, 'Kevlar', SLOT_CLOTHES, 3, 30),
-            // Feet (slot 2)
-            GearTemplateTrait::new(7, 'Sneakers', SLOT_FEET, 1, 5),
-            GearTemplateTrait::new(8, 'Boots', SLOT_FEET, 2, 15),
-            GearTemplateTrait::new(9, 'Trainers', SLOT_FEET, 3, 30),
-            // Transport (slot 3)
-            GearTemplateTrait::new(10, 'Bicycle', SLOT_TRANSPORT, 1, 5),
-            GearTemplateTrait::new(11, 'Scooter', SLOT_TRANSPORT, 2, 15),
-            GearTemplateTrait::new(12, 'Sports Car', SLOT_TRANSPORT, 3, 30),
+        // === Weapons (slot 0, ids 1..18) ===
+        // Ported from dopewars_items.cairo slot 0.
+        // tier assignment matches the original get_item_tier.
+        let mut weapons = array![
+            GearTemplateTrait::new(1, 'Pocket Knife', SLOT_WEAPON, 3, 14),
+            GearTemplateTrait::new(2, 'Chain', SLOT_WEAPON, 2, 12),
+            GearTemplateTrait::new(3, 'Knife', SLOT_WEAPON, 3, 14),
+            GearTemplateTrait::new(4, 'Crowbar', SLOT_WEAPON, 3, 14),
+            GearTemplateTrait::new(5, 'Handgun', SLOT_WEAPON, 1, 10),
+            GearTemplateTrait::new(6, 'AK47', SLOT_WEAPON, 1, 10),
+            GearTemplateTrait::new(7, 'Shovel', SLOT_WEAPON, 2, 12),
+            GearTemplateTrait::new(8, 'Baseball Bat', SLOT_WEAPON, 2, 12),
+            GearTemplateTrait::new(9, 'Tire Iron', SLOT_WEAPON, 3, 14),
+            GearTemplateTrait::new(10, 'Police Baton', SLOT_WEAPON, 3, 14),
+            GearTemplateTrait::new(11, 'Pepper Spray', SLOT_WEAPON, 2, 12),
+            GearTemplateTrait::new(12, 'Razor Blade', SLOT_WEAPON, 3, 14),
+            GearTemplateTrait::new(13, 'Drone', SLOT_WEAPON, 1, 10),
+            GearTemplateTrait::new(14, 'Taser', SLOT_WEAPON, 2, 12),
+            GearTemplateTrait::new(15, 'Brass Knuckles', SLOT_WEAPON, 3, 14),
+            GearTemplateTrait::new(16, 'Shotgun', SLOT_WEAPON, 1, 10),
+            GearTemplateTrait::new(17, 'Glock', SLOT_WEAPON, 1, 10),
+            GearTemplateTrait::new(18, 'Uzi', SLOT_WEAPON, 1, 10),
         ];
-        while let Option::Some(g) = gear.pop_front() {
+        while let Option::Some(g) = weapons.pop_front() {
+            world.write_model(@g);
+        };
+
+        // === Clothes (slot 1, ids 19..38) ===
+        let mut clothes = array![
+            GearTemplateTrait::new(19, 'White T Shirt', SLOT_CLOTHES, 3, 14),
+            GearTemplateTrait::new(20, 'Black T Shirt', SLOT_CLOTHES, 3, 14),
+            GearTemplateTrait::new(21, 'White Hoodie', SLOT_CLOTHES, 2, 12),
+            GearTemplateTrait::new(22, 'Black Hoodie', SLOT_CLOTHES, 2, 12),
+            GearTemplateTrait::new(23, 'Bulletproof Vest', SLOT_CLOTHES, 1, 10),
+            GearTemplateTrait::new(24, '3 Piece Suit', SLOT_CLOTHES, 1, 10),
+            GearTemplateTrait::new(25, 'Checkered Shirt', SLOT_CLOTHES, 3, 14),
+            GearTemplateTrait::new(26, 'Bikini', SLOT_CLOTHES, 3, 14),
+            GearTemplateTrait::new(27, 'Golden Shirt', SLOT_CLOTHES, 2, 12),
+            GearTemplateTrait::new(28, 'Leather Vest', SLOT_CLOTHES, 2, 12),
+            GearTemplateTrait::new(29, 'Blood Stained Shirt', SLOT_CLOTHES, 1, 10),
+            GearTemplateTrait::new(30, 'Police Uniform', SLOT_CLOTHES, 1, 10),
+            GearTemplateTrait::new(31, 'Combat Jacket', SLOT_CLOTHES, 1, 10),
+            GearTemplateTrait::new(32, 'Basketball Jersey', SLOT_CLOTHES, 2, 12),
+            GearTemplateTrait::new(33, 'Track Suit', SLOT_CLOTHES, 2, 12),
+            GearTemplateTrait::new(34, 'Trenchcoat', SLOT_CLOTHES, 1, 10),
+            GearTemplateTrait::new(35, 'White Tank Top', SLOT_CLOTHES, 1, 10),
+            GearTemplateTrait::new(36, 'Black Tank Top', SLOT_CLOTHES, 1, 10),
+            GearTemplateTrait::new(37, 'Shirtless', SLOT_CLOTHES, 3, 14),
+            GearTemplateTrait::new(38, 'Naked', SLOT_CLOTHES, 3, 14),
+        ];
+        while let Option::Some(g) = clothes.pop_front() {
+            world.write_model(@g);
+        };
+
+        // === Feet (slot 2, ids 39..55) ===
+        // Original slot 5, remapped to v2 slot 2.
+        let mut feet = array![
+            GearTemplateTrait::new(39, 'Black Air Force 1s', SLOT_FEET, 1, 6),
+            GearTemplateTrait::new(40, 'White Forces', SLOT_FEET, 1, 6),
+            GearTemplateTrait::new(41, 'Air Jordan 1s', SLOT_FEET, 1, 6),
+            GearTemplateTrait::new(42, 'Gucci Tennis 84', SLOT_FEET, 1, 6),
+            GearTemplateTrait::new(43, 'Air Max 95', SLOT_FEET, 1, 6),
+            GearTemplateTrait::new(44, 'Timberlands', SLOT_FEET, 2, 8),
+            GearTemplateTrait::new(45, 'Reebok Classics', SLOT_FEET, 1, 6),
+            GearTemplateTrait::new(46, 'Flip Flops', SLOT_FEET, 3, 10),
+            GearTemplateTrait::new(47, 'Nike Cortez', SLOT_FEET, 1, 6),
+            GearTemplateTrait::new(48, 'Dress Shoes', SLOT_FEET, 3, 10),
+            GearTemplateTrait::new(49, 'Converse All Stars', SLOT_FEET, 2, 8),
+            GearTemplateTrait::new(50, 'White Slippers', SLOT_FEET, 2, 8),
+            GearTemplateTrait::new(51, 'Gucci Slides', SLOT_FEET, 2, 8),
+            GearTemplateTrait::new(52, 'Alligator Shoes', SLOT_FEET, 3, 10),
+            GearTemplateTrait::new(53, 'Socks', SLOT_FEET, 3, 10),
+            GearTemplateTrait::new(54, 'Open Toe Sandals', SLOT_FEET, 3, 10),
+            GearTemplateTrait::new(55, 'Barefoot', SLOT_FEET, 3, 10),
+        ];
+        while let Option::Some(g) = feet.pop_front() {
+            world.write_model(@g);
+        };
+
+        // === Transport (slot 3, ids 56..72) ===
+        // Original slot 2, remapped to v2 slot 3.
+        let mut transport = array![
+            GearTemplateTrait::new(56, 'Dodge', SLOT_TRANSPORT, 1, 900),
+            GearTemplateTrait::new(57, 'Porsche', SLOT_TRANSPORT, 1, 900),
+            GearTemplateTrait::new(58, 'Tricycle', SLOT_TRANSPORT, 3, 1100),
+            GearTemplateTrait::new(59, 'Scooter', SLOT_TRANSPORT, 3, 1100),
+            GearTemplateTrait::new(60, 'ATV', SLOT_TRANSPORT, 2, 1000),
+            GearTemplateTrait::new(61, 'Push Bike', SLOT_TRANSPORT, 3, 1100),
+            GearTemplateTrait::new(62, 'Electric Scooter', SLOT_TRANSPORT, 2, 1000),
+            GearTemplateTrait::new(63, 'Golf Cart', SLOT_TRANSPORT, 3, 1100),
+            GearTemplateTrait::new(64, 'Chopper', SLOT_TRANSPORT, 2, 1000),
+            GearTemplateTrait::new(65, 'Rollerblades', SLOT_TRANSPORT, 3, 1100),
+            GearTemplateTrait::new(66, 'Lowrider', SLOT_TRANSPORT, 1, 900),
+            GearTemplateTrait::new(67, 'Camper', SLOT_TRANSPORT, 1, 900),
+            GearTemplateTrait::new(68, 'Rolls Royce', SLOT_TRANSPORT, 1, 900),
+            GearTemplateTrait::new(69, 'BMW M3', SLOT_TRANSPORT, 2, 1000),
+            GearTemplateTrait::new(70, 'Bike', SLOT_TRANSPORT, 3, 1100),
+            GearTemplateTrait::new(71, 'C63 AMG', SLOT_TRANSPORT, 2, 1000),
+            GearTemplateTrait::new(72, 'G Wagon', SLOT_TRANSPORT, 1, 900),
+        ];
+        while let Option::Some(g) = transport.pop_front() {
             world.write_model(@g);
         };
     }

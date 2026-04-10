@@ -50,40 +50,49 @@ fn test_dojo_init_seeds_four_hustler_templates() {
 }
 
 #[test]
-fn test_dojo_init_seeds_twelve_gear_templates() {
-    // content::dojo_init writes gear templates 1..12 across the four
-    // slots with three tiers each. Spot-check the slot mapping and
-    // tier ordering — a future content rebalance should still preserve
-    // these invariants.
+fn test_dojo_init_seeds_72_gear_templates() {
+    // content::dojo_init writes the full 72-item gear catalog ported
+    // from the original dopewars. Verify total count + slot ranges +
+    // spot-check some iconic items.
     let (world, _systems) = spawn_v2();
 
-    // Three weapons (slot 0), tiers 1..3.
-    let knife: GearTemplate = world.read_model(1_u8);
-    let pistol: GearTemplate = world.read_model(2_u8);
-    let uzi: GearTemplate = world.read_model(3_u8);
-    assert!(knife.slot == 0 && knife.tier == 1, "knife = weapon t1");
-    assert!(pistol.slot == 0 && pistol.tier == 2, "pistol = weapon t2");
-    assert!(uzi.slot == 0 && uzi.tier == 3, "uzi = weapon t3");
-    assert!(uzi.stat_boost > pistol.stat_boost, "uzi boost > pistol");
-    assert!(pistol.stat_boost > knife.stat_boost, "pistol boost > knife");
+    // Count all seeded gear templates (ids 1..72).
+    let mut count: u32 = 0;
+    let mut id: u8 = 1;
+    while id <= 72 {
+        let g: GearTemplate = world.read_model(id);
+        if g.slot <= 3 && g.tier >= 1 && g.tier <= 3 {
+            count += 1;
+        }
+        id += 1;
+    };
+    assert!(count == 72, "72 gear templates seeded");
 
-    // Three clothes (slot 1).
-    let hoodie: GearTemplate = world.read_model(4_u8);
-    let kevlar: GearTemplate = world.read_model(6_u8);
-    assert!(hoodie.slot == 1 && hoodie.tier == 1, "hoodie = clothes t1");
-    assert!(kevlar.slot == 1 && kevlar.tier == 3, "kevlar = clothes t3");
+    // Spot-check weapons (slot 0, ids 1..18).
+    let pocket_knife: GearTemplate = world.read_model(1_u8);
+    assert!(pocket_knife.slot == 0 && pocket_knife.tier == 3, "Pocket Knife = weapon t3");
+    let ak47: GearTemplate = world.read_model(6_u8);
+    assert!(ak47.slot == 0 && ak47.tier == 1, "AK47 = weapon t1 (best)");
+    let uzi: GearTemplate = world.read_model(18_u8);
+    assert!(uzi.slot == 0 && uzi.tier == 1, "Uzi = weapon t1");
 
-    // Three feet (slot 2).
-    let sneakers: GearTemplate = world.read_model(7_u8);
-    let trainers: GearTemplate = world.read_model(9_u8);
-    assert!(sneakers.slot == 2 && sneakers.tier == 1, "sneakers = feet t1");
-    assert!(trainers.slot == 2 && trainers.tier == 3, "trainers = feet t3");
+    // Spot-check clothes (slot 1, ids 19..38).
+    let bulletproof: GearTemplate = world.read_model(23_u8);
+    assert!(bulletproof.slot == 1 && bulletproof.tier == 1, "Bulletproof Vest = clothes t1");
+    let bikini: GearTemplate = world.read_model(26_u8);
+    assert!(bikini.slot == 1 && bikini.tier == 3, "Bikini = clothes t3");
 
-    // Three transport (slot 3).
-    let bicycle: GearTemplate = world.read_model(10_u8);
-    let sports_car: GearTemplate = world.read_model(12_u8);
-    assert!(bicycle.slot == 3 && bicycle.tier == 1, "bicycle = transport t1");
-    assert!(sports_car.slot == 3 && sports_car.tier == 3, "car = transport t3");
+    // Spot-check feet (slot 2, ids 39..55).
+    let af1: GearTemplate = world.read_model(39_u8);
+    assert!(af1.slot == 2 && af1.tier == 1, "Black AF1s = feet t1");
+    let barefoot: GearTemplate = world.read_model(55_u8);
+    assert!(barefoot.slot == 2 && barefoot.tier == 3, "Barefoot = feet t3");
+
+    // Spot-check transport (slot 3, ids 56..72).
+    let rolls: GearTemplate = world.read_model(68_u8);
+    assert!(rolls.slot == 3 && rolls.tier == 1, "Rolls Royce = transport t1");
+    let tricycle: GearTemplate = world.read_model(58_u8);
+    assert!(tricycle.slot == 3 && tricycle.tier == 3, "Tricycle = transport t3");
 }
 
 #[test]
@@ -100,10 +109,11 @@ fn test_get_hustler_template_dispatch() {
 #[test]
 fn test_get_gear_template_dispatch() {
     let (_world, systems) = spawn_v2();
-    let pistol = systems.content.get_gear_template(2_u8);
-    assert!(pistol.name == 'Pistol', "pistol via dispatcher");
-    assert!(pistol.slot == 0, "weapon slot");
-    assert!(pistol.tier == 2, "tier 2");
+    // Chain is id 2 in the full catalog (weapon, tier 2).
+    let chain = systems.content.get_gear_template(2_u8);
+    assert!(chain.name == 'Chain', "Chain via dispatcher");
+    assert!(chain.slot == 0, "weapon slot");
+    assert!(chain.tier == 2, "tier 2");
 }
 
 #[test]

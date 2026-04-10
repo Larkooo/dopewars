@@ -124,15 +124,12 @@ fn test_initialize_seeds_four_packs() {
 
 #[test]
 fn test_initialize_seeds_per_tier_gear_loadouts() {
-    // PR #4: each paid tier ships with a per-tier gear loadout from
-    // the content catalog. Naked is the all-zeros baseline; Street/
-    // Dealer/Kingpin pre-load tier 1/2/3 gear in every slot.
+    // Each paid tier ships with iconic items from the full 72-item
+    // catalog. Tier numbering follows original dopewars convention:
+    // tier 1 = best, tier 3 = worst. Naked = no gear, Street =
+    // tier-3 (starter), Dealer = tier-2, Kingpin = tier-1 (best).
     //
-    // Gear ids match content::dojo_init's seeds:
-    //   Weapons   1=Knife    2=Pistol  3=Uzi
-    //   Clothes   4=Hoodie   5=Leather 6=Kevlar
-    //   Feet      7=Sneakers 8=Boots   9=Trainers
-    //   Transport 10=Bicycle 11=Scooter 12=Sports Car
+    // IDs match content::dojo_init's full catalog.
     let (world, _systems) = spawn_v2();
 
     let naked_id = find_bundle_id_by_stake(world, 1).expect('Naked bundle');
@@ -142,26 +139,29 @@ fn test_initialize_seeds_per_tier_gear_loadouts() {
     assert!(naked.gear_feet == 0, "Naked feet = none");
     assert!(naked.gear_transport == 0, "Naked transport = none");
 
+    // Street: tier-3 items (worst starter gear).
     let street_id = find_bundle_id_by_stake(world, 2).expect('Street bundle');
     let street: Starterpack = world.read_model(street_id);
-    assert!(street.gear_weapon == 1, "Street weapon = Knife (1)");
-    assert!(street.gear_clothes == 4, "Street clothes = Hoodie (4)");
-    assert!(street.gear_feet == 7, "Street feet = Sneakers (7)");
-    assert!(street.gear_transport == 10, "Street transport = Bicycle (10)");
+    assert!(street.gear_weapon == 1, "Street weapon = Pocket Knife (1)");
+    assert!(street.gear_clothes == 19, "Street clothes = White T Shirt (19)");
+    assert!(street.gear_feet == 46, "Street feet = Flip Flops (46)");
+    assert!(street.gear_transport == 58, "Street transport = Tricycle (58)");
 
+    // Dealer: tier-2 items (mid).
     let dealer_id = find_bundle_id_by_stake(world, 3).expect('Dealer bundle');
     let dealer: Starterpack = world.read_model(dealer_id);
-    assert!(dealer.gear_weapon == 2, "Dealer weapon = Pistol (2)");
-    assert!(dealer.gear_clothes == 5, "Dealer clothes = Leather (5)");
-    assert!(dealer.gear_feet == 8, "Dealer feet = Boots (8)");
-    assert!(dealer.gear_transport == 11, "Dealer transport = Scooter (11)");
+    assert!(dealer.gear_weapon == 2, "Dealer weapon = Chain (2)");
+    assert!(dealer.gear_clothes == 22, "Dealer clothes = Black Hoodie (22)");
+    assert!(dealer.gear_feet == 44, "Dealer feet = Timberlands (44)");
+    assert!(dealer.gear_transport == 60, "Dealer transport = ATV (60)");
 
+    // Kingpin: tier-1 items (best).
     let kingpin_id = find_bundle_id_by_stake(world, 4).expect('Kingpin bundle');
     let kingpin: Starterpack = world.read_model(kingpin_id);
-    assert!(kingpin.gear_weapon == 3, "Kingpin weapon = Uzi (3)");
-    assert!(kingpin.gear_clothes == 6, "Kingpin clothes = Kevlar (6)");
-    assert!(kingpin.gear_feet == 9, "Kingpin feet = Trainers (9)");
-    assert!(kingpin.gear_transport == 12, "Kingpin transport = Sports Car (12)");
+    assert!(kingpin.gear_weapon == 6, "Kingpin weapon = AK47 (6)");
+    assert!(kingpin.gear_clothes == 23, "Kingpin clothes = Bulletproof Vest (23)");
+    assert!(kingpin.gear_feet == 39, "Kingpin feet = Black AF1s (39)");
+    assert!(kingpin.gear_transport == 68, "Kingpin transport = Rolls Royce (68)");
 }
 
 #[test]
