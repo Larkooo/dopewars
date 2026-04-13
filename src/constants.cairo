@@ -8,10 +8,10 @@ pub const MULTIPLIER_PRECISION: u128 = 1_000_000;
 
 
 pub fn ns() -> ByteArray {
-    "dopewars_v0"
+    "dopewars"
 }
 
 pub fn ns_felt252() -> felt252 {
-    'dopewars_v0'
+    'dopewars'
 }
 
