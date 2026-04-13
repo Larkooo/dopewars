@@ -1,7 +1,7 @@
 # Dopewars v2 — Design & Architecture
 
 > Living document. Source of truth for the v2 contract layer.
-> Last updated: 2026-04-10.
+> Last updated: 2026-04-13.
 
 ## Vision
 
@@ -22,7 +22,7 @@ V2 is a **fresh-world** rebuild of dopewars on the nums-style economic loop:
 
 ```bash
 scarb build          # compile all contracts
-scarb test           # run 93+ tests (unit + integration)
+scarb test           # run 98+ tests (unit + integration)
 scarb fmt --check    # linter
 ```
 
@@ -79,7 +79,7 @@ scarb fmt --check    # linter
 | `HustlerInstance` | `token_id: u64` | Per-NFT state: bundle_id, template_id, gear loadout, paper_burned (actual Ekubo swap result), used flag, game_id, final_score |
 | `HustlerTemplate` | `id: u8` | Preset stats: health, starting_cash, attack, defense, cargo |
 | `GearTemplate` | `id: u8` | Gear catalog: name, slot (0-3), tier (1-3), stat_boost |
-| `GearInstance` | `id: u32` | Owned gear unit from marketplace: owner, template_id, purchased_day |
+| `GearInstance` | `id: u32` | Owned gear unit from marketplace: owner, template_id, purchased_day, equipped_to (0=inventory, non-zero=consumed) |
 | `MarketConfig` | singleton (key=0) | Per-tier PAPER prices, burn_percentage |
 | `DailyPurchase` | `(player, slot, day)` | One-per-slot-per-day limit. `purchased: bool` flag. |
 | `RyoConfig` | singleton | Season version, EMA params, target_supply, max_score |
@@ -142,12 +142,21 @@ Formula: `template_id = slot * 3 + tier`
 
 Each day: all 4 slots offer the same tier (day % 3 + 1). Each player can buy 1 per slot per day. Payment in PAPER with configurable burn/treasury split.
 
-### Equip flow (NOT YET IMPLEMENTED)
+### Equip flow
 
-Currently `HustlerInstance.gear_*` holds template ids baked at purchase time. `GearInstance` rows from the marketplace are wallet-owned but not yet bindable to a hustler. The equip flow needs:
-- An `equip(hustler_id, gear_instance_id)` entrypoint (on marketplace or game contract)
-- Modification of `create_game` to accept `GearInstance` ids instead of (or alongside) pre-baked template ids
-- Decision: can pre-equipped pack gear be replaced? (Likely yes — convert pack gear to GearInstances at purchase time)
+`IEquip::equip(hustler_token_id, gear_instance_id)` on the marketplace contract. **Single-use**: once equipped, the `GearInstance.equipped_to` is set to the hustler's token_id and can't be re-equipped elsewhere. Gear dies with the hustler after one game run.
+
+Flow: buy gear from marketplace → `equip(hustler_id, gear_id)` → writes `GearTemplate.template_id` into `HustlerInstance.gear_[slot]` based on `GearTemplate.slot` → `create_game` reads it as-is (zero changes to game contract).
+
+Validations: caller owns both the hustler NFT and the GearInstance, hustler not yet used, gear not already consumed, slot auto-determined from GearTemplate.
+
+Pack gear (baked at purchase time as template ids) gets overwritten silently — it was never a GearInstance, just starter template ids.
+
+### Starterpack design
+
+All four pack tiers share **identical stats** (health 90, cash 0, attack/defense/cargo 10) and the **same starter junk gear** (Razor Blade / Shirtless / Barefoot / Rollerblades). The only differentiator is the reward **multiplier** (1x/2x/3x/4x). No pay-to-win — gear progression is 100% earned via marketplace + in-game shop.
+
+Transferring a hustler NFT implicitly transfers the equipped gear (gear is bound to token_id, not wallet). A traded unplayed hustler is "one game run with this loadout."
 
 ## Known gotchas for agents
 
@@ -161,7 +170,7 @@ Currently `HustlerInstance.gear_*` holds template ids baked at purchase time. `G
 
 5. **`bundle.register` must NOT be called from `dojo_init`.** The test world's `init_contract` re-entry context doesn't correctly propagate the Bundle model writes. Call `register` from a public admin entrypoint after spawn instead. This matches arcade's own bundle test pattern.
 
-## Test coverage (93+ tests)
+## Test coverage (98+ tests)
 
 | File | Count | What it tests |
 |---|---|---|
@@ -171,6 +180,7 @@ Currently `HustlerInstance.gear_*` holds template ids baked at purchase time. `G
 | `v2_purchase_swap` | 7 | Ekubo swap-and-burn, paper_burned recording, treasury share, gating |
 | `v2_content` | 9 | Content seeding, template dispatchers, admin register/overwrite |
 | `v2_marketplace` | 8 | Daily shop: buy, limit, treasury+burn split, rotation, quote |
+| `v2_equip` | 5 | Equip: happy path, consumed gear, used hustler, wrong owner, pack overwrite |
 | `v2_unit_daily_shop` | 8 | Pure day_number/today_tier/template_for_slot helpers |
 | `v2_unit_*` (6 files) | ~34 | Model constructors, discount curve, rewarder math, payment config |
 
@@ -178,10 +188,10 @@ Currently `HustlerInstance.gear_*` holds template ids baked at purchase time. `G
 
 ### Contract-layer followups
 
-- [ ] **Equip flow** — bind GearInstance to HustlerInstance slots before game start
+- [x] ~~Equip flow~~ — done (#455)
+- [ ] **Gear stat_boost wiring** — flow `GearTemplate.stat_boost` into combat / encounters. The original game loop in `shopping.cairo` has tier-based gear checks — needs reconnecting to the new `GearTemplate` model.
+- [ ] **Upgrade system** — the original's 4-level progression (pay in-game cash during a run to upgrade equipped gear). Needs a `GearLevelConfig` model for the per-tier level arrays from `get_tier_config`.
 - [ ] **PR-2c** — register_score integration tests (needs VRF mock + game spawn fixture)
-- [ ] **Gear stat_boost wiring** — flow `GearTemplate.stat_boost` into combat / encounters
-- [ ] **VRGDA dynamic pricing** — layer on top of the daily shop for demand-responsive pricing
 - [ ] **PR-5** — v2 achievement system redesign
 
 ### Production / ops
@@ -190,9 +200,13 @@ Currently `HustlerInstance.gear_*` holds template ids baked at purchase time. `G
 - [ ] **Ekubo USDC↔PAPER pool** — must be deployed before v2 launch
 - [ ] **Season transition** — needs a new trigger (the old `launder` is gone)
 
-### Frontend
+### Frontend (PR-3) — next priority
 
-- [ ] **PR-3** — web rewrite: pack picker, `bundle.issue`, marketplace UI, reward chart
+- [ ] **Pack picker UI** — select tier (Junkie/Street/Dealer/Kingpin), show multiplier + price, call `bundle.issue`
+- [ ] **Marketplace UI** — show today's 4 items (from `today_offer`), quote prices, call `buy(slot)`
+- [ ] **Inventory + equip UI** — show owned `GearInstance` rows, equip to an unplayed hustler
+- [ ] **Reward display** — show `HustlerInstance.paper_burned` + reward from `register_score`
+- [ ] **Drop legacy `IPurchase::buy` references** — frontend currently calls the old interface
 - [ ] **Close PR #427** — superseded by PR-1 series
 
 ## PR history on `v2`
@@ -217,4 +231,8 @@ Currently `HustlerInstance.gear_*` holds template ids baked at purchase time. `G
 | PR #2 | #447 | merged | Ekubo router mock + swap integration tests |
 | PR #3 | #448 | merged | Treasury distribution share in on_issue |
 | PR #4 | #449 | merged | Per-tier gear loadouts on starterpacks |
-| Marketplace | #450 | open | Daily gear shop with PAPER pricing + burn split |
+| Marketplace | #450 | merged | Daily gear shop with PAPER pricing + burn split |
+| 72-item catalog | #452 | merged | Port full 72-item gear catalog from original dopewars |
+| Junkie pack | #453 | merged | Rename Naked to Junkie, equip tier-3 junk gear |
+| Flatten packs | #454 | merged | Same stats + gear across all tiers, only multiplier differs |
+| Equip flow | #455 | merged | Single-use equip: bind GearInstance to HustlerInstance |
