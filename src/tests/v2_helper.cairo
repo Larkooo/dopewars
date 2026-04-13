@@ -122,8 +122,27 @@ pub fn spawn_v2() -> (WorldStorage, V2Systems) {
     let contract_defs = [
         ContractDefTrait::new(@ns(), @"paper").with_init_calldata([OWNER().into()].span()),
         ContractDefTrait::new(@ns(), @"hustler").with_init_calldata([OWNER().into()].span()),
+        // purchase.dojo_init now takes full PaymentConfig args + registers
+        // bundles. In tests we pass paper_address=0 (not known yet) and
+        // ekubo_router=0 to skip the swap path. We then call
+        // set_payment_config + initialize manually after spawn so we can
+        // set_block_timestamp(1) first (bundle.register needs timestamp != 0).
         ContractDefTrait::new(@ns(), @"purchase")
-            .with_init_calldata([OWNER().into()].span())
+            .with_init_calldata(
+                [
+                    0, // usdc (will be set via set_payment_config)
+                    0, // ekubo_router
+                    0, // ekubo_positions
+                    0, // pool_fee
+                    0, // pool_tick_spacing
+                    0, // pool_extension
+                    0, 0, // base_price (u256 low, high)
+                    0, // burn_percentage
+                    0, // treasury_percentage
+                    0, // treasury_address
+                ]
+                    .span(),
+            )
             .with_writer_of([ns_hash].span()),
         // Content seeds the HustlerTemplate + GearTemplate catalog in
         // its dojo_init. Needs writer access on the namespace's catalog
@@ -133,7 +152,15 @@ pub fn spawn_v2() -> (WorldStorage, V2Systems) {
             .with_init_calldata([].span())
             .with_writer_of([ns_hash].span()),
         ContractDefTrait::new(@ns(), @"marketplace")
-            .with_init_calldata([].span())
+            .with_init_calldata(
+                [
+                    0, 0, // tier1_price (u256 low, high)
+                    0, 0, // tier2_price (u256 low, high)
+                    0, 0, // tier3_price (u256 low, high)
+                    0, // burn_percentage
+                ]
+                    .span(),
+            )
             .with_writer_of([ns_hash].span()),
     ]
         .span();

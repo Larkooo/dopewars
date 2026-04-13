@@ -366,11 +366,114 @@ pub mod purchase {
         BundleEvent: BundleComponent::Event,
     }
 
-    /// `dojo_init` is intentionally a no-op. PaymentConfig + bundle
-    /// registration both happen via the IPurchaseAdmin entrypoints
-    /// below — see those doc comments for why.
-    fn dojo_init(ref self: ContractState, admin: ContractAddress) {
-        let _ = admin;
+    /// Wire PaymentConfig + register the 4 starterpack bundles in one
+    /// shot during `sozo migrate`. Mirrors nums Setup.dojo_init — all
+    /// config flows through init_call_args so no post-deploy script is
+    /// needed. Pass ekubo_router = 0 to skip the swap path (dev/test).
+    fn dojo_init(
+        ref self: ContractState,
+        usdc: ContractAddress,
+        ekubo_router: ContractAddress,
+        ekubo_positions: ContractAddress,
+        pool_fee: u128,
+        pool_tick_spacing: u128,
+        pool_extension: ContractAddress,
+        base_price: u256,
+        burn_percentage: u8,
+        treasury_percentage: u8,
+        treasury_address: ContractAddress,
+    ) {
+        let mut world = self.world(@ns());
+
+        // [Compute] pool_sqrt based on token ordering (same as nums)
+        let paper_address = world
+            .dns_address(@"paper")
+            .unwrap_or(Zero::zero());
+        let pool_sqrt = if usdc.is_zero() || paper_address.is_zero() {
+            // dev/test — no Ekubo, no sqrt needed
+            u256 { low: 0, high: 0 }
+        } else if usdc < paper_address {
+            u256 { low: 0x6f3528fe26840249f4b191ef6dff7928, high: 0xfffffc080ed7b455 }
+        } else {
+            u256 { low: 0x1000003f7f1380b75, high: 0x0 }
+        };
+
+        // [Guard] Skip setup when base_price is 0 (test fixture passes
+        // all-zero init args and configures via set_payment_config +
+        // initialize() manually after setting block_timestamp).
+        if base_price == 0 {
+            return;
+        }
+
+        // [Effect] Write PaymentConfig
+        let config = PaymentConfigTrait::new(
+            usdc,
+            ekubo_router,
+            ekubo_positions,
+            pool_fee,
+            pool_tick_spacing,
+            pool_extension,
+            pool_sqrt,
+            base_price,
+            burn_percentage,
+            treasury_percentage,
+            treasury_address,
+        );
+        world.write_model(@config);
+
+        // [Effect] Register the 4 starterpack bundles (same as initialize())
+        let payment_receiver = starknet::get_contract_address();
+        let allower: ContractAddress = Zero::zero();
+        let payment_token = usdc;
+
+        let templates = array![
+            TEMPLATE_JUNKIE, TEMPLATE_STREET, TEMPLATE_DEALER, TEMPLATE_KINGPIN,
+        ];
+        let weapons = array![
+            GEAR_RAZOR_BLADE, GEAR_RAZOR_BLADE, GEAR_RAZOR_BLADE, GEAR_RAZOR_BLADE,
+        ];
+        let clothes = array![
+            GEAR_SHIRTLESS, GEAR_SHIRTLESS, GEAR_SHIRTLESS, GEAR_SHIRTLESS,
+        ];
+        let feet = array![
+            GEAR_BAREFOOT, GEAR_BAREFOOT, GEAR_BAREFOOT, GEAR_BAREFOOT,
+        ];
+        let transport = array![
+            GEAR_ROLLERBLADES, GEAR_ROLLERBLADES, GEAR_ROLLERBLADES, GEAR_ROLLERBLADES,
+        ];
+
+        let mut idx: u32 = 0;
+        while idx < PACK_COUNT {
+            let stake: u8 = (idx + 1).try_into().unwrap();
+            let price = super::discount_price_u256(stake, base_price);
+            let template_id = *templates.at(idx);
+
+            let bundle_id = self
+                .bundle
+                .register(
+                    world,
+                    referral_percentage: 0,
+                    reissuable: true,
+                    price: price,
+                    payment_token: payment_token,
+                    payment_receiver: payment_receiver,
+                    metadata: "starterpack",
+                    allower: allower,
+                );
+
+            let pack = StarterpackTrait::new(
+                bundle_id,
+                template_id,
+                *weapons.at(idx),
+                *clothes.at(idx),
+                *feet.at(idx),
+                *transport.at(idx),
+                stake,
+            );
+            world.write_model(@pack);
+
+            idx += 1;
+        };
     }
 
     // Expose the bundle component's IBundle entrypoints as the

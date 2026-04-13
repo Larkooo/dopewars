@@ -13,11 +13,29 @@ default = "dopewars"
 
 [migration]
 skip_contracts = []
+order_inits = [
+    "dopewars-paper",
+    "dopewars-paper_mock",
+    "dopewars-hustler",
+    "dopewars-content",
+    "dopewars-ryo",
+    "dopewars-purchase",
+    "dopewars-marketplace",
+    "dopewars-game",
+]
 
 [init_call_args]
 "dopewars-vrf_provider_mock" = [
     "0x6b0aab388dc7b240801b5aa0722bfcd39a1f397e83d5c032c198b18594b665e",
     "0x55ca1905d9b3d72b5e710f723c3bbd8f03428fb243f44cd5faee2796b44b204",
+]
+# paper.dojo_init(admin)
+"dopewars-paper" = [
+    "0x127fd5f1fe78a71f8bcd1fec63e3fe2f0486b6ecd5c86a0466c3a21fa5cfcec", # admin = katana dev account
+]
+# hustler.dojo_init(admin)
+"dopewars-hustler" = [
+    "0x127fd5f1fe78a71f8bcd1fec63e3fe2f0486b6ecd5c86a0466c3a21fa5cfcec", # admin = katana dev account
 ]
 "dopewars-ryo" = [
     "0x0",                                                              # paper address, 0x0 = use world.dns
@@ -26,9 +44,14 @@ skip_contracts = []
     "1800",                                                             # season_duration: u32, 30 min
     "180",                                                              # season_time_limit: u16 3min
 ]
-# purchase.dojo_init takes an admin address
+# purchase.dojo_init — skip Ekubo on slot katana
 "dopewars-purchase" = [
-    "0x127fd5f1fe78a71f8bcd1fec63e3fe2f0486b6ecd5c86a0466c3a21fa5cfcec", # admin = katana dev account
+    "0x0", "0x0", "0x0", "0x0", "0x0", "0x0",
+    "0x0", "0x0",                                                       # base_price = 0 (skip init)
+    "0x0", "0x0", "0x0",
+]
+"dopewars-marketplace" = [
+    "0x0", "0x0", "0x0", "0x0", "0x0", "0x0", "0x0",
 ]
 
 

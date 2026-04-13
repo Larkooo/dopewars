@@ -93,10 +93,23 @@ fn spawn_market() -> (WorldStorage, MarketSystems) {
         ContractDefTrait::new(@ns(), @"paper")
             .with_init_calldata([OWNER().into()].span()),
         ContractDefTrait::new(@ns(), @"marketplace")
-            .with_init_calldata([].span())
+            .with_init_calldata(
+                [
+                    0, 0, // tier1_price
+                    0, 0, // tier2_price
+                    0, 0, // tier3_price
+                    0, // burn_percentage
+                ]
+                    .span(),
+            )
             .with_writer_of([ns_hash].span()),
         ContractDefTrait::new(@ns(), @"purchase")
-            .with_init_calldata([OWNER().into()].span())
+            .with_init_calldata(
+                [
+                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                ]
+                    .span(),
+            )
             .with_writer_of([ns_hash].span()),
         // Content seeds the 72 GearTemplate rows the marketplace
         // reads for tier-based pricing.

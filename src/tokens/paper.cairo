@@ -32,6 +32,7 @@ pub const MINTER_ROLE: felt252 = selector!("MINTER_ROLE");
 
 #[dojo::contract]
 pub mod paper {
+    use dojo::world::WorldStorageTrait;
     use openzeppelin::access::accesscontrol::{AccessControlComponent, DEFAULT_ADMIN_ROLE};
     use openzeppelin::introspection::src5::SRC5Component;
     use openzeppelin::token::erc20::{DefaultConfig, ERC20Component};
@@ -76,10 +77,16 @@ pub mod paper {
     fn dojo_init(ref self: ContractState, admin: ContractAddress) {
         // ERC20 metadata
         self.erc20.initializer("Paper", "PAPER");
-        // AccessControl: admin can grant/revoke MINTER_ROLE later via the
-        // standard IAccessControl entrypoints embedded above.
+        // AccessControl
         self.accesscontrol.initializer();
         self.accesscontrol._grant_role(DEFAULT_ADMIN_ROLE, admin);
+        // Grant MINTER_ROLE to the game contract so it can mint PAPER
+        // rewards via the rewarder in season_manager::on_register_score.
+        // Silently skips if game contract isn't deployed yet (test fixture).
+        let world = self.world(@rollyourown::constants::ns());
+        if let Option::Some(game_address) = world.dns_address(@"game") {
+            self.accesscontrol._grant_role(MINTER_ROLE, game_address);
+        }
     }
 
     impl ERC20HooksImpl of ERC20Component::ERC20HooksTrait<ContractState> {}

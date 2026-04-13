@@ -39,6 +39,7 @@ pub const MINTER_ROLE: felt252 = selector!("MINTER_ROLE");
 
 #[dojo::contract]
 pub mod hustler {
+    use dojo::world::WorldStorageTrait;
     use openzeppelin::access::accesscontrol::{AccessControlComponent, DEFAULT_ADMIN_ROLE};
     use openzeppelin::interfaces::token::erc721::{IERC721, IERC721Metadata};
     use openzeppelin::introspection::src5::SRC5Component;
@@ -99,6 +100,13 @@ pub mod hustler {
         self.accesscontrol._grant_role(DEFAULT_ADMIN_ROLE, admin);
         // Empty base_uri — content PR will plug in a real metadata renderer.
         self.erc721.initializer("Hustler", "HUSTLER", "");
+        // Grant MINTER_ROLE to the purchase contract so it can mint
+        // hustler NFTs in the BundleTrait::on_issue callback.
+        // Silently skips if purchase isn't deployed yet (test fixture).
+        let world = self.world(@rollyourown::constants::ns());
+        if let Option::Some(purchase_address) = world.dns_address(@"purchase") {
+            self.accesscontrol._grant_role(MINTER_ROLE, purchase_address);
+        }
     }
 
     // Custom ERC721 impl that adds the soulbound check on transfer.

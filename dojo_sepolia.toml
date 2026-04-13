@@ -1,4 +1,3 @@
-
 [env]
 rpc_url = "https://api.cartridge.gg/x/starknet/sepolia"
 
@@ -14,13 +13,31 @@ description = "Dope Wars V2 — fresh world with starterpacks, daily marketplace
 default = "dopewars"
 
 [migration]
-# skip dev-only mocks on sepolia — use real VRF + paper_mock as USDC stand-in
 skip_contracts = ["dopewars-ekubo_router_mock", "dopewars-devtools"]
+# Ensure tokens init before contracts that read them from DNS
+order_inits = [
+    "dopewars-paper",
+    "dopewars-paper_mock",
+    "dopewars-hustler",
+    "dopewars-content",
+    "dopewars-ryo",
+    "dopewars-purchase",
+    "dopewars-marketplace",
+    "dopewars-game",
+]
 
 [init_call_args]
 "dopewars-vrf_provider_mock" = [
     "0x6b0aab388dc7b240801b5aa0722bfcd39a1f397e83d5c032c198b18594b665e",
     "0x55ca1905d9b3d72b5e710f723c3bbd8f03428fb243f44cd5faee2796b44b204",
+]
+# paper.dojo_init(admin) — grants DEFAULT_ADMIN_ROLE
+"dopewars-paper" = [
+    "0x025Ee38b230906EA41B00401cC12bb51f58DC62198cf058a336655696908863D", # admin = deployer
+]
+# hustler.dojo_init(admin) — grants DEFAULT_ADMIN_ROLE
+"dopewars-hustler" = [
+    "0x025Ee38b230906EA41B00401cC12bb51f58DC62198cf058a336655696908863D", # admin = deployer
 ]
 "dopewars-ryo" = [
     "0x0",                                                                # paper address, 0x0 = use world.dns for paper_mock
@@ -29,9 +46,26 @@ skip_contracts = ["dopewars-ekubo_router_mock", "dopewars-devtools"]
     "3600",                                                               # season_duration: u32, 60 min
     "300",                                                                # season_time_limit: u16 5min
 ]
-# purchase.dojo_init takes an admin address
+# purchase.dojo_init — writes PaymentConfig + registers 4 bundles.
+# Ekubo addresses from nums sepolia. pool_sqrt auto-computed from token ordering.
 "dopewars-purchase" = [
-    "0x025Ee38b230906EA41B00401cC12bb51f58DC62198cf058a336655696908863D", # admin = deployer
+    "0x0",                                                                # usdc — 0x0 = use paper_mock via dns as USDC stand-in
+    "0x050d4da9f66589eadaa1d5e31cf73b08ac1a67c8b4dcd88e6fd4fe501c628af2", # ekubo_router (sepolia)
+    "0x06a2aee84bb0ed5dded4384ddd0e40e9c1372b818668375ab8e3ec08807417e5", # ekubo_positions (sepolia)
+    "0xccccccccccccccccccccccccccccccc",                                   # pool_fee (0.3%)
+    "0x56a4c",                                                            # pool_tick_spacing (355884)
+    "0x073ec792c33b52d5f96940c2860d512b3884f2127d25e023eb9d44a678e4b971", # pool_extension (sepolia)
+    "0x1E8480", "0x0",                                                    # base_price (u256) = 2 USDC (6 decimals)
+    "70",                                                                 # burn_percentage
+    "20",                                                                 # treasury_percentage
+    "0x44cea566ac53bf7c36b298e36536c1a53ba0b0bdf66b2c5f437965605acface",  # treasury_address
+]
+# marketplace.dojo_init — per-tier PAPER prices + burn split.
+"dopewars-marketplace" = [
+    "0x1B1AE4D6E2EF500000", "0x0",                                       # tier1_price: 500 PAPER (u256)
+    "0xAD78EBC5AC6200000", "0x0",                                         # tier2_price: 200 PAPER (u256)
+    "0x2B5E3AF16B1880000", "0x0",                                         # tier3_price: 50 PAPER (u256)
+    "50",                                                                 # burn_percentage
 ]
 
 

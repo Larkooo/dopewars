@@ -13,11 +13,29 @@ default = "dopewars"
 
 [migration]
 skip_contracts = []
+# Ensure tokens init before contracts that read them from DNS
+order_inits = [
+    "dopewars-paper",
+    "dopewars-hustler",
+    "dopewars-content",
+    "dopewars-ryo",
+    "dopewars-purchase",
+    "dopewars-marketplace",
+    "dopewars-game",
+]
 
 [init_call_args]
 "dopewars-vrf_provider_mock" = [
     "0x6b0aab388dc7b240801b5aa0722bfcd39a1f397e83d5c032c198b18594b665e",
     "0x55ca1905d9b3d72b5e710f723c3bbd8f03428fb243f44cd5faee2796b44b204",
+]
+# paper.dojo_init(admin) — grants DEFAULT_ADMIN_ROLE so admin can grant MINTER_ROLE later
+"dopewars-paper" = [
+    "0x127fd5f1fe78a71f8bcd1fec63e3fe2f0486b6ecd5c86a0466c3a21fa5cfcec", # admin = katana dev account
+]
+# hustler.dojo_init(admin) — grants DEFAULT_ADMIN_ROLE so admin can grant MINTER_ROLE later
+"dopewars-hustler" = [
+    "0x127fd5f1fe78a71f8bcd1fec63e3fe2f0486b6ecd5c86a0466c3a21fa5cfcec", # admin = katana dev account
 ]
 "dopewars-ryo" = [
     "0x0",                                                              # paper address, 0x0 = use world.dns
@@ -26,9 +44,28 @@ skip_contracts = []
     "600",                                                              # season_duration: u32, 10 min
     "180",                                                              # season_time_limit: u16 3min
 ]
-# purchase.dojo_init takes an admin address
+# purchase.dojo_init — full PaymentConfig + bundle registration.
+# Pass base_price=0 to skip setup (use set_payment_config + initialize later).
+# On local katana, skip Ekubo (ekubo_router=0) — swap path disabled.
 "dopewars-purchase" = [
-    "0x127fd5f1fe78a71f8bcd1fec63e3fe2f0486b6ecd5c86a0466c3a21fa5cfcec", # admin = katana dev account
+    "0x0",                                                              # usdc (use paper_mock via dns)
+    "0x0",                                                              # ekubo_router (0 = skip swap)
+    "0x0",                                                              # ekubo_positions
+    "0x0",                                                              # pool_fee
+    "0x0",                                                              # pool_tick_spacing
+    "0x0",                                                              # pool_extension
+    "0x0", "0x0",                                                       # base_price (u256) — 0 = skip init
+    "0x0",                                                              # burn_percentage
+    "0x0",                                                              # treasury_percentage
+    "0x0",                                                              # treasury_address
+]
+# marketplace.dojo_init — per-tier PAPER prices + burn split.
+# Pass all-zero to skip (use set_config later).
+"dopewars-marketplace" = [
+    "0x0", "0x0",                                                       # tier1_price (u256)
+    "0x0", "0x0",                                                       # tier2_price (u256)
+    "0x0", "0x0",                                                       # tier3_price (u256)
+    "0x0",                                                              # burn_percentage
 ]
 
 

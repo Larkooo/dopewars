@@ -82,8 +82,20 @@ pub mod marketplace {
         pub const GEAR_CONSUMED: felt252 = 'Equip: gear already consumed';
     }
 
-    fn dojo_init(ref self: ContractState) {
-        // No-op. Admin calls set_config after deploy.
+    fn dojo_init(
+        ref self: ContractState,
+        tier1_price: u256,
+        tier2_price: u256,
+        tier3_price: u256,
+        burn_percentage: u8,
+    ) {
+        if tier1_price > 0 || tier2_price > 0 || tier3_price > 0 {
+            let mut world = self.world(@ns());
+            let config = MarketConfigTrait::new(
+                tier1_price, tier2_price, tier3_price, burn_percentage,
+            );
+            world.write_model(@config);
+        }
     }
 
     #[abi(embed_v0)]
