@@ -25,10 +25,6 @@ order_inits = [
 ]
 
 [init_call_args]
-"dopewars-vrf_provider_mock" = [
-    "0x6b0aab388dc7b240801b5aa0722bfcd39a1f397e83d5c032c198b18594b665e",
-    "0x55ca1905d9b3d72b5e710f723c3bbd8f03428fb243f44cd5faee2796b44b204",
-]
 # paper.dojo_init(admin)
 "dopewars-paper" = [
     "0x127fd5f1fe78a71f8bcd1fec63e3fe2f0486b6ecd5c86a0466c3a21fa5cfcec", # admin = katana dev account
