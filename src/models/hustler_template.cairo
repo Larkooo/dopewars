@@ -1,11 +1,11 @@
 // HustlerTemplate — preset stats for a hustler archetype.
 //
 // Catalog model. PR-4's content contract seeds the four templates the
-// design doc commits to (Naked / Street / Dealer / Kingpin); PR-1d's
-// purchase contract reads the template id off a Starterpack to write into
-// HustlerInstance at mint time; PR-4b's create_game reads the template via
-// the HustlerInstance and applies its stats on top of the season's
-// GameConfig defaults to seed the new player.
+// design doc commits to (Naked / Street / Dealer / Kingpin); the purchase
+// contract samples one of them at mint time and writes it into
+// HustlerInstance; PR-4b's create_game reads the template via the
+// HustlerInstance and applies its stats on top of the season's GameConfig
+// defaults to seed the new player.
 //
 // Stats are deliberately small and additive — gear gets layered on top via
 // GearTemplate. The numbers themselves are content (PR-4); PR-1c only
@@ -31,13 +31,7 @@ pub struct HustlerTemplate {
 #[generate_trait]
 pub impl HustlerTemplateImpl of HustlerTemplateTrait {
     fn new(
-        id: u8,
-        name: felt252,
-        health: u8,
-        starting_cash: u32,
-        attack: u8,
-        defense: u8,
-        cargo: u8,
+        id: u8, name: felt252, health: u8, starting_cash: u32, attack: u8, defense: u8, cargo: u8,
     ) -> HustlerTemplate {
         HustlerTemplate { id, name, health, starting_cash, attack, defense, cargo }
     }

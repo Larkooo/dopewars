@@ -1,9 +1,9 @@
 // GearTemplate — preset gear item available to bundle into a starterpack.
 //
 // Catalog model. PR-4 (content) seeds the 12 gear templates committed to in
-// the design doc. PR-1d's setup script writes them; PR-1d's purchase
-// contract reads the gear ids referenced by a Starterpack to populate the
-// HustlerInstance loadout at mint time.
+// the design doc. PR-1d's setup script writes them; the purchase contract
+// samples from these slot pools to populate the HustlerInstance loadout at
+// mint time.
 //
 // `slot` mirrors the existing `config::hustlers::ItemSlot` enum (Weapon /
 // Clothes / Feet / Transport) but stored as u8 to keep the model

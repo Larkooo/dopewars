@@ -4,8 +4,8 @@
 // BundleComponent at registration time. The bundle component owns
 // price / payment_token / reissuable / total_issued state inside its
 // own `Bundle` model; this row stores the dopewars-specific bits the
-// bundle component doesn't know about — which HustlerTemplate to mint
-// and what gear to bake into the minted instance.
+// bundle component doesn't know about — the pack's catalog metadata plus
+// the stake multiplier used by the mint flow.
 //
 // Written by `purchase::initialize` once per tier (alongside the
 // `bundle.register` call), then read by the BundleTrait::on_issue
@@ -23,9 +23,9 @@
 pub struct Starterpack {
     #[key]
     pub bundle_id: u32,
-    // HustlerTemplate id minted by this pack.
+    // Catalog/default HustlerTemplate id for this pack tier.
     pub hustler_template_id: u8,
-    // Gear ids by slot. 0 = no gear in that slot.
+    // Catalog/default gear ids by slot. 0 = no gear in that slot.
     pub gear_weapon: u8,
     pub gear_clothes: u8,
     pub gear_feet: u8,

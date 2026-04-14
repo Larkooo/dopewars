@@ -19,7 +19,8 @@
 //     row keyed by each bundle id (after the post-spawn initialize)
 //   - the issue flow pulls the buyer's payment token (paper, in
 //     tests), dispatches into on_issue, mints a Hustler NFT, and
-//     writes HustlerInstance with the right pack metadata
+//     writes HustlerInstance with the right bundle id plus a
+//     randomized loadout drawn from the allowed template / gear pools
 //   - sequential token ids across multiple issues
 //   - quantity > 1 mints multiple hustlers in one call
 //   - issuing a non-existent bundle id reverts via the bundle
@@ -36,6 +37,17 @@ use rollyourown::systems::purchase::{BASE_PRICE_PAPER, discount_price_u256};
 use rollyourown::tests::v2_helper::{BUYER, fund_buyer, spawn_v2};
 use starknet::testing::set_contract_address;
 
+const MIN_TEMPLATE_ID: u8 = 1;
+const MAX_TEMPLATE_ID: u8 = 4;
+const MIN_WEAPON_ID: u8 = 1;
+const MAX_WEAPON_ID: u8 = 18;
+const MIN_CLOTHES_ID: u8 = 19;
+const MAX_CLOTHES_ID: u8 = 38;
+const MIN_FEET_ID: u8 = 39;
+const MAX_FEET_ID: u8 = 55;
+const MIN_TRANSPORT_ID: u8 = 56;
+const MAX_TRANSPORT_ID: u8 = 72;
+
 /// Look up a bundle id by stake by sweeping the Starterpack catalog.
 /// dojo_init's `initialize` writes a Starterpack row keyed by each
 /// bundle id the bundle component returns from register, and the
@@ -50,8 +62,29 @@ fn find_bundle_id_by_stake(world: dojo::world::WorldStorage, stake: u8) -> Optio
             break;
         }
         id += 1;
-    };
+    }
     found
+}
+
+fn assert_valid_randomized_loadout(instance: HustlerInstance) {
+    assert!(
+        instance.hustler_template_id >= MIN_TEMPLATE_ID
+            && instance.hustler_template_id <= MAX_TEMPLATE_ID,
+        "template in starter pool",
+    );
+    assert!(
+        instance.gear_weapon >= MIN_WEAPON_ID && instance.gear_weapon <= MAX_WEAPON_ID,
+        "weapon in starter pool",
+    );
+    assert!(
+        instance.gear_clothes >= MIN_CLOTHES_ID && instance.gear_clothes <= MAX_CLOTHES_ID,
+        "clothes in starter pool",
+    );
+    assert!(instance.gear_feet >= MIN_FEET_ID && instance.gear_feet <= MAX_FEET_ID, "feet pool");
+    assert!(
+        instance.gear_transport >= MIN_TRANSPORT_ID && instance.gear_transport <= MAX_TRANSPORT_ID,
+        "transport in starter pool",
+    );
 }
 
 #[test]
@@ -109,7 +142,7 @@ fn test_initialize_seeds_four_packs() {
             found_templates.append(pack.hustler_template_id);
         }
         id += 1;
-    };
+    }
 
     assert!(found_stakes.len() == 4, "exactly 4 packs seeded");
     assert!(*found_stakes.at(0) == 1, "first = stake 1 (Junkie)");
@@ -123,32 +156,14 @@ fn test_initialize_seeds_four_packs() {
 }
 
 #[test]
-fn test_initialize_all_tiers_get_same_gear() {
-    // All four tiers ship with the same starter junk gear. The
-    // multiplier is the only differentiator between packs.
-    let (world, _systems) = spawn_v2();
-
-    let mut stake: u8 = 1;
-    while stake <= 4 {
-        let bundle_id = find_bundle_id_by_stake(world, stake).expect('bundle');
-        let pack: Starterpack = world.read_model(bundle_id);
-        assert!(pack.gear_weapon == 12, "all tiers weapon = Razor Blade");
-        assert!(pack.gear_clothes == 37, "all tiers clothes = Shirtless");
-        assert!(pack.gear_feet == 55, "all tiers feet = Barefoot");
-        assert!(pack.gear_transport == 65, "all tiers transport = Rollerblades");
-        stake += 1;
-    };
-}
-
-#[test]
 fn test_issue_happy_path_junkie() {
     // End-to-end: fund the buyer with payment token (paper, in
     // tests), approve the purchase contract, call issue(...) with
     // quantity=1, verify
     //   - buyer's balance dropped by exactly bundle.price
     //   - buyer owns a fresh Hustler NFT
-    //   - HustlerInstance was written with the right bundle id +
-    //     template + (empty) gear loadout
+    //   - HustlerInstance was written with the right bundle id plus a
+    //     randomized starter template / gear loadout
     let (world, systems) = spawn_v2();
 
     let junkie_bundle_id = find_bundle_id_by_stake(world, 1).expect('Junkie bundle');
@@ -188,21 +203,16 @@ fn test_issue_happy_path_junkie() {
 
     // [Verify] Buyer owns the new hustler. nothing minted before
     // initialize/issue, so the first issue mints token id 1.
-    let hustler_erc721 = IERC721Dispatcher {
-        contract_address: systems.hustler.contract_address,
-    };
+    let hustler_erc721 = IERC721Dispatcher { contract_address: systems.hustler.contract_address };
     let owner = hustler_erc721.owner_of(1_u256);
     assert!(owner == BUYER(), "buyer owns the hustler");
 
-    // [Verify] HustlerInstance written with the pack's loadout.
+    // [Verify] HustlerInstance written with the right bundle id and a
+    // randomized starter loadout.
     let instance: HustlerInstance = world.read_model(1_u64);
     assert!(instance.token_id == 1, "instance token id");
     assert!(instance.bundle_id == junkie_bundle_id, "from junkie bundle");
-    assert!(instance.hustler_template_id == 1, "Junkie template");
-    assert!(instance.gear_weapon == 12, "junkie weapon = Razor Blade");
-    assert!(instance.gear_clothes == 37, "junkie clothes = Shirtless");
-    assert!(instance.gear_feet == 55, "junkie feet = Barefoot");
-    assert!(instance.gear_transport == 65, "junkie transport = Rollerblades");
+    assert_valid_randomized_loadout(instance);
     assert!(!instance.used, "fresh hustler is unused");
     assert!(instance.game_id == 0, "no bound game yet");
     assert!(instance.final_score == 0, "no score yet");
@@ -256,9 +266,7 @@ fn test_issue_increments_token_ids() {
             signature: Option::None,
         );
 
-    let hustler_erc721 = IERC721Dispatcher {
-        contract_address: systems.hustler.contract_address,
-    };
+    let hustler_erc721 = IERC721Dispatcher { contract_address: systems.hustler.contract_address };
     assert!(hustler_erc721.owner_of(1_u256) == BUYER(), "first hustler = id 1");
     assert!(hustler_erc721.owner_of(2_u256) == BUYER(), "second hustler = id 2");
 }
@@ -292,19 +300,18 @@ fn test_issue_quantity_two_mints_two_hustlers() {
             signature: Option::None,
         );
 
-    let hustler_erc721 = IERC721Dispatcher {
-        contract_address: systems.hustler.contract_address,
-    };
+    let hustler_erc721 = IERC721Dispatcher { contract_address: systems.hustler.contract_address };
     assert!(hustler_erc721.owner_of(1_u256) == BUYER(), "first mint");
     assert!(hustler_erc721.owner_of(2_u256) == BUYER(), "second mint");
 
-    // Both instances point at the same bundle / template.
+    // Both instances point at the same bundle and each gets a valid
+    // randomized loadout.
     let inst1: HustlerInstance = world.read_model(1_u64);
     let inst2: HustlerInstance = world.read_model(2_u64);
     assert!(inst1.bundle_id == dealer_bundle_id, "inst1 bundle");
     assert!(inst2.bundle_id == dealer_bundle_id, "inst2 bundle");
-    assert!(inst1.hustler_template_id == 3, "inst1 = Dealer");
-    assert!(inst2.hustler_template_id == 3, "inst2 = Dealer");
+    assert_valid_randomized_loadout(inst1);
+    assert_valid_randomized_loadout(inst2);
 }
 
 #[test]

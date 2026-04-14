@@ -5,7 +5,7 @@
 // to equip GearInstances onto.
 //
 // The equip flow:
-//   1. Buy a starterpack (issue) → gets a hustler with junk gear
+//   1. Buy a starterpack (issue) → gets a hustler with randomized gear
 //   2. Buy gear from the marketplace → gets a GearInstance
 //   3. Call equip(hustler_token_id, gear_instance_id) → overwrites
 //      the hustler's gear_* slot with the new template_id
@@ -29,6 +29,8 @@ use starknet::testing::{set_block_timestamp, set_contract_address};
 const TIER1_PRICE: u256 = 500_000_000_000_000_000;
 const TIER2_PRICE: u256 = 2_000_000_000_000_000_000;
 const TIER3_PRICE: u256 = 5_000_000_000_000_000_000;
+const MIN_WEAPON_ID: u8 = 1;
+const MAX_WEAPON_ID: u8 = 18;
 
 /// Find a bundle_id by stake (same helper as v2_purchase).
 fn find_bundle_id_by_stake(world: dojo::world::WorldStorage, stake: u8) -> Option<u32> {
@@ -39,7 +41,7 @@ fn find_bundle_id_by_stake(world: dojo::world::WorldStorage, stake: u8) -> Optio
             return Option::Some(id);
         }
         id += 1;
-    };
+    }
     Option::None
 }
 
@@ -242,17 +244,20 @@ fn test_equip_not_gear_owner_reverts() {
 
 #[test]
 fn test_equip_overwrites_pack_gear() {
-    // The hustler starts with Razor Blade (id 12) as the weapon from
-    // the starterpack. Equipping a marketplace-bought weapon should
-    // overwrite it.
+    // The hustler starts with a randomized starter weapon from the
+    // purchase flow. Equipping a marketplace-bought weapon should
+    // write the bought template into the weapon slot.
     let (world, systems) = spawn_v2();
     set_block_timestamp(86400 + 1);
 
     let hustler_id = buy_hustler(world, systems, BUYER());
 
-    // Verify the starter gear is Razor Blade.
+    // Verify the starter weapon is in the randomized weapon pool.
     let hustler_before: HustlerInstance = world.read_model(hustler_id);
-    assert!(hustler_before.gear_weapon == 12, "starts with Razor Blade");
+    assert!(
+        hustler_before.gear_weapon >= MIN_WEAPON_ID && hustler_before.gear_weapon <= MAX_WEAPON_ID,
+        "starts with valid starter weapon",
+    );
 
     let equip = IEquipDispatcher {
         contract_address: world.dns_address(@"marketplace").expect('mkt'),
@@ -273,5 +278,4 @@ fn test_equip_overwrites_pack_gear() {
 
     let hustler_after: HustlerInstance = world.read_model(hustler_id);
     assert!(hustler_after.gear_weapon == new_template, "weapon overwritten");
-    assert!(hustler_after.gear_weapon != 12, "not the old Razor Blade");
 }

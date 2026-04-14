@@ -26,10 +26,11 @@
 //
 // `base_price` is read from PaymentConfig (USDC decimals — typically 6).
 //
-// Per-tier metadata (which HustlerTemplate to mint, gear loadout, stake
-// multiplier) lives in the dopewars-side `Starterpack` model keyed by
-// the bundle id the bundle component returns from `register(...)`. The
-// on_issue callback reads it back to learn how to fill the
+// Per-tier metadata (catalog/default template + gear metadata, plus the
+// stake multiplier) lives in the dopewars-side `Starterpack` model keyed
+// by the bundle id the bundle component returns from `register(...)`.
+// The on_issue callback reads it back for the stake multiplier, then
+// samples a randomized Hustler template + gear loadout when filling the
 // HustlerInstance row.
 //
 // MINTER_ROLE on the Hustler ERC721 must be granted to this contract by
@@ -115,6 +116,7 @@ pub mod purchase {
     use rollyourown::models::starterpack::{Starterpack, StarterpackTrait};
     use rollyourown::tokens::hustler::{IHustlerDispatcher, IHustlerDispatcherTrait};
     use rollyourown::tokens::paper::{IPaperTokenDispatcher, IPaperTokenDispatcherTrait};
+    use rollyourown::utils::random::{RandomImpl, RandomTrait};
     use starknet::ContractAddress;
     use super::IPurchaseAdmin;
 
@@ -134,10 +136,30 @@ pub mod purchase {
     // tiers is the stake multiplier. Gear progression is 100% earned
     // via the marketplace (between runs) and the in-game shop (during
     // runs).
-    const GEAR_RAZOR_BLADE: u8 = 12;   // tier 3 weapon
-    const GEAR_SHIRTLESS: u8 = 37;     // tier 3 clothes
-    const GEAR_BAREFOOT: u8 = 55;      // tier 3 feet
-    const GEAR_ROLLERBLADES: u8 = 65;  // tier 3 transport
+    const GEAR_RAZOR_BLADE: u8 = 12; // tier 3 weapon
+    const GEAR_SHIRTLESS: u8 = 37; // tier 3 clothes
+    const GEAR_BAREFOOT: u8 = 55; // tier 3 feet
+    const GEAR_ROLLERBLADES: u8 = 65; // tier 3 transport
+
+    const RANDOM_TEMPLATE_MIN: u8 = TEMPLATE_JUNKIE;
+    const RANDOM_TEMPLATE_MAX_EXCLUSIVE: u8 = TEMPLATE_KINGPIN + 1;
+    const RANDOM_WEAPON_MIN: u8 = 1;
+    const RANDOM_WEAPON_MAX_EXCLUSIVE: u8 = 19;
+    const RANDOM_CLOTHES_MIN: u8 = 19;
+    const RANDOM_CLOTHES_MAX_EXCLUSIVE: u8 = 39;
+    const RANDOM_FEET_MIN: u8 = 39;
+    const RANDOM_FEET_MAX_EXCLUSIVE: u8 = 56;
+    const RANDOM_TRANSPORT_MIN: u8 = 56;
+    const RANDOM_TRANSPORT_MAX_EXCLUSIVE: u8 = 73;
+
+    fn random_loadout_seed(bundle_id: u32, token_id: u64) -> felt252 {
+        core::poseidon::poseidon_hash_span(
+            array![
+                starknet::get_tx_info().unbox().transaction_hash, bundle_id.into(), token_id.into(),
+            ]
+                .span(),
+        )
+    }
 
     // Components
     component!(path: BundleComponent, storage: bundle, event: BundleEvent);
@@ -179,7 +201,8 @@ pub mod purchase {
             let mut contract_state = self.get_contract_mut();
             let mut world = contract_state.world(@ns());
 
-            // [Read] Pack metadata for this bundle id (template, gear).
+            // [Read] Pack metadata for this bundle id (stake multiplier
+            // plus catalog/default template + gear metadata).
             let pack: Starterpack = world.read_model(bundle_id);
 
             // [Interaction] Buy-and-burn via Ekubo. Skipped when the
@@ -214,13 +237,9 @@ pub mod purchase {
                     / 100_u256;
 
                 if burn_amount > 0 {
-                    let paper_address = world
-                        .dns_address(@"paper")
-                        .expect('paper not found');
+                    let paper_address = world.dns_address(@"paper").expect('paper not found');
                     let usdc = IERC20Dispatcher { contract_address: config.usdc };
-                    let router = IRouterDispatcher {
-                        contract_address: config.ekubo_router,
-                    };
+                    let router = IRouterDispatcher { contract_address: config.ekubo_router };
 
                     // [Interaction] Forward the burn share to Ekubo.
                     usdc.transfer(router.contract_address, burn_amount);
@@ -240,29 +259,22 @@ pub mod purchase {
                         extension: config.pool_extension,
                     };
                     let route_node = RouteNode {
-                        pool_key: pool_key,
-                        sqrt_ratio_limit: config.pool_sqrt,
-                        skip_ahead: 0,
+                        pool_key: pool_key, sqrt_ratio_limit: config.pool_sqrt, skip_ahead: 0,
                     };
                     let token_amount = TokenAmount {
-                        token: config.usdc,
-                        amount: i129 { mag: burn_amount.low, sign: false },
+                        token: config.usdc, amount: i129 { mag: burn_amount.low, sign: false },
                     };
                     router.swap(route_node, token_amount);
 
                     // [Interaction] Clear the swapped PAPER + any
                     // leftover USDC back to this contract. Same address
                     // hosts both router + clearer in Ekubo.
-                    let clearer = IClearDispatcher {
-                        contract_address: config.ekubo_router,
-                    };
+                    let clearer = IClearDispatcher { contract_address: config.ekubo_router };
                     clearer
                         .clear_minimum(
-                            EkuboIERC20Dispatcher { contract_address: paper_address },
-                            0,
+                            EkuboIERC20Dispatcher { contract_address: paper_address }, 0,
                         );
-                    clearer
-                        .clear(EkuboIERC20Dispatcher { contract_address: config.usdc });
+                    clearer.clear(EkuboIERC20Dispatcher { contract_address: config.usdc });
 
                     // [Interaction] Burn all PAPER we got from the
                     // swap. paper.burn() burns from the caller (this
@@ -270,12 +282,9 @@ pub mod purchase {
                     // (PAPER wei fits) so we can distribute it across
                     // the minted hustlers below.
                     let paper_erc20 = IERC20Dispatcher { contract_address: paper_address };
-                    let paper_received = paper_erc20
-                        .balance_of(starknet::get_contract_address());
+                    let paper_received = paper_erc20.balance_of(starknet::get_contract_address());
                     if paper_received > 0 {
-                        let paper = IPaperTokenDispatcher {
-                            contract_address: paper_address,
-                        };
+                        let paper = IPaperTokenDispatcher { contract_address: paper_address };
                         paper.burn(paper_received);
                         paper_burned = paper_received.try_into().unwrap_or(0);
                     }
@@ -296,14 +305,9 @@ pub mod purchase {
             // either field unset; the default v2_helper fixture sets
             // treasury_percentage = 0 so existing tests stay green.
             if config.treasury_percentage > 0 && config.treasury_address.is_non_zero() {
-                let usdc_for_treasury = IERC20Dispatcher {
-                    contract_address: config.usdc,
-                };
-                let usdc_balance = usdc_for_treasury
-                    .balance_of(starknet::get_contract_address());
-                let treasury_amount = usdc_balance
-                    * config.treasury_percentage.into()
-                    / 100_u256;
+                let usdc_for_treasury = IERC20Dispatcher { contract_address: config.usdc };
+                let usdc_balance = usdc_for_treasury.balance_of(starknet::get_contract_address());
+                let treasury_amount = usdc_balance * config.treasury_percentage.into() / 100_u256;
                 if treasury_amount > 0 {
                     usdc_for_treasury.transfer(config.treasury_address, treasury_amount);
                 }
@@ -329,19 +333,20 @@ pub mod purchase {
             let mut remaining = quantity;
             while remaining > 0 {
                 let token_id = hustler.mint(recipient, false);
+                let mut randomizer = RandomImpl::new(random_loadout_seed(bundle_id, token_id));
                 let instance = HustlerInstanceTrait::new_from_pack(
                     token_id,
                     bundle_id,
-                    pack.hustler_template_id,
-                    pack.gear_weapon,
-                    pack.gear_clothes,
-                    pack.gear_feet,
-                    pack.gear_transport,
+                    randomizer.between::<u8>(RANDOM_TEMPLATE_MIN, RANDOM_TEMPLATE_MAX_EXCLUSIVE),
+                    randomizer.between::<u8>(RANDOM_WEAPON_MIN, RANDOM_WEAPON_MAX_EXCLUSIVE),
+                    randomizer.between::<u8>(RANDOM_CLOTHES_MIN, RANDOM_CLOTHES_MAX_EXCLUSIVE),
+                    randomizer.between::<u8>(RANDOM_FEET_MIN, RANDOM_FEET_MAX_EXCLUSIVE),
+                    randomizer.between::<u8>(RANDOM_TRANSPORT_MIN, RANDOM_TRANSPORT_MAX_EXCLUSIVE),
                     burn_per_instance,
                 );
                 world.write_model(@instance);
                 remaining -= 1;
-            };
+            }
             let _ = quantity;
         }
 
@@ -388,9 +393,7 @@ pub mod purchase {
         let mut world = self.world(@ns());
 
         // [Compute] pool_sqrt based on token ordering (same as nums)
-        let paper_address = world
-            .dns_address(@"paper")
-            .unwrap_or(Zero::zero());
+        let paper_address = world.dns_address(@"paper").unwrap_or(Zero::zero());
         let pool_sqrt = if usdc.is_zero() || paper_address.is_zero() {
             // dev/test — no Ekubo, no sqrt needed
             u256 { low: 0, high: 0 }
@@ -435,18 +438,12 @@ pub mod purchase {
         let allower: ContractAddress = Zero::zero();
         let payment_token = resolved_usdc;
 
-        let templates = array![
-            TEMPLATE_JUNKIE, TEMPLATE_STREET, TEMPLATE_DEALER, TEMPLATE_KINGPIN,
-        ];
+        let templates = array![TEMPLATE_JUNKIE, TEMPLATE_STREET, TEMPLATE_DEALER, TEMPLATE_KINGPIN];
         let weapons = array![
             GEAR_RAZOR_BLADE, GEAR_RAZOR_BLADE, GEAR_RAZOR_BLADE, GEAR_RAZOR_BLADE,
         ];
-        let clothes = array![
-            GEAR_SHIRTLESS, GEAR_SHIRTLESS, GEAR_SHIRTLESS, GEAR_SHIRTLESS,
-        ];
-        let feet = array![
-            GEAR_BAREFOOT, GEAR_BAREFOOT, GEAR_BAREFOOT, GEAR_BAREFOOT,
-        ];
+        let clothes = array![GEAR_SHIRTLESS, GEAR_SHIRTLESS, GEAR_SHIRTLESS, GEAR_SHIRTLESS];
+        let feet = array![GEAR_BAREFOOT, GEAR_BAREFOOT, GEAR_BAREFOOT, GEAR_BAREFOOT];
         let transport = array![
             GEAR_ROLLERBLADES, GEAR_ROLLERBLADES, GEAR_ROLLERBLADES, GEAR_ROLLERBLADES,
         ];
@@ -611,24 +608,18 @@ pub mod purchase {
             let allower: ContractAddress = 0.try_into().unwrap();
             let payment_token = config.usdc;
             let base_price = config.base_price;
-            let paper_address = world
-                .dns_address(@"paper")
-                .unwrap_or(Zero::zero());
 
             let templates = array![
                 TEMPLATE_JUNKIE, TEMPLATE_STREET, TEMPLATE_DEALER, TEMPLATE_KINGPIN,
             ];
-            // All tiers get the same starter junk gear. The multiplier
-            // is the only differentiator.
+            // Catalog rows keep the default starter metadata. on_issue
+            // now randomizes the actual minted loadout, so stake is the
+            // only field that materially affects mint-time behavior.
             let weapons = array![
                 GEAR_RAZOR_BLADE, GEAR_RAZOR_BLADE, GEAR_RAZOR_BLADE, GEAR_RAZOR_BLADE,
             ];
-            let clothes = array![
-                GEAR_SHIRTLESS, GEAR_SHIRTLESS, GEAR_SHIRTLESS, GEAR_SHIRTLESS,
-            ];
-            let feet = array![
-                GEAR_BAREFOOT, GEAR_BAREFOOT, GEAR_BAREFOOT, GEAR_BAREFOOT,
-            ];
+            let clothes = array![GEAR_SHIRTLESS, GEAR_SHIRTLESS, GEAR_SHIRTLESS, GEAR_SHIRTLESS];
+            let feet = array![GEAR_BAREFOOT, GEAR_BAREFOOT, GEAR_BAREFOOT, GEAR_BAREFOOT];
             let transport = array![
                 GEAR_ROLLERBLADES, GEAR_ROLLERBLADES, GEAR_ROLLERBLADES, GEAR_ROLLERBLADES,
             ];
