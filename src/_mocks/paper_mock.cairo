@@ -43,6 +43,7 @@ trait IPaperMock<TState> {
 trait IPaperMockFaucet<TState> {
     fn faucet(ref self: TState);
     fn faucetTo(ref self: TState, recipient: ContractAddress);
+    fn mint(ref self: TState, recipient: ContractAddress, amount: u256);
 }
 
 
@@ -119,6 +120,9 @@ mod paper_mock {
         }
         fn faucetTo(ref self: ContractState, recipient: ContractAddress) {
             self.erc20.mint(recipient, 10_000 * ETHER);
+        }
+        fn mint(ref self: ContractState, recipient: ContractAddress, amount: u256) {
+            self.erc20.mint(recipient, amount);
         }
     }
 

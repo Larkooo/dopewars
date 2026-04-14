@@ -19,7 +19,7 @@ export default function Dope() {
   } = useDojoContext();
 
   const dopeLootAddress = useMemo(() => {
-    return getContractByName(selectedChain.manifest, "dope", "DopeLoot")!.address;
+    return getContractByName(selectedChain.manifest, "dope", "DopeLoot")?.address || "0x0";
   }, [selectedChain]);
 
   const addresses = useMemo(() => {

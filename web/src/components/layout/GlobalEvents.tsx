@@ -1,7 +1,7 @@
 import { useDojoContext, useGameStore, useRouterContext } from "@/dojo/hooks";
 import { parseStruct } from "@/dojo/utils";
 import { parseModels } from "@/dope/toriiUtils";
-import { Dopewars_V0_Game as Game } from "@/generated/graphql";
+import { Dopewars_Game as Game } from "@/generated/graphql";
 import { playSound, Sounds } from "@/hooks/sound";
 import { useToast } from "@/hooks/toast";
 import { formatCashHeader } from "@/utils/ui";

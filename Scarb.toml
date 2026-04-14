@@ -93,7 +93,9 @@ migrate_mainnet = "PROFILE=mainnet && sozo -P $PROFILE build && sozo -P $PROFILE
 slot_dopewars_katana = "slot d create -t pro --team cartridge dopewars katana --config ./katana_dopewars.toml"
 slot_dopewars_torii = "slot d create -t epic --team cartridge dopewars torii --version v1.7.3 --config ./torii_dopewars.toml"
 
-# slot sepolia 
+# slot sepolia (v2)
+slot_v2_sepolia_torii = "slot d create -t pro --team cartridge dopewars-v2-sepolia torii --version v1.8.6 --config ./torii_v2_sepolia.toml"
+# slot sepolia (legacy v0)
 slot_sepolia_torii = "slot d create  -t pro --team cartridge ryosepolia2 torii --version v1.8.6 --config ./torii_ryosepolia2.toml"
 
 # slot mainnet 

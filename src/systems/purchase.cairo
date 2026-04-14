@@ -94,6 +94,8 @@ pub mod purchase {
     use bundle::component::Component as BundleComponent;
     use bundle::component::Component::{BundleQuote, BundleTrait};
     use bundle::interface::IBundle;
+    use bundle::types::item::ItemTrait as BundleItemTrait;
+    use bundle::types::metadata::MetadataTrait as BundleMetadataTrait;
     use core::num::traits::Zero;
     use dojo::model::ModelStorage;
     use dojo::world::WorldStorageTrait;
@@ -405,9 +407,16 @@ pub mod purchase {
             return;
         }
 
+        // [Resolve] If usdc is zero, use paper_mock from DNS (dev/sepolia)
+        let resolved_usdc = if usdc.is_zero() {
+            world.dns_address(@"paper_mock").unwrap_or(Zero::zero())
+        } else {
+            usdc
+        };
+
         // [Effect] Write PaymentConfig
         let config = PaymentConfigTrait::new(
-            usdc,
+            resolved_usdc,
             ekubo_router,
             ekubo_positions,
             pool_fee,
@@ -424,7 +433,7 @@ pub mod purchase {
         // [Effect] Register the 4 starterpack bundles (same as initialize())
         let payment_receiver = starknet::get_contract_address();
         let allower: ContractAddress = Zero::zero();
-        let payment_token = usdc;
+        let payment_token = resolved_usdc;
 
         let templates = array![
             TEMPLATE_JUNKIE, TEMPLATE_STREET, TEMPLATE_DEALER, TEMPLATE_KINGPIN,
@@ -448,6 +457,33 @@ pub mod purchase {
             let price = super::discount_price_u256(stake, base_price);
             let template_id = *templates.at(idx);
 
+            let tier_name: ByteArray = if stake == 1 {
+                "Junkie"
+            } else if stake == 2 {
+                "Street"
+            } else if stake == 3 {
+                "Dealer"
+            } else {
+                "Kingpin"
+            };
+            let mut pack_name: ByteArray = "";
+            pack_name.append(@tier_name);
+            pack_name.append(@" Pack");
+            let item = BundleItemTrait::new(
+                name: pack_name.clone(),
+                description: "Dope Wars Hustler NFT",
+                image_uri: "https://static.cartridge.gg/presets/dope-wars/icon.png",
+            );
+            let metadata = BundleMetadataTrait::new(
+                name: pack_name,
+                description: "Dope Wars starterpack",
+                image_uri: "https://static.cartridge.gg/presets/dope-wars/icon.png",
+                items: array![item].span(),
+                tokens: array![paper_address].span(),
+                conditions: array![].span(),
+            )
+                .jsonify();
+
             let bundle_id = self
                 .bundle
                 .register(
@@ -457,7 +493,7 @@ pub mod purchase {
                     price: price,
                     payment_token: payment_token,
                     payment_receiver: payment_receiver,
-                    metadata: "starterpack",
+                    metadata: metadata,
                     allower: allower,
                 );
 
@@ -575,6 +611,9 @@ pub mod purchase {
             let allower: ContractAddress = 0.try_into().unwrap();
             let payment_token = config.usdc;
             let base_price = config.base_price;
+            let paper_address = world
+                .dns_address(@"paper")
+                .unwrap_or(Zero::zero());
 
             let templates = array![
                 TEMPLATE_JUNKIE, TEMPLATE_STREET, TEMPLATE_DEALER, TEMPLATE_KINGPIN,
@@ -600,6 +639,19 @@ pub mod purchase {
                 let price = super::discount_price_u256(stake, base_price);
                 let template_id = *templates.at(idx);
 
+                let tier_name: ByteArray = if stake == 1 {
+                    "Junkie"
+                } else if stake == 2 {
+                    "Street"
+                } else if stake == 3 {
+                    "Dealer"
+                } else {
+                    "Kingpin"
+                };
+                let mut metadata: ByteArray = "{\"name\":\"";
+                metadata.append(@tier_name);
+                metadata.append(@" Pack\",\"description\":\"Dope Wars starterpack\"}");
+
                 let bundle_id = self
                     .bundle
                     .register(
@@ -609,7 +661,7 @@ pub mod purchase {
                         price: price,
                         payment_token: payment_token,
                         payment_receiver: payment_receiver,
-                        metadata: "starterpack",
+                        metadata: metadata,
                         allower: allower,
                     );
 

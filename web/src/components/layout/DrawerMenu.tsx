@@ -22,7 +22,7 @@ import { ReactNode, useRef } from "react";
 import { Cigarette, Clock, Close, Dots, GangIcon, Home, PaperIcon, Refresh } from "../icons";
 import { Calendar } from "../icons/archive";
 import { HeaderButton, MediaPlayer } from ".";
-import { ChainSelector, ConnectButton, TokenBalance } from "../wallet";
+import { ChainSelector, ConnectButton, PaperFaucetButton, TokenBalance } from "../wallet";
 
 import { ProfileLinkDrawer } from "../pages/profile/Profile";
 import { useAccount } from "@starknet-react/core";
@@ -100,9 +100,12 @@ const DrawerMenu = () => {
 
                   {account && config && (
                     <DrawerListItem cursor="default">
-                      <HStack w="full">
-                        <TokenBalance address={account?.address} token={config?.ryoAddress.paper} icon={PaperIcon} />{" "}
-                        <Text>PAPER</Text>
+                      <HStack w="full" justifyContent="space-between">
+                        <HStack>
+                          <TokenBalance address={account?.address} token={config?.ryoAddress.paper} icon={PaperIcon} />{" "}
+                          <Text>PAPER</Text>
+                        </HStack>
+                        <PaperFaucetButton />
                       </HStack>
                     </DrawerListItem>
                   )}

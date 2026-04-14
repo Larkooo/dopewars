@@ -1,6 +1,6 @@
 import {
-  Dopewars_V0_GameConfig as GameConfig,
-  Dopewars_V0_GameConfigEdge as GameConfigEdge,
+  Dopewars_GameConfig as GameConfig,
+  Dopewars_GameConfigEdge as GameConfigEdge,
   useGameConfigQuery,
 } from "@/generated/graphql";
 import { useMemo } from "react";

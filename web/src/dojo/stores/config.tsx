@@ -1,22 +1,22 @@
 import {
   ConfigDocument,
   ConfigQuery,
-  Dopewars_V0_DrugConfig as DrugConfig,
-  Dopewars_V0_DrugConfigEdge as DrugConfigEdge,
-  Dopewars_V0_EncounterStatsConfig as EncounterStatsConfig,
-  Dopewars_V0_EncounterStatsConfigEdge as EncounterStatsConfigEdge,
-  Dopewars_V0_GameConfig as GameConfig,
-  Dopewars_V0_LocationConfig as LocationConfig,
-  Dopewars_V0_LocationConfigEdge as LocationConfigEdge,
-  Dopewars_V0_RyoAddress as RyoAddress,
-  Dopewars_V0_RyoAddressEdge as RyoAddressEdge,
-  Dopewars_V0_RyoConfig as RyoConfig,
-  Dopewars_V0_RyoConfigEdge as RyoConfigEdge,
-  Dopewars_V0_SeasonSettings as SeasonSettings,
-  Dopewars_V0_DopewarsItemTier as DopewarsItemTier,
-  Dopewars_V0_DopewarsItemTierEdge as DopewarsItemTierEdge,
-  Dopewars_V0_DopewarsItemTierConfig as DopewarsItemTierConfig,
-  Dopewars_V0_DopewarsItemTierConfigEdge as DopewarsItemTierConfigEdge,
+  Dopewars_DrugConfig as DrugConfig,
+  Dopewars_DrugConfigEdge as DrugConfigEdge,
+  Dopewars_EncounterStatsConfig as EncounterStatsConfig,
+  Dopewars_EncounterStatsConfigEdge as EncounterStatsConfigEdge,
+  Dopewars_GameConfig as GameConfig,
+  Dopewars_LocationConfig as LocationConfig,
+  Dopewars_LocationConfigEdge as LocationConfigEdge,
+  Dopewars_RyoAddress as RyoAddress,
+  Dopewars_RyoAddressEdge as RyoAddressEdge,
+  Dopewars_RyoConfig as RyoConfig,
+  Dopewars_RyoConfigEdge as RyoConfigEdge,
+  Dopewars_SeasonSettings as SeasonSettings,
+  Dopewars_DopewarsItemTier as DopewarsItemTier,
+  Dopewars_DopewarsItemTierEdge as DopewarsItemTierEdge,
+  Dopewars_DopewarsItemTierConfig as DopewarsItemTierConfig,
+  Dopewars_DopewarsItemTierConfigEdge as DopewarsItemTierConfigEdge,
   Dope_ComponentValueEventEdge as ComponentValueEventEdge,
   Dope_ComponentValueEvent as ComponentValueEvent,
 } from "@/generated/graphql";
@@ -205,16 +205,8 @@ export class ConfigStoreClass {
       ?.edges as DopewarsItemTierConfigEdge[];
     const dopewarsItemsTierConfigs = dopewarsItemsTierConfigsEdges.map((i) => i.node as DopewarsItemTierConfig);
 
-    const componentValuesEdges = data.dopeComponentValueEventModels?.edges as ComponentValueEventEdge[];
-    const componentValues = componentValuesEdges.map((i) => {
-      const node = i.node as ComponentValueEvent;
-      return {
-        ...node,
-        component_id: Number(node.component_id),
-        collection_id: shortString.decodeShortString(node.collection_id),
-        component_slug: shortString.decodeShortString(node.component_slug),
-      };
-    });
+    // v2: dopeComponentValueEventModels removed (dope namespace not indexed)
+    const componentValues: ComponentValueEvent[] = [];
 
     // console.log(componentValues);
 

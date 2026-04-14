@@ -1,8 +1,8 @@
 import {
-  Dopewars_V0_Game as Game,
-  Dopewars_V0_GameConfig as GameConfig,
-  Dopewars_V0_GameStorePacked as GameStorePacked,
-  Dopewars_V0_SeasonSettings as SeasonSettings,
+  Dopewars_Game as Game,
+  Dopewars_GameConfig as GameConfig,
+  Dopewars_GameStorePacked as GameStorePacked,
+  Dopewars_SeasonSettings as SeasonSettings,
   World__EntityEdge,
   useAllGameConfigQuery,
   useAllSeasonSettingsQuery,

@@ -72,16 +72,12 @@ function getConnectorsForChain(selectedChain: DojoChainConfig, path: string) {
 }
 
 const cartridgeConnector = ({ selectedChain }: { selectedChain: DojoChainConfig }) => {
-  // console.log("cartridgeConnector", selectedChain.name);
   const paperAddress = selectedChain.paperAddress;
 
-  const gameAddress = getContractByName(selectedChain.manifest, DW_NS, "game").address;
-  const decideAddress = getContractByName(selectedChain.manifest, DW_NS, "decide").address;
-  const laundromatAddress = getContractByName(selectedChain.manifest, DW_NS, "laundromat").address;
-  const dopeLootClaimAddress = getContractByName(selectedChain.manifest, "dope", "DopeLootClaim").address;
-  const dopeLootAddress = getContractByName(selectedChain.manifest, "dope", "DopeLoot").address;
-  const dopeGearAddress = getContractByName(selectedChain.manifest, "dope", "DopeGear").address;
-  const dopeHustlersAddress = getContractByName(selectedChain.manifest, "dope", "DopeHustlers").address;
+  const gameAddress = getContractByName(selectedChain.manifest, DW_NS, "game")?.address || "0x0";
+  const decideAddress = getContractByName(selectedChain.manifest, DW_NS, "decide")?.address || "0x0";
+  const purchaseAddress = getContractByName(selectedChain.manifest, DW_NS, "purchase")?.address || "0x0";
+  const marketplaceAddress = getContractByName(selectedChain.manifest, DW_NS, "marketplace")?.address || "0x0";
 
   const policies: SessionPolicies = {
     contracts: {
@@ -97,53 +93,28 @@ const cartridgeConnector = ({ selectedChain }: { selectedChain: DojoChainConfig 
       [decideAddress]: {
         methods: [{ entrypoint: "decide" }],
       },
-      [laundromatAddress]: {
-        methods: [{ entrypoint: "register_score" }, { entrypoint: "claim" }, { entrypoint: "launder" }],
-      },
-      [dopeLootClaimAddress]: {
-        methods: [{ entrypoint: "release" }, { entrypoint: "open" }],
-      },
-      [dopeGearAddress]: {
-        methods: [{ entrypoint: "set_approval_for_all" }],
-      },
-      [dopeHustlersAddress]: {
+      // v2: purchase contract (bundle.issue for buying starterpacks)
+      [purchaseAddress]: {
         methods: [
-          { entrypoint: "update_hustler" },
-          { entrypoint: "update_hustler_body" },
-          { entrypoint: "equip" },
-          { entrypoint: "unequip" },
+          { entrypoint: "issue" },
+          { entrypoint: "quote" },
+          { entrypoint: "set_payment_config" },
+          { entrypoint: "initialize" },
         ],
       },
-      [dopeLootAddress]: {
+      // v2: marketplace (daily gear shop + equip)
+      [marketplaceAddress]: {
         methods: [
-          {
-            entrypoint: "delegate",
-          },
+          { entrypoint: "buy" },
+          { entrypoint: "quote" },
+          { entrypoint: "today_offer" },
+          { entrypoint: "equip" },
         ],
       },
     },
   };
 
   if (selectedChain.name !== "MAINNET") {
-    // const devtoolsAddress = getContractByName(selectedChain.manifest, DW_NS, "devtools")?.address;
-
-    // policies.contracts![devtoolsAddress] = { methods: [{ entrypoint: "create_fake_game" }] };
-
-    policies.contracts![paperAddress].methods.push({
-      entrypoint: "faucet",
-    });
-
-    policies.contracts![dopeLootClaimAddress].methods.push({
-      entrypoint: "claim_loot_from_forwarder",
-    });
-    policies.contracts![dopeLootClaimAddress].methods.push({
-      entrypoint: "claim_og_from_forwarder",
-    });
-
-    policies.contracts![laundromatAddress].methods.push({
-      entrypoint: "supercharge_jackpot",
-    });
-
     policies.contracts![selectedChain.vrfProviderAddress].methods.push({
       entrypoint: "submit_random",
     });
@@ -151,8 +122,6 @@ const cartridgeConnector = ({ selectedChain }: { selectedChain: DojoChainConfig 
       entrypoint: "assert_consumed",
     });
   }
-
-  // console.log(policies);
 
   return new ControllerConnector({
     chains: [
@@ -162,7 +131,7 @@ const cartridgeConnector = ({ selectedChain }: { selectedChain: DojoChainConfig 
     ],
     defaultChainId: `0x${selectedChain.chainConfig.id.toString(16)}`,
     slot: selectedChain.slot ? selectedChain.slot : "ryo",
-    namespace: selectedChain.namespace ? selectedChain.namespace : "dopewars_v0",
+    namespace: selectedChain.namespace ? selectedChain.namespace : DW_NS,
     tokens: {
       erc20: ["strk", "usdc"],
     },

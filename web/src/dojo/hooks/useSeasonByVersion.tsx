@@ -1,10 +1,8 @@
 import {
-  Dopewars_V0_Season as Season,
-  Dopewars_V0_SeasonEdge as SeasonEdge,
-  Dopewars_V0_SeasonSettings as SeasonSettings,
-  Dopewars_V0_SeasonSettingsEdge as SeasonSettingsEdge,
-  Dopewars_V0_SortedList as SortedList,
-  Dopewars_V0_SortedListEdge as SortedListEdge,
+  Dopewars_Season as Season,
+  Dopewars_SeasonEdge as SeasonEdge,
+  Dopewars_SeasonSettings as SeasonSettings,
+  Dopewars_SeasonSettingsEdge as SeasonSettingsEdge,
   useSeasonByVersionQuery,
 } from "@/generated/graphql";
 import { useEffect, useMemo, useState } from "react";
@@ -13,7 +11,6 @@ import { DW_GRAPHQL_MODEL_NS } from "../constants";
 export interface SeasonByVersionInterface {
   season?: Season;
   seasonSettings?: SeasonSettings;
-  sortedList?: SortedList;
   isSeasonOpen: boolean;
   isSeasonWashed: boolean;
   canCreateGame: boolean;
@@ -26,7 +23,6 @@ export const useSeasonByVersion = (seasonId: number): SeasonByVersionInterface =
 
   const { data, isFetched, refetch } = useSeasonByVersionQuery({
     version: seasonId || 0,
-    listId: (seasonId || 0).toString(), // important need to be string :|
   });
 
   const season = useMemo(() => {
@@ -39,11 +35,6 @@ export const useSeasonByVersion = (seasonId: number): SeasonByVersionInterface =
     return edges?.length > 0 ? (edges[0].node as SeasonSettings) : undefined;
   }, [data]);
 
-  const sortedList = useMemo(() => {
-    const edges = data?.[`${DW_GRAPHQL_MODEL_NS}SortedListModels`]?.edges as SortedListEdge[];
-    return edges?.length > 0 ? (edges[0].node as SortedList) : undefined;
-  }, [data]);
-
   const isSeasonOpen = useMemo(() => {
     return timestamp < season?.next_version_timestamp * 1000;
   }, [season, timestamp]);
@@ -52,9 +43,8 @@ export const useSeasonByVersion = (seasonId: number): SeasonByVersionInterface =
     return timestamp < (season?.next_version_timestamp - season?.season_time_limit) * 1000;
   }, [season, timestamp]);
 
-  const isSeasonWashed = useMemo(() => {
-    return sortedList?.processed;
-  }, [sortedList]);
+  // v2: no laundromat, seasons are always "washed"
+  const isSeasonWashed = true;
 
   useEffect(() => {
     const handle = setInterval(() => {
@@ -67,7 +57,6 @@ export const useSeasonByVersion = (seasonId: number): SeasonByVersionInterface =
   return {
     season,
     seasonSettings,
-    sortedList,
     isSeasonOpen,
     isSeasonWashed,
     canCreateGame,

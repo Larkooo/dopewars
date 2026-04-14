@@ -1,6 +1,6 @@
 import { useDopeStore } from "@/dope/store";
 import { parseModels } from "@/dope/toriiUtils";
-import { Dopewars_V0_DrugConfig as DrugConfig, Dopewars_V0_RyoConfig as RyoConfig } from "@/generated/graphql";
+import { Dopewars_DrugConfig as DrugConfig, Dopewars_RyoConfig as RyoConfig } from "@/generated/graphql";
 import { useToast } from "@/hooks/toast";
 import { DojoCall, getContractByName } from "@dojoengine/core";
 import { useAccount } from "@starknet-react/core";
@@ -116,14 +116,25 @@ export const useSystems = (): SystemsInterface => {
   const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState<string | undefined>(undefined);
 
-  const { gameAddress, decideAddress, laundromatAddress, dopeLootClaimAddress } = useMemo(() => {
-    const gameAddress = getContractByName(dojoProvider.manifest, DW_NS, "game").address;
-    const decideAddress = getContractByName(dojoProvider.manifest, DW_NS, "decide").address;
-    const laundromatAddress = getContractByName(dojoProvider.manifest, DW_NS, "laundromat").address;
-    const dopeLootClaimAddress = getContractByName(dojoProvider.manifest, "dope", "DopeLootClaim").address;
+  const { gameAddress, decideAddress, laundromatAddress, dopeLootClaimAddress, purchaseAddress, marketplaceAddress } =
+    useMemo(() => {
+      const gameAddress = getContractByName(dojoProvider.manifest, DW_NS, "game")?.address || "0x0";
+      const decideAddress = getContractByName(dojoProvider.manifest, DW_NS, "decide")?.address || "0x0";
+      const laundromatAddress = getContractByName(dojoProvider.manifest, DW_NS, "laundromat")?.address || "0x0";
+      const dopeLootClaimAddress =
+        getContractByName(dojoProvider.manifest, "dope", "DopeLootClaim")?.address || "0x0";
+      const purchaseAddress = getContractByName(dojoProvider.manifest, DW_NS, "purchase")?.address || "0x0";
+      const marketplaceAddress = getContractByName(dojoProvider.manifest, DW_NS, "marketplace")?.address || "0x0";
 
-    return { gameAddress, decideAddress, laundromatAddress, dopeLootClaimAddress };
-  }, [dojoProvider]);
+      return {
+        gameAddress,
+        decideAddress,
+        laundromatAddress,
+        dopeLootClaimAddress,
+        purchaseAddress,
+        marketplaceAddress,
+      };
+    }, [dojoProvider]);
 
   const dopeLootClaimState = useDopeStore((state) => state.dopeLootClaimState);
 

@@ -1,4 +1,4 @@
-import { Dopewars_V0_Game as Game } from "@/generated/graphql";
+import { Dopewars_Game as Game } from "@/generated/graphql";
 import { action, computed, makeObservable, observable } from "mobx";
 import { ConfigStoreClass } from "../stores/config";
 import { Entity } from "@dojoengine/torii-client";

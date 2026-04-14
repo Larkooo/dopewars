@@ -1,19 +1,17 @@
-query SeasonByVersion($version: u16, $listId: felt252) {
-  dopewarsV0SeasonModels(where: { version: $version }) {
+query SeasonByVersion($version: u16) {
+  dopewarsSeasonModels(where: { version: $version }) {
     edges {
       node {
         version
         season_duration
         season_time_limit
-        paper_fee
-        treasury_fee_pct
         next_version_timestamp
-        paper_balance
+        high_score
       }
     }
   }
 
-  dopewarsV0SeasonSettingsModels(where: { season_version: $version }) {
+  dopewarsSeasonSettingsModels(where: { season_version: $version }) {
     edges {
       node {
         season_version
@@ -27,37 +25,22 @@ query SeasonByVersion($version: u16, $listId: felt252) {
       }
     }
   }
-
-  dopewarsV0SortedListModels(where: { list_id: $listId }) {
-    edges {
-      node {
-        list_id
-        size
-        locked
-        processed
-        process_size
-        process_max_size
-      }
-    }
-  }
 }
 
 query Seasons {
-  dopewarsV0SeasonModels(limit: 420, order: { field: VERSION, direction: DESC }) {
+  dopewarsSeasonModels(limit: 420, order: { field: VERSION, direction: DESC }) {
     edges {
       node {
         version
         season_duration
         season_time_limit
-        paper_fee
-        treasury_fee_pct
         next_version_timestamp
-        paper_balance
+        high_score
       }
     }
   }
 
-  dopewarsV0SeasonSettingsModels(limit: 420) {
+  dopewarsSeasonSettingsModels(limit: 420) {
     edges {
       node {
         season_version
@@ -70,23 +53,10 @@ query Seasons {
       }
     }
   }
-
-  dopewarsV0SortedListModels(limit: 420) {
-    edges {
-      node {
-        list_id
-        size
-        locked
-        processed
-        process_size
-        process_max_size
-      }
-    }
-  }
 }
 
 query SeasonSettings($version: u16) {
-  dopewarsV0SeasonSettingsModels(where: { season_version: $version }) {
+  dopewarsSeasonSettingsModels(where: { season_version: $version }) {
     edges {
       node {
         season_version
@@ -102,7 +72,7 @@ query SeasonSettings($version: u16) {
 }
 
 query AllSeasonSettings {
-  dopewarsV0SeasonSettingsModels(limit: 420) {
+  dopewarsSeasonSettingsModels(limit: 420) {
     edges {
       node {
         season_version
@@ -118,7 +88,7 @@ query AllSeasonSettings {
 }
 
 query HallOfFame {
-  dopewarsV0GameModels(limit: 420, where: { position: 1 }, order: { field: SEASON_VERSION, direction: DESC }) {
+  dopewarsGameModels(limit: 420, where: { registered: true }, order: { field: SEASON_VERSION, direction: DESC }) {
     edges {
       node {
         game_id
@@ -129,23 +99,16 @@ query HallOfFame {
         multiplier
         season_version
         final_score
-        position
-        claimable
-        token_id {
-          option
-          GuestLootId
-          LootId
-          HustlerId
-        }
+        hustler_token_id
+        reward
         equipment_by_slot
       }
     }
   }
 }
 
-# use sql
 query Claimable($playerId: ContractAddress) {
-  dopewarsV0GameModels(where: { player_id: $playerId, claimed: false, claimableGT: 0 }) {
+  dopewarsGameModels(where: { player_id: $playerId, registered: true }) {
     edges {
       node {
         game_id
@@ -154,23 +117,14 @@ query Claimable($playerId: ContractAddress) {
         player_name {
           value
         }
-        token_id {
-          option
-          GuestLootId
-          LootId
-          HustlerId
-        }
+        hustler_token_id
+        reward
         equipment_by_slot
-        claimed
-        claimable
         final_score
-        position
       }
     }
   }
 }
-
-# remove ?
 
 query GameOverEvents($gameOverSelector: String, $version: String) {
   events(last: 1000, keys: [$gameOverSelector, "*", "*", $version]) {

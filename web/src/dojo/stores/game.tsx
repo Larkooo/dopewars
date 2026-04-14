@@ -3,10 +3,10 @@ import { GraphQLClient } from "graphql-request";
 import { GameCreated } from "@/components/layout/GlobalEvents";
 import { parseModels } from "@/dope/toriiUtils";
 import {
-  Dopewars_V0_Game as Game,
-  Dopewars_V0_GameConfig as GameConfig,
-  Dopewars_V0_GameStorePacked as GameStorePacked,
-  Dopewars_V0_SeasonSettings as SeasonSettings,
+  Dopewars_Game as Game,
+  Dopewars_GameConfig as GameConfig,
+  Dopewars_GameStorePacked as GameStorePacked,
+  Dopewars_SeasonSettings as SeasonSettings,
 } from "@/generated/graphql";
 import { Entities, Entity, Subscription, ToriiClient } from "@dojoengine/torii-client";
 import { action, flow, makeObservable, observable } from "mobx";

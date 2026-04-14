@@ -28,7 +28,7 @@ import { useEffect, useState } from "react";
 // import { RyoConfigTable } from "@/components/pages/admin/RyoConfigTable";
 import { Bag, Clock, CopsIcon, DollarBag, Flipflop, GangIcon, PaperIcon } from "@/components/icons";
 import { formatCash } from "@/utils/ui";
-import { Dopewars_V0_Game as Game, Dopewars_V0_GameEdge as GameEdge, useGetAllGamesQuery } from "@/generated/graphql";
+import { Dopewars_Game as Game, Dopewars_GameEdge as GameEdge, useGetAllGamesQuery } from "@/generated/graphql";
 import { shortString } from "starknet";
 
 const Admin = () => {
@@ -139,7 +139,7 @@ const RyoAddressCard = observer(() => {
     chains: { selectedChain },
   } = useDojoContext();
 
-  const laundromatAddress = getContractByName(selectedChain.manifest, DW_NS, "laundromat").address;
+  const laundromatAddress = getContractByName(selectedChain.manifest, DW_NS, "laundromat")?.address || "0x0";
 
   return (
     <Card p={1}>
@@ -478,7 +478,7 @@ const RyoTokenIdCard = observer(() => {
   const { configStore } = useDojoContext();
   const { config } = configStore;
 
-  const ryoAddress = getContractByName(selectedChain.manifest, DW_NS, "ryo").address;
+  const ryoAddress = getContractByName(selectedChain.manifest, DW_NS, "ryo")?.address || "0x0";
   const { setPaused, isPending, executeAndReceipt } = useSystems();
 
   const onToggleSeasonHustlers = async () => {

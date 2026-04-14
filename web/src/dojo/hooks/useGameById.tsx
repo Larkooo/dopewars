@@ -1,4 +1,4 @@
-import { Dopewars_V0_Game as Game, Dopewars_V0_GameEdge as GameEdge, useGameByIdQuery } from "@/generated/graphql";
+import { Dopewars_Game as Game, Dopewars_GameEdge as GameEdge, useGameByIdQuery } from "@/generated/graphql";
 import { useMemo } from "react";
 import { DW_GRAPHQL_MODEL_NS } from "../constants";
 

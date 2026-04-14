@@ -33,9 +33,9 @@ export default function Dope() {
 
   const addresses = useMemo(() => {
     return [
-      getContractByName(selectedChain.manifest, "dope", "DopeLoot")!.address,
-      getContractByName(selectedChain.manifest, "dope", "DopeHustlers")!.address,
-      getContractByName(selectedChain.manifest, "dope", "DopeGear")!.address,
+      getContractByName(selectedChain.manifest, "dope", "DopeLoot")?.address || "0x0",
+      getContractByName(selectedChain.manifest, "dope", "DopeHustlers")?.address || "0x0",
+      getContractByName(selectedChain.manifest, "dope", "DopeGear")?.address || "0x0",
     ];
   }, [selectedChain.manifest]);
 
@@ -48,12 +48,12 @@ export default function Dope() {
   // console.log(accountTokens)
 
   const { loot, hustlers, gear, gearAddress, gearCount } = useMemo(() => {
-    const gearAddress = getContractByName(selectedChain.manifest, "dope", "DopeGear")!.address;
+    const gearAddress = getContractByName(selectedChain.manifest, "dope", "DopeGear")?.address || "0x0";
     const loot = (accountTokens || []).filter(
-      (i) => i.contract_address === getContractByName(selectedChain.manifest, "dope", "DopeLoot")!.address,
+      (i) => i.contract_address === getContractByName(selectedChain.manifest, "dope", "DopeLoot")?.address || "0x0",
     );
     const hustlers = (accountTokens || []).filter(
-      (i) => i.contract_address === getContractByName(selectedChain.manifest, "dope", "DopeHustlers")!.address,
+      (i) => i.contract_address === getContractByName(selectedChain.manifest, "dope", "DopeHustlers")?.address || "0x0",
     );
     const gear = (accountTokens || []).filter((i) => i.contract_address === gearAddress);
 

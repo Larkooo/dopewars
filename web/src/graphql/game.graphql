@@ -1,5 +1,5 @@
 query GameById($gameId: u32) {
-  dopewarsV0GameModels(where: { game_id: $gameId }) {
+  dopewarsGameModels(where: { game_id: $gameId }) {
     edges {
       node {
         season_version
@@ -12,16 +12,9 @@ query GameById($gameId: u32) {
         game_over
         final_score
         registered
-        claimed
-        claimable
-        position
         multiplier
-        token_id {
-          option
-          GuestLootId
-          LootId
-          HustlerId
-        }
+        hustler_token_id
+        reward
         equipment_by_slot
       }
     }
@@ -29,7 +22,7 @@ query GameById($gameId: u32) {
 }
 
 query RegisteredGamesBySeason($version: u16) {
-  dopewarsV0GameModels(
+  dopewarsGameModels(
     limit: 9001
     where: { season_version: $version, registered: true }
     order: { field: FINAL_SCORE, direction: DESC }
@@ -42,19 +35,11 @@ query RegisteredGamesBySeason($version: u16) {
         player_name {
           value
         }
-
         final_score
         registered
-        claimed
-        claimable
-        position
         multiplier
-        token_id {
-          option
-          GuestLootId
-          LootId
-          HustlerId
-        }
+        hustler_token_id
+        reward
         equipment_by_slot
       }
     }
@@ -69,7 +54,7 @@ query GamesByPlayer($playerId: String) {
         keys
         models {
           __typename
-          ... on dopewars_v0_Game {
+          ... on dopewars_Game {
             game_id
             player_id
             season_version
@@ -81,18 +66,11 @@ query GamesByPlayer($playerId: String) {
             game_over
             final_score
             registered
-            claimed
-            claimable
-            position
-            token_id {
-              option
-              GuestLootId
-              LootId
-              HustlerId
-            }
+            hustler_token_id
+            reward
             equipment_by_slot
           }
-          ... on dopewars_v0_GameStorePacked {
+          ... on dopewars_GameStorePacked {
             game_id
             player_id
             packed
@@ -111,7 +89,7 @@ query GameStorePacked($gameId: String!, $playerId: String!) {
         id
         models {
           __typename
-          ... on dopewars_v0_GameStorePacked {
+          ... on dopewars_GameStorePacked {
             game_id
             player_id
             packed
@@ -128,7 +106,7 @@ subscription GameStorePackedSubscription($id: ID) {
     keys
     models {
       __typename
-      ... on dopewars_v0_GameStorePacked {
+      ... on dopewars_GameStorePacked {
         game_id
         player_id
         packed
@@ -174,20 +152,20 @@ query TradedDrugByPlayer($tradeDrugSelector: String, $playerId: String) {
 }
 
 query GetAllGames {
-  dopewarsV0GameModels(limit: 9001) {
+  dopewarsGameModels(limit: 9001) {
     edges {
       node {
         game_id
         player_id
         season_version
-        position
         player_name {
           value
         }
         final_score
-        claimable
-        claimed
+        registered
         multiplier
+        hustler_token_id
+        reward
       }
     }
   }

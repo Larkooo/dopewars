@@ -80,11 +80,11 @@ const snSepolia: DojoChainConfig = {
   name: "SEPOLIA",
   chainConfig: sepolia,
   rpcUrl: "https://api.cartridge.gg/x/starknet/sepolia",
-  toriiUrl: "https://api.cartridge.gg/x/ryosepolia2/torii/graphql",
-  toriiWsUrl: "wss://api.cartridge.gg/x/ryosepolia2/torii/graphql/ws",
-  manifest: mergeManifests(manifestSepolia, [manifestDopeSepolia]),
-  slot: "ryosepolia2",
-  paperAddress: manifestSepolia.contracts.find((i) => i.tag === `${DW_NS}-paper_mock`)?.address || "0x0",
+  toriiUrl: "https://api.cartridge.gg/x/dopewars-v2-sepolia/torii/graphql",
+  toriiWsUrl: "wss://api.cartridge.gg/x/dopewars-v2-sepolia/torii/graphql/ws",
+  manifest: manifestSepolia,
+  slot: "dopewars-v2-sepolia",
+  paperAddress: manifestSepolia.contracts.find((i) => i.tag === `${DW_NS}-paper`)?.address || "0x0",
   vrfProviderAddress: VRF_PROVIDER_SEPOLIA,
   vrfProviderSecret: undefined,
   namespace: DW_NS,
@@ -106,9 +106,9 @@ const snMainnet: DojoChainConfig = {
 
 // keys must match chain.id
 export const dojoContextConfig = {
-  SN_MAIN: snMainnet,
+  // SN_MAIN: snMainnet,
   // KATANA: katanaLocal,
-  // SN_SEPOLIA: snSepolia,
+  SN_SEPOLIA: snSepolia,
   // WP_DOPEWARS: katanaSlotDopewars,
 };
 

@@ -1,4 +1,4 @@
-import { Dopewars_V0_Game as Game } from "@/generated/graphql";
+import { Dopewars_Game as Game } from "@/generated/graphql";
 import { useMemo } from "react";
 import { useSql } from "./useSql";
 import { shortString } from "starknet";
@@ -13,7 +13,6 @@ interface ActiveGamesBySeasonInterface {
   refetch: () => Promise<void>;
 }
 
-// Join Game table with GameStorePacked to get the packed data for cash extraction
 const sqlQuery = (season_version: string) => `SELECT g.season_version,
 g.game_id,
 g.player_id,
@@ -21,14 +20,9 @@ g."player_name.value",
 g.final_score,
 g.registered,
 g.game_over,
-g.claimed,
-g.claimable,
-g.position,
 g.multiplier,
-g.token_id,
-g."token_id.guestlootid",
-g."token_id.lootid",
-g."token_id.hustlerid",
+g.hustler_token_id,
+g.reward,
 gsp.packed
 FROM "${DW_NS}-Game" g
 LEFT JOIN "${DW_NS}-GameStorePacked" gsp ON g.game_id = gsp.game_id
@@ -41,20 +35,16 @@ export const useActiveGamesBySeason = (version: number): ActiveGamesBySeasonInte
   const { configStore } = useDojoContext();
 
   const activeGames = useMemo(() => {
-    // Get the player layout for cash extraction
     const cashLayout = configStore?.getPlayerLayoutItem?.("Cash");
     const playerLayout = configStore?.getGameStoreLayoutItem?.("Player");
 
     const games = (data || []).map((i: any) => {
       let currentCash = 0;
 
-      // Extract cash from packed data if available
       if (i.packed && cashLayout && playerLayout) {
         try {
           const packed = BigInt(i.packed);
-          // First extract the player bits from GameStorePacked
           const playerPacked = Bits.extract(packed, playerLayout.idx, playerLayout.bits);
-          // Then extract cash from player bits
           currentCash = Number(Bits.extract(playerPacked, cashLayout.idx, cashLayout.bits));
         } catch (e) {
           console.error("Failed to extract cash from packed data:", e);
@@ -66,9 +56,7 @@ export const useActiveGamesBySeason = (version: number): ActiveGamesBySeasonInte
         player_name: i["player_name.value"]
           ? shortString.decodeShortString(BigInt(i["player_name.value"]).toString())
           : "Anonymous",
-        token_id_type: i.token_id,
-        token_id: Number(i[`token_id.${i.token_id}`]),
-        // Use extracted cash for active games, fall back to final_score (0) if extraction fails
+        hustler_token_id: Number(i.hustler_token_id || 0),
         final_score: currentCash || i.final_score,
       };
     });

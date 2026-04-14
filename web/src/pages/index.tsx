@@ -44,8 +44,7 @@ export default function Home() {
 
   const [isTutorialOpen, setIsTutorialOpen] = useState(false);
 
-  const onHustle = async (gameMode: GameMode) => {
-    const mode = gameModeName[gameMode];
+  const onHustle = async () => {
     if (!account) {
       if (connectors.length > 1) {
         uiStore.openConnectModal();
@@ -53,13 +52,13 @@ export default function Home() {
         connect({ connector: connectors[0] });
 
         if (connectors[0].id !== "controller") {
-          router.push(`/game/${mode}`);
+          router.push("/game/new");
         }
       }
     }
 
     if (account) {
-      router.push(`/game/${mode}`);
+      router.push("/game/new");
     }
   };
 
@@ -93,65 +92,13 @@ export default function Home() {
                 </VStack>
               </HStack>
             )}
-            {/* {!isPaused && isSeasonOpen && canCreateGame && (
-              <Button flex="1" onClick={() => onHustle(GameMode.Noob)}>
-                <Flipflop /> Play guest
-              </Button>
-            )} */}
-            {!isPaused && isSeasonOpen && canCreateGame && (
-              <Button flex="1" onClick={() => onHustle(GameMode.Ranked)}>
+            {/* v2: always show Play Now — no season gating, no laundromat */}
+            {!isPaused && (
+              <Button flex="1" onClick={() => onHustle()}>
                 <Glock /> Play Now
               </Button>
             )}
 
-            {!isPaused && isSeasonOpen && !canCreateGame && (
-              <HStack w="full" color="yellow.400" justifyContent="center" gap={3}>
-                {/* <Button flex="1" onClick={() => onHustle(GameMode.Noob)}>
-                  <Flipflop /> Play guest
-                </Button> */}
-
-                <HStack flex="1" h="full" alignItems="center" justifyContent="center">
-                  <Warning color="yellow.400" />
-                  <Text>Waiting for season end</Text>
-                </HStack>
-              </HStack>
-            )}
-
-            {!isPaused && !isSeasonOpen && !isSeasonWashed && (
-              <HStack w="full">
-                <LaundromatIcon isWashing={isPending} />
-
-                <VStack h="full">
-                  <Text fontSize={["12px", "14px"]}>
-                    Last season results need to be washed. Confirm a transaction and earn{" "}
-                    <PaperIcon color="yellow.400" mr={1} />
-                    <span style={{ color: colors.yellow["400"].toString() }}>
-                      {config?.ryo.paper_reward_launderer} PAPER
-                    </span>
-                    !
-                  </Text>
-                  <Button w="full" isLoading={isPending} onClick={onLaunder}>
-                    <HStack w="full" justifyContent="center">
-                      <Text>Launder results</Text>
-                    </HStack>
-                  </Button>
-
-                  {/* <VStack w="full" position="relative">
-                    <Progress
-                      w="full"
-                      colorScheme="neon"
-                      isIndeterminate={progressPercent === 0}
-                      value={progressPercent}
-                      max={100}
-                      h="22px"
-                    />
-                    <Text position="absolute" w="full" textAlign="center">
-                      {progressPercent}%
-                    </Text>
-                  </VStack> */}
-                </VStack>
-              </HStack>
-            )}
           </HStack>
         </Card>
         <Leaderboard config={config} />

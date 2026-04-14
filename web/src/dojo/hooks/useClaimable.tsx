@@ -1,28 +1,25 @@
-import { Dopewars_V0_Game as Game, World__ModelEdge, useClaimableQuery } from "@/generated/graphql";
+import { Dopewars_Game as Game } from "@/generated/graphql";
 import { useEffect, useMemo } from "react";
 import { useDojoContext } from "./useDojoContext";
 import { useSql } from "./useSql";
 import { addAddressPadding, shortString } from "starknet";
 import { DW_NS } from "../constants";
-import { useSeasons } from "./useSeasons";
 
 type ClaimableResult = ReturnType<typeof useClaimable>;
 
+// v2: no claimable/claimed/position — reward is minted on register_score
 const sqlQuery = (playerId: string) => `SELECT season_version,
 game_id,
 player_id,
 "player_name.value",
 final_score,
-claimable,
-claimed,
-position,
-token_id,
-"token_id.guestlootid",
-"token_id.lootid",
-"token_id.hustlerid"
-FROM "${DW_NS}-Game" 
-WHERE player_id = "${addAddressPadding(playerId)}" AND claimed = false AND claimable > 0
-ORDER BY position ASC
+registered,
+multiplier,
+hustler_token_id,
+reward
+FROM "${DW_NS}-Game"
+WHERE player_id = "${addAddressPadding(playerId)}" AND registered = true AND reward > 0
+ORDER BY final_score DESC
 LIMIT 1000;`;
 
 export const useClaimable = (playerId: string) => {
@@ -47,9 +44,10 @@ export const useClaimable = (playerId: string) => {
     return (data || []).map((i: any) => {
       return {
         ...i,
-        player_name: shortString.decodeShortString(BigInt(i["player_name.value"]).toString()),
-        token_id_type: i.token_id,
-        token_id: Number(i[`token_id.${i.token_id}`]),
+        player_name: i["player_name.value"]
+          ? shortString.decodeShortString(BigInt(i["player_name.value"]).toString())
+          : "Anonymous",
+        hustler_token_id: Number(i.hustler_token_id || 0),
       };
     });
   }, [data, isFetching]);

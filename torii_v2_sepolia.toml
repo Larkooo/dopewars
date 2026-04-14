@@ -1,0 +1,36 @@
+world_address = "0x0124642dbf23403fdd2dd5daff592f1529d5d5e88115c5b04012dfd1d7260961"
+rpc = "https://api.cartridge.gg/x/starknet/sepolia"
+
+[server]
+http_cors_origins = ["*"]
+
+[grpc]
+optimistic = true
+
+[indexing]
+world_block = 0
+controllers = false
+pending = true
+pre_confirmed = true
+polling_interval = 250
+namespaces = ["dopewars"]
+contracts = []
+
+[sql]
+historical = [
+    "dopewars-GameCreated",
+    "dopewars-Traveled",
+    "dopewars-GameOver",
+    "dopewars-TradeDrug",
+    "dopewars-HighVolatility",
+    "dopewars-UpgradeItem",
+    "dopewars-TravelEncounter",
+    "dopewars-TravelEncounterResult",
+    "dopewars-NewHighScore",
+    "dopewars-BundleIssued",
+    "dopewars-TrophyCreation",
+    "dopewars-TrophyProgression",
+]
+
+[erc]
+metadata_updates = true

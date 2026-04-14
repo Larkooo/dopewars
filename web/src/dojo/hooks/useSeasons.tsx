@@ -1,10 +1,10 @@
 import {
-  Dopewars_V0_Season as Season,
-  Dopewars_V0_SeasonEdge as SeasonEdge,
-  Dopewars_V0_SeasonSettings as SeasonSettings,
-  Dopewars_V0_SeasonSettingsEdge as SeasonSettingsEdge,
-  Dopewars_V0_SortedList as SortedList,
-  Dopewars_V0_SortedListEdge as SortedListEdge,
+  Dopewars_Season as Season,
+  Dopewars_SeasonEdge as SeasonEdge,
+  Dopewars_SeasonSettings as SeasonSettings,
+  Dopewars_SeasonSettingsEdge as SeasonSettingsEdge,
+  Dopewars_SortedList as SortedList,
+  Dopewars_SortedListEdge as SortedListEdge,
   useSeasonsQuery,
 } from "@/generated/graphql";
 import { useEffect, useMemo, useState } from "react";

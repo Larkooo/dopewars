@@ -6,7 +6,7 @@ keystore_path = "../keystore.json"
 
 [world]
 name = "Dope Wars V2"
-seed = "dopeseed_v2"
+seed = "dopeseed_v3"
 description = "Dope Wars V2 — fresh world with starterpacks, daily marketplace, and native hustler NFTs."
 
 [namespace]
@@ -45,7 +45,7 @@ order_inits = [
 # purchase.dojo_init — writes PaymentConfig + registers 4 bundles.
 # Ekubo addresses from nums sepolia. pool_sqrt auto-computed from token ordering.
 "dopewars-purchase" = [
-    "0x0",                                                                # usdc — 0x0 = use paper_mock via dns as USDC stand-in
+    "0x053b40a647cedfca6ca84f542a0fe36736031905a9639a7f19a3c1e66bfd5080", # usdc (sepolia USDC)
     "0x050d4da9f66589eadaa1d5e31cf73b08ac1a67c8b4dcd88e6fd4fe501c628af2", # ekubo_router (sepolia)
     "0x06a2aee84bb0ed5dded4384ddd0e40e9c1372b818668375ab8e3ec08807417e5", # ekubo_positions (sepolia)
     "0xccccccccccccccccccccccccccccccc",                                   # pool_fee (0.3%)
@@ -73,7 +73,7 @@ order_inits = [
 #
 # token events
 #
-"dopewars-ERC20BalanceEvent" = ["dopewars-paper"]
+"dopewars-ERC20BalanceEvent" = ["dopewars-paper", "dopewars-paper_mock"]
 
 #
 # config models
